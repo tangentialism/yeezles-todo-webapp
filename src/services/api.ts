@@ -1,100 +1,12 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import axios from 'axios';
-
-// Type definitions for the API
-interface Todo {
-  id: number;
-  title: string;
-  description: string;
-  completed: boolean;
-  due_date: string | null;
-  created_at: string;
-  updated_at: string;
-  completed_at: string | null;
-}
-
-interface Tag {
-  id: number;
-  name: string;
-  usage_count: number;
-  created_at: string;
-  last_used: string;
-}
-
-interface TodoWithHtml extends Todo {
-  tags?: Tag[];
-  title_html: string;
-  description_html: string;
-  cross_references: {
-    incoming: Array<{ id: number; title: string }>;
-    outgoing: Array<{ id: number; title: string }>;
-  };
-  link_processing: {
-    title: {
-      references: number[];
-      broken_references: number[];
-    };
-    description: {
-      references: number[];
-      broken_references: number[];
-    };
-  };
-}
-
-interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  message?: string;
-  count?: number;
-  html_processed?: boolean;
-}
-
-interface TodayView {
-  focus: {
-    today_tagged: Todo[];
-    due_today: Todo[];
-    overdue: Todo[];
-    total_today: number;
-    total_focus: number;
-  };
-  upcoming: {
-    coming_soon: Todo[];
-    total_coming_soon: number;
-  };
-  summary: {
-    total_today_items: number;
-    total_overdue: number;
-    total_coming_soon: number;
-    total_focus_items: number;
-    needs_attention: boolean;
-  };
-}
-
-interface TodoFilters {
-  completed?: boolean;
-  tags?: string[];
-  tag_mode?: 'AND' | 'OR';
-  due_date_from?: string;
-  due_date_to?: string;
-  search?: string;
-  sort_by?: 'created_at' | 'updated_at' | 'due_date' | 'completed_at';
-  sort_order?: 'ASC' | 'DESC';
-  limit?: number;
-  html?: boolean;
-}
-
-interface CreateTodoRequest {
-  title: string;
-  description?: string;
-  due_date?: string;
-}
-
-interface UpdateTodoRequest {
-  title?: string;
-  description?: string;
-  completed?: boolean;
-  due_date?: string;
-}
+import type { 
+  Todo, 
+  ApiResponse, 
+  TodayView, 
+  TodoFilters, 
+  CreateTodoRequest, 
+  UpdateTodoRequest 
+} from '../types/todo';
 
 class TodoApi {
   private api: any;
@@ -135,7 +47,7 @@ class TodoApi {
   }
 
   // Get all todos with filtering
-  async getTodos(filters: any = {}): Promise<any> {
+  async getTodos(filters: TodoFilters = {}): Promise<ApiResponse<Todo[]>> {
     const params = new URLSearchParams();
     
     if (filters.completed !== undefined) params.append('completed', filters.completed.toString());
@@ -154,28 +66,28 @@ class TodoApi {
   }
 
   // Get single todo
-  async getTodo(id: number, html: boolean = false): Promise<any> {
+  async getTodo(id: number, html: boolean = false): Promise<ApiResponse<Todo>> {
     const params = html ? '?html=true' : '';
     const response = await this.api.get(`/todos/${id}${params}`);
     return response.data;
   }
 
   // Create new todo
-  async createTodo(todo: any, html: boolean = false): Promise<any> {
+  async createTodo(todo: CreateTodoRequest, html: boolean = false): Promise<ApiResponse<Todo>> {
     const params = html ? '?html=true' : '';
     const response = await this.api.post(`/todos${params}`, todo);
     return response.data;
   }
 
   // Update todo
-  async updateTodo(id: number, updates: any, html: boolean = false): Promise<any> {
+  async updateTodo(id: number, updates: UpdateTodoRequest, html: boolean = false): Promise<ApiResponse<Todo>> {
     const params = html ? '?html=true' : '';
     const response = await this.api.put(`/todos/${id}${params}`, updates);
     return response.data;
   }
 
   // Delete todo
-  async deleteTodo(id: number): Promise<any> {
+  async deleteTodo(id: number): Promise<ApiResponse<void>> {
     const response = await this.api.delete(`/todos/${id}`);
     return response.data;
   }
@@ -185,7 +97,7 @@ class TodoApi {
     includeDueToday: boolean = true,
     daysAhead?: number,
     html: boolean = false
-  ): Promise<any> {
+  ): Promise<ApiResponse<TodayView>> {
     const params = new URLSearchParams();
     params.append('include_due_today', includeDueToday.toString());
     if (daysAhead !== undefined) params.append('days_ahead', daysAhead.toString());

@@ -3,17 +3,7 @@ import { todoApi } from '../services/api';
 import TodayView from './TodayView';
 import EditTodoModal from './EditTodoModal';
 import TodoActions from './TodoActions';
-
-interface Todo {
-  id: number;
-  title: string;
-  description: string;
-  completed: boolean;
-  due_date: string | null;
-  created_at: string;
-  updated_at: string;
-  completed_at: string | null;
-}
+import type { Todo } from '../types/todo';
 
 interface TodoListProps {
   view: string;

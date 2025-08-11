@@ -2,41 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { todoApi } from '../services/api';
 import EditTodoModal from './EditTodoModal';
 import TodoActions from './TodoActions';
-
-interface Todo {
-  id: number;
-  title: string;
-  description: string;
-  completed: boolean;
-  due_date: string | null;
-  created_at: string;
-  updated_at: string;
-  completed_at: string | null;
-}
-
-interface TodayData {
-  focus: {
-    today_tagged: Todo[];
-    due_today: Todo[];
-    overdue: Todo[];
-    total_today: number;
-    total_focus: number;
-  };
-  upcoming: {
-    coming_soon: Todo[];
-    total_coming_soon: number;
-  };
-  summary: {
-    total_today_items: number;
-    total_overdue: number;
-    total_coming_soon: number;
-    total_focus_items: number;
-    needs_attention: boolean;
-  };
-}
+import type { Todo, TodayView as TodayViewData } from '../types/todo';
 
 const TodayView: React.FC = () => {
-  const [todayData, setTodayData] = useState<TodayData | null>(null);
+  const [todayData, setTodayData] = useState<TodayViewData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
