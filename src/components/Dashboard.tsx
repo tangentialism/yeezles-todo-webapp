@@ -63,15 +63,17 @@ const Dashboard: React.FC = () => {
       {/* Main content */}
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
-          {/* API Status - only show if there's an issue */}
-          <div className="mb-6">
-            <ApiStatus />
-          </div>
-
           {/* Todo List */}
           <TodoList key={todoListKey} view={currentView} />
         </div>
       </main>
+
+      {/* API Status at bottom */}
+      <footer className="border-t border-gray-200 bg-white">
+        <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
+          <ApiStatus />
+        </div>
+      </footer>
 
       {/* Add Todo Modal */}
       <AddTodoModal

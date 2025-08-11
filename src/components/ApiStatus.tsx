@@ -43,10 +43,10 @@ const ApiStatus: React.FC = () => {
   };
 
   return (
-    <div className={`p-4 border rounded-lg ${getStatusColor()}`}>
-      <div className="flex items-center space-x-2 mb-2">
-        <span className="text-lg">{getStatusIcon()}</span>
-        <h3 className="font-semibold">API Status</h3>
+    <div className={`p-3 border rounded-lg ${getStatusColor()}`}>
+      <div className="flex items-center space-x-2 mb-1">
+        <span className="text-sm">{getStatusIcon()}</span>
+        <h3 className="font-medium text-sm">API Status</h3>
       </div>
       
       {status === 'loading' && (

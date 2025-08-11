@@ -22,7 +22,7 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
       const todoData: any = {
         title: title.trim(),
         description: description.trim() || undefined,
-        due_date: dueDate || undefined,
+        due_date: dueDate ? new Date(dueDate).toISOString() : undefined,
       };
 
       const response = await todoApi.createTodo(todoData);

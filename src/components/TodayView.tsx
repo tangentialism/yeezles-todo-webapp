@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { todoApi } from '../services/api';
+import EditTodoModal from './EditTodoModal';
+import TodoActions from './TodoActions';
 
 interface Todo {
   id: number;
@@ -37,6 +39,8 @@ const TodayView: React.FC = () => {
   const [todayData, setTodayData] = useState<TodayData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   useEffect(() => {
     loadTodayData();
@@ -71,6 +75,20 @@ const TodayView: React.FC = () => {
     }
   };
 
+  const handleEditTodo = (todo: Todo) => {
+    setEditingTodo(todo);
+    setIsEditModalOpen(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
+    setEditingTodo(null);
+  };
+
+  const handleTodoUpdated = () => {
+    loadTodayData(); // Refresh the today view
+  };
+
   const extractTags = (title: string) => {
     const tagRegex = /@(\w+(?:-\w+)*)/g;
     const tags = [];
@@ -83,7 +101,14 @@ const TodayView: React.FC = () => {
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return '';
-    return new Date(dateString).toLocaleDateString();
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   const TodoCard: React.FC<{ todo: Todo; priority?: string }> = ({ todo, priority }) => {
@@ -151,6 +176,13 @@ const TodayView: React.FC = () => {
               </div>
             )}
           </div>
+
+          {/* Actions Dropdown */}
+          <TodoActions
+            todo={todo}
+            onEdit={handleEditTodo}
+            onUpdate={handleTodoUpdated}
+          />
         </div>
       </div>
     );
@@ -308,6 +340,14 @@ const TodayView: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Edit Todo Modal */}
+      <EditTodoModal
+        todo={editingTodo}
+        isOpen={isEditModalOpen}
+        onClose={handleCloseEditModal}
+        onTodoUpdated={handleTodoUpdated}
+      />
     </div>
   );
 };

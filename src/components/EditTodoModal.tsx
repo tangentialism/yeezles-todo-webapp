@@ -54,7 +54,7 @@ const EditTodoModal: React.FC<EditTodoModalProps> = ({ todo, isOpen, onClose, on
         title: title.trim(),
         description: description.trim() || undefined,
         completed,
-        due_date: dueDate || undefined,
+        due_date: dueDate ? new Date(dueDate).toISOString() : undefined,
       };
 
       const response = await todoApi.updateTodo(todo.id, updateData);
