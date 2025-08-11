@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { todoApi } from '../services/api';
+import { useTodoCompletion } from '../hooks/useTodoCompletion';
 import EditTodoModal from './EditTodoModal';
 import TodoActions from './TodoActions';
 import type { Todo, TodayView as TodayViewData } from '../types/todo';
@@ -10,10 +11,6 @@ const TodayView: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-
-  useEffect(() => {
-    loadTodayData();
-  }, []);
 
   const loadTodayData = async () => {
     try {
@@ -33,15 +30,18 @@ const TodayView: React.FC = () => {
     }
   };
 
-  const toggleTodo = async (id: number, completed: boolean) => {
-    try {
-      const response = await todoApi.updateTodo(id, { completed: !completed });
-      if (response.success) {
-        loadTodayData(); // Refresh today view
-      }
-    } catch (err) {
-      console.error('Error updating todo:', err);
-    }
+  // Todo completion with undo functionality
+  const { toggleTodoCompletion, getTodoDisplayState } = useTodoCompletion({
+    onUpdate: loadTodayData
+  });
+
+  useEffect(() => {
+    loadTodayData();
+  }, []);
+
+  // Legacy function - now using useTodoCompletion hook
+  const toggleTodo = (todo: Todo) => {
+    toggleTodoCompletion(todo);
   };
 
   const handleEditTodo = (todo: Todo) => {
@@ -82,36 +82,48 @@ const TodayView: React.FC = () => {
 
   const TodoCard: React.FC<{ todo: Todo; priority?: string }> = ({ todo, priority }) => {
     const tags = extractTags(todo.title);
+    const displayState = getTodoDisplayState(todo);
+    const isCompleted = displayState.completed;
+    const isPending = displayState.isPending;
     
     return (
-      <div className={`bg-white border-l-4 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow ${
+      <div className={`bg-white border-l-4 rounded-lg p-4 shadow-sm hover:shadow-md transition-all duration-200 ${
         priority === 'overdue' ? 'border-red-500 bg-red-50' :
         priority === 'due-today' ? 'border-orange-500 bg-orange-50' :
         priority === 'today-tagged' ? 'border-blue-500 bg-blue-50' :
         'border-gray-200'
-      }`}>
+      } ${isPending ? 'ring-2 ring-blue-200 ring-opacity-50 opacity-60' : ''}`}>
         <div className="flex items-start space-x-2 sm:space-x-3">
           <button
-            onClick={() => toggleTodo(todo.id, todo.completed)}
-            className={`mt-1 w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${
-              todo.completed
+            onClick={() => toggleTodo(todo)}
+            className={`mt-1 w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
+              isCompleted
                 ? 'bg-green-500 border-green-500 text-white'
                 : 'border-gray-300 hover:border-gray-400'
-            }`}
+            } ${isPending ? 'shadow-lg scale-105 animate-pulse' : ''}`}
           >
-            {todo.completed && <span className="text-xs">✓</span>}
+            {isCompleted && (
+              <span className={`text-xs transition-all duration-200 ${isPending ? 'animate-pulse' : ''}`}>
+                ✓
+              </span>
+            )}
           </button>
 
           <div className="flex-1 min-w-0">
-            <h4 className={`text-sm sm:text-base font-medium ${
-              todo.completed ? 'line-through text-gray-500' : 'text-gray-900'
+            <h4 className={`text-sm sm:text-base font-medium transition-all duration-200 ${
+              isCompleted ? 'line-through text-gray-500' : 'text-gray-900'
             }`}>
               {todo.title}
+              {isPending && (
+                <span className="ml-2 text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full animate-pulse">
+                  Click again to cancel
+                </span>
+              )}
             </h4>
             
             {todo.description && (
-              <p className={`mt-1 text-sm ${
-                todo.completed ? 'text-gray-400' : 'text-gray-600'
+              <p className={`mt-1 text-sm transition-all duration-200 ${
+                isCompleted ? 'text-gray-400' : 'text-gray-600'
               }`}>
                 {todo.description}
               </p>
