@@ -121,10 +121,10 @@ const TodayView: React.FC = () => {
         priority === 'today-tagged' ? 'border-blue-500 bg-blue-50' :
         'border-gray-200'
       }`}>
-        <div className="flex items-start space-x-3">
+        <div className="flex items-start space-x-2 sm:space-x-3">
           <button
             onClick={() => toggleTodo(todo.id, todo.completed)}
-            className={`mt-1 w-5 h-5 rounded border-2 flex items-center justify-center ${
+            className={`mt-1 w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${
               todo.completed
                 ? 'bg-green-500 border-green-500 text-white'
                 : 'border-gray-300 hover:border-gray-400'
@@ -134,7 +134,7 @@ const TodayView: React.FC = () => {
           </button>
 
           <div className="flex-1 min-w-0">
-            <h4 className={`font-medium ${
+            <h4 className={`text-sm sm:text-base font-medium ${
               todo.completed ? 'line-through text-gray-500' : 'text-gray-900'
             }`}>
               {todo.title}
@@ -221,44 +221,44 @@ const TodayView: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg p-4 border border-gray-200">
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+        <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200">
           <div className="flex items-center">
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600">Focus Items</p>
-              <p className="text-2xl font-bold text-indigo-600">{summary.total_focus_items}</p>
+              <p className="text-xs sm:text-sm font-medium text-gray-600">Focus Items</p>
+              <p className="text-xl sm:text-2xl font-bold text-indigo-600">{summary.total_focus_items}</p>
             </div>
-            <div className="text-2xl">🎯</div>
+            <div className="text-xl sm:text-2xl">🎯</div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg p-4 border border-gray-200">
+        <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200">
           <div className="flex items-center">
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600">Due Today</p>
-              <p className="text-2xl font-bold text-orange-600">{focus.due_today.length}</p>
+              <p className="text-xs sm:text-sm font-medium text-gray-600">Due Today</p>
+              <p className="text-xl sm:text-2xl font-bold text-orange-600">{focus.due_today.length}</p>
             </div>
-            <div className="text-2xl">📅</div>
+            <div className="text-xl sm:text-2xl">📅</div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg p-4 border border-gray-200">
+        <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200">
           <div className="flex items-center">
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600">Overdue</p>
-              <p className="text-2xl font-bold text-red-600">{summary.total_overdue}</p>
+              <p className="text-xs sm:text-sm font-medium text-gray-600">Overdue</p>
+              <p className="text-xl sm:text-2xl font-bold text-red-600">{summary.total_overdue}</p>
             </div>
-            <div className="text-2xl">⚠️</div>
+            <div className="text-xl sm:text-2xl">⚠️</div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg p-4 border border-gray-200">
+        <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200">
           <div className="flex items-center">
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600">Coming Soon</p>
-              <p className="text-2xl font-bold text-blue-600">{summary.total_coming_soon}</p>
+              <p className="text-xs sm:text-sm font-medium text-gray-600">Coming Soon</p>
+              <p className="text-xl sm:text-2xl font-bold text-blue-600">{summary.total_coming_soon}</p>
             </div>
-            <div className="text-2xl">📋</div>
+            <div className="text-xl sm:text-2xl">📋</div>
           </div>
         </div>
       </div>

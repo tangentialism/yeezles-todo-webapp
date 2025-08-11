@@ -167,10 +167,10 @@ const TodoList: React.FC<TodoListProps> = ({ view }) => {
                 todo.completed ? 'bg-gray-50' : ''
               }`}
             >
-              <div className="flex items-start space-x-3">
+              <div className="flex items-start space-x-2 sm:space-x-3">
                 <button
                   onClick={() => toggleTodo(todo.id, todo.completed)}
-                  className={`mt-1 w-5 h-5 rounded border-2 flex items-center justify-center ${
+                  className={`mt-1 w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${
                     todo.completed
                       ? 'bg-green-500 border-green-500 text-white'
                       : 'border-gray-300 hover:border-gray-400'
@@ -181,7 +181,7 @@ const TodoList: React.FC<TodoListProps> = ({ view }) => {
 
                 <div className="flex-1 min-w-0">
                   <h3
-                    className={`text-lg font-medium ${
+                    className={`text-base sm:text-lg font-medium ${
                       todo.completed ? 'line-through text-gray-500' : 'text-gray-900'
                     }`}
                   >
