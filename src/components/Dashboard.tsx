@@ -1,9 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import ApiStatus from './ApiStatus';
+import Navigation from './Navigation';
+import TodoList from './TodoList';
+import AddTodoModal from './AddTodoModal';
 
 const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
+  const [currentView, setCurrentView] = useState('all');
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [todoListKey, setTodoListKey] = useState(0); // For forcing TodoList refresh
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -16,6 +22,16 @@ const Dashboard: React.FC = () => {
             </div>
             
             <div className="flex items-center space-x-4">
+              <button
+                onClick={() => setIsAddModalOpen(true)}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Add Todo
+              </button>
+
               <div className="flex items-center space-x-3">
                 {user?.picture && (
                   <img
@@ -41,34 +57,30 @@ const Dashboard: React.FC = () => {
         </div>
       </header>
 
+      {/* Navigation */}
+      <Navigation currentView={currentView} onViewChange={setCurrentView} />
+
       {/* Main content */}
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
-          <div className="border-4 border-dashed border-gray-200 rounded-lg h-96 flex items-center justify-center">
-            <div className="text-center">
-              <h2 className="text-2xl font-medium text-gray-900 mb-4">
-                Welcome to Yeezles Todo!
-              </h2>
-              <p className="text-gray-600 mb-8">
-                Your personal todo management system is ready.
-              </p>
-              <div className="space-y-4">
-                <ApiStatus />
-                
-                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Coming Soon</h3>
-                  <ul className="text-sm text-gray-600 space-y-1">
-                    <li>• Todo list with CRUD operations</li>
-                    <li>• Today view with smart categorization</li>
-                    <li>• Cross-reference navigation</li>
-                    <li>• Tag filtering and search</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
+          {/* API Status - only show if there's an issue */}
+          <div className="mb-6">
+            <ApiStatus />
           </div>
+
+          {/* Todo List */}
+          <TodoList key={todoListKey} view={currentView} />
         </div>
       </main>
+
+      {/* Add Todo Modal */}
+      <AddTodoModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onTodoAdded={() => {
+          setTodoListKey(prev => prev + 1); // Force TodoList to refresh
+        }}
+      />
     </div>
   );
 };

@@ -1,5 +1,22 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { AuthState, User, GoogleCredentialResponse } from '../types/auth';
+
+interface User {
+  id: string;
+  email: string;
+  name: string;
+  picture?: string;
+}
+
+interface AuthState {
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+}
+
+interface GoogleCredentialResponse {
+  credential: string;
+  select_by: string;
+}
 
 interface AuthContextType extends AuthState {
   login: (credentialResponse: GoogleCredentialResponse) => Promise<void>;
@@ -56,6 +73,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (storedUser) {
       try {
         const user = JSON.parse(storedUser);
+        
+        // Security: Validate stored user email
+        if (user.email !== 'tangentialism@gmail.com') {
+          console.warn('Invalid stored user email:', user.email);
+          localStorage.removeItem('user');
+          setAuthState(prev => ({ ...prev, isLoading: false }));
+          return;
+        }
+
         setAuthState({
           user,
           isAuthenticated: true,
@@ -76,6 +102,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Decode JWT token to get user info
       const payload = JSON.parse(atob(response.credential.split('.')[1]));
       
+      // Security: Only allow tangentialism@gmail.com
+      if (payload.email !== 'tangentialism@gmail.com') {
+        console.warn('Unauthorized access attempt:', payload.email);
+        setAuthState({
+          user: null,
+          isAuthenticated: false,
+          isLoading: false,
+        });
+        alert('Access denied. This application is restricted to authorized users only.');
+        return;
+      }
+
       const user: User = {
         id: payload.sub,
         email: payload.email,

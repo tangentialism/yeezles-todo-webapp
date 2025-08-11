@@ -24,8 +24,11 @@ const LoginButton: React.FC = () => {
       <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full mx-4">
         <div className="text-center mb-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Yeezles Todo</h1>
-          <p className="text-gray-600">
-            Sign in with your Google account to access your todos
+          <p className="text-gray-600 mb-2">
+            Sign in with your authorized Google account
+          </p>
+          <p className="text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded-md">
+            🔒 Access restricted to authorized users only
           </p>
         </div>
         
