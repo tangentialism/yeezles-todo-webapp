@@ -1,0 +1,144 @@
+import axios, { AxiosInstance, AxiosResponse } from 'axios';
+import { 
+  Todo, 
+  TodoWithHtml, 
+  ApiResponse, 
+  TodayView, 
+  TodoFilters, 
+  CreateTodoRequest, 
+  UpdateTodoRequest 
+} from '../types/todo';
+
+class TodoApi {
+  private api: AxiosInstance;
+
+  constructor(baseURL: string = 'http://localhost:3000') {
+    this.api = axios.create({
+      baseURL,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    // Add request interceptor for error handling
+    this.api.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        console.error('API Error:', error);
+        throw error;
+      }
+    );
+  }
+
+  // Health check
+  async healthCheck(): Promise<ApiResponse<any>> {
+    const response: AxiosResponse<ApiResponse<any>> = await this.api.get('/health');
+    return response.data;
+  }
+
+  // Get all todos with filtering
+  async getTodos(filters: TodoFilters = {}): Promise<ApiResponse<Todo[] | TodoWithHtml[]>> {
+    const params = new URLSearchParams();
+    
+    if (filters.completed !== undefined) params.append('completed', filters.completed.toString());
+    if (filters.tags && filters.tags.length > 0) params.append('tags', filters.tags.join(','));
+    if (filters.tag_mode) params.append('tag_mode', filters.tag_mode);
+    if (filters.due_date_from) params.append('due_date_from', filters.due_date_from);
+    if (filters.due_date_to) params.append('due_date_to', filters.due_date_to);
+    if (filters.search) params.append('search', filters.search);
+    if (filters.sort_by) params.append('sort_by', filters.sort_by);
+    if (filters.sort_order) params.append('sort_order', filters.sort_order);
+    if (filters.limit) params.append('limit', filters.limit.toString());
+    if (filters.html) params.append('html', filters.html.toString());
+
+    const response: AxiosResponse<ApiResponse<Todo[] | TodoWithHtml[]>> = await this.api.get(
+      `/todos?${params.toString()}`
+    );
+    return response.data;
+  }
+
+  // Get single todo
+  async getTodo(id: number, html: boolean = false): Promise<ApiResponse<Todo | TodoWithHtml>> {
+    const params = html ? '?html=true' : '';
+    const response: AxiosResponse<ApiResponse<Todo | TodoWithHtml>> = await this.api.get(
+      `/todos/${id}${params}`
+    );
+    return response.data;
+  }
+
+  // Create new todo
+  async createTodo(todo: CreateTodoRequest, html: boolean = false): Promise<ApiResponse<Todo | TodoWithHtml>> {
+    const params = html ? '?html=true' : '';
+    const response: AxiosResponse<ApiResponse<Todo | TodoWithHtml>> = await this.api.post(
+      `/todos${params}`,
+      todo
+    );
+    return response.data;
+  }
+
+  // Update todo
+  async updateTodo(
+    id: number, 
+    updates: UpdateTodoRequest, 
+    html: boolean = false
+  ): Promise<ApiResponse<Todo | TodoWithHtml>> {
+    const params = html ? '?html=true' : '';
+    const response: AxiosResponse<ApiResponse<Todo | TodoWithHtml>> = await this.api.put(
+      `/todos/${id}${params}`,
+      updates
+    );
+    return response.data;
+  }
+
+  // Delete todo
+  async deleteTodo(id: number): Promise<ApiResponse<void>> {
+    const response: AxiosResponse<ApiResponse<void>> = await this.api.delete(`/todos/${id}`);
+    return response.data;
+  }
+
+  // Get today view
+  async getTodayView(
+    includeDueToday: boolean = true,
+    daysAhead?: number,
+    html: boolean = false
+  ): Promise<ApiResponse<TodayView>> {
+    const params = new URLSearchParams();
+    params.append('include_due_today', includeDueToday.toString());
+    if (daysAhead !== undefined) params.append('days_ahead', daysAhead.toString());
+    if (html) params.append('html', html.toString());
+
+    const response: AxiosResponse<ApiResponse<TodayView>> = await this.api.get(
+      `/todos/today?${params.toString()}`
+    );
+    return response.data;
+  }
+
+  // Export data
+  async exportData(
+    includeCompleted: boolean = true,
+    includeTags: boolean = true
+  ): Promise<ApiResponse<any>> {
+    const params = new URLSearchParams();
+    params.append('include_completed', includeCompleted.toString());
+    params.append('include_tags', includeTags.toString());
+
+    const response: AxiosResponse<ApiResponse<any>> = await this.api.get(
+      `/export?${params.toString()}`
+    );
+    return response.data;
+  }
+
+  // Import data
+  async importData(data: any, options: any = {}): Promise<ApiResponse<any>> {
+    const response: AxiosResponse<ApiResponse<any>> = await this.api.post('/import', {
+      data,
+      options,
+    });
+    return response.data;
+  }
+}
+
+// Create singleton instance
+export const todoApi = new TodoApi(import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000');
+
+export default TodoApi;

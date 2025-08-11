@@ -1,0 +1,44 @@
+# Yeezles Todo - Cursor Rules
+
+## Project Methodology
+- **Step-by-step approach**: Never create the entire project in one go. Break down each task into small, manageable steps.
+- **Learning-focused**: Explain each step as if teaching someone to build an MCP server for the first time. Explain what you've done or will do, what functionality it will perform, and why you're going to do it as you do it, without moving onto the next step before confirming that i understand.
+- **Best practices**: Always write clear, well-documented, and easy-to-understand code.
+- **Plan-driven**: For each step or sub-step, ask any questions that will help us maintain the values laid out here and in our architectural plan. Before deciding what step we are about to do, check against the step-by-step implementation plan we have devised and agreed on. If the work you are about to do is not detailed in the step by step plan, then stop and confirm.
+- **Test as we go**: As you build the software, not only should you run tests to validate the work, you should save those tests to make sure we don't introduce regressions in the future. Every new phase of the work should come with tests. After performing each phase of work, run the full regression suite to make sure we haven't broken anything.
+- **Document as we go**: As you develop any public API or interface, make sure the work is documented accordingly, and note in our step-by-step plan what we have finished.
+
+## MCP Server Standards
+- **Follow MCP documentation**: Use https://modelcontextprotocol.io/quickstart/server#node as our primary reference for the MCP bits.
+- **No stdout logging**: NEVER use `console.log()`, `console.error()`, `console.warn()`, or any stdout writing in STDIO-based MCP servers
+  - These corrupt JSON-RPC messages and break the server
+  - Use stderr for logging if needed: `process.stderr.write()` or logging libraries that write to stderr
+- **JSON-RPC protocol**: Follow strict MCP protocol standards for communication
+- **TypeScript strict mode**: Use TypeScript with strict type checking enabled
+- **Error handling**: Always implement proper error handling for file operations and API calls
+
+## Code Organization
+- **Modular structure**: Keep tools, resources, and utilities in separate directories
+- **Type safety**: Define clear TypeScript interfaces for all Obsidian-specific data structures
+- **Configuration**: Make vault paths and settings configurable, not hardcoded
+- **Performance**: Consider caching strategies for large Obsidian vaults
+
+## Development Workflow
+- **Test incrementally**: Verify each component works before moving to the next
+- **Commit frequently**: Commit working code at logical milestones
+- **Documentation**: Update README.md as features are added
+- **Build scripts**: Maintain working `npm run build`, `npm run dev`, and `npm start` commands
+
+## Commit Message Standards
+- **Use single quotes**: Always wrap commit messages in single quotes to prevent shell parsing issues
+- **Avoid excessive emojis**: Keep commit messages simple and readable without special characters that could cause terminal problems
+- **Keep it concise**: Use clear, descriptive messages without multi-line formatting that can leave background processes hanging
+- **Example format**: `git commit -m 'Step X: Feature implementation complete'` or `git commit -m 'Fix validation logic for todo filtering'`
+- **Never use double quotes with emojis/special chars**: This causes shell parsing issues and background process problems
+
+## Testing Strategy
+- **Manual testing**: Test with Claude Desktop and/or Cursor MCP integration
+- **Incremental validation**: Verify each tool/resource works before adding more
+- **Error scenarios**: Test with missing files, invalid markdown, etc.
+
+Remember: Always prioritize clarity and step-by-step learning over speed of development. 
