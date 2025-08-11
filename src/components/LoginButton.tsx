@@ -1,8 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import { useAuth } from '../contexts/AuthContext';
 
 const LoginButton: React.FC = () => {
-  const { login } = useAuth();
+  // const { login } = useAuth(); // Removed as not used
   const buttonRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

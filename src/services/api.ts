@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import axios from 'axios';
 
 // Type definitions for the API
@@ -115,8 +116,8 @@ class TodoApi {
 
     // Add request interceptor for error handling
     this.api.interceptors.response.use(
-      (response) => response,
-      (error) => {
+      (response: any) => response,
+      (error: any) => {
         console.error('API Error:', error);
         if (error.response) {
           console.error('Response data:', error.response.data);
