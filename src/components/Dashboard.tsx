@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import ApiStatus from './ApiStatus';
 
 const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -52,6 +53,8 @@ const Dashboard: React.FC = () => {
                 Your personal todo management system is ready.
               </p>
               <div className="space-y-4">
+                <ApiStatus />
+                
                 <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
                   <h3 className="text-lg font-medium text-gray-900 mb-2">Coming Soon</h3>
                   <ul className="text-sm text-gray-600 space-y-1">

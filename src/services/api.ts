@@ -12,12 +12,19 @@ import {
 class TodoApi {
   private api: AxiosInstance;
 
-  constructor(baseURL: string = 'http://localhost:3000') {
+  constructor(baseURL: string = 'https://yeezles-todo-production.up.railway.app', apiKey?: string) {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    // Add API key if provided
+    if (apiKey) {
+      headers['Authorization'] = `Bearer ${apiKey}`;
+    }
+
     this.api = axios.create({
       baseURL,
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
     });
 
     // Add request interceptor for error handling
@@ -25,6 +32,10 @@ class TodoApi {
       (response) => response,
       (error) => {
         console.error('API Error:', error);
+        if (error.response) {
+          console.error('Response data:', error.response.data);
+          console.error('Response status:', error.response.status);
+        }
         throw error;
       }
     );
@@ -139,6 +150,9 @@ class TodoApi {
 }
 
 // Create singleton instance
-export const todoApi = new TodoApi(import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000');
+export const todoApi = new TodoApi(
+  import.meta.env.VITE_API_BASE_URL || 'https://yeezles-todo-production.up.railway.app',
+  import.meta.env.VITE_API_KEY
+);
 
 export default TodoApi;
