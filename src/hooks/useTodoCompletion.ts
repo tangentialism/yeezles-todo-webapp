@@ -36,23 +36,7 @@ export const useTodoCompletion = ({ onUpdate, undoTimeoutMs = 4000 }: UseTodoCom
     }
   }, [onUpdate]);
 
-  const undoCompletion = useCallback((todoId: number) => {
-    const pending = pendingCompletions.get(todoId);
-    if (!pending) return;
 
-    // Clear the timeout and hide the toast
-    clearTimeout(pending.timeoutId);
-    hideToast(pending.toastId);
-    
-    // Remove from pending completions
-    setPendingCompletions(prev => {
-      const next = new Map(prev);
-      next.delete(todoId);
-      return next;
-    });
-
-    // No UI refresh needed - removing from pending state will show original state
-  }, [pendingCompletions, hideToast]);
 
   const toggleTodoCompletion = useCallback(async (todo: Todo) => {
     // Check if there's already a pending completion for this todo
@@ -82,11 +66,7 @@ export const useTodoCompletion = ({ onUpdate, undoTimeoutMs = 4000 }: UseTodoCom
     const toastId = showToast({
       message: `${message} • Click checkbox again to cancel`,
       type: 'success',
-      duration: undoTimeoutMs,
-      action: {
-        label: 'Undo',
-        onClick: () => undoCompletion(todo.id)
-      }
+      duration: undoTimeoutMs
     });
 
     // Set up the auto-commit timeout
@@ -111,7 +91,7 @@ export const useTodoCompletion = ({ onUpdate, undoTimeoutMs = 4000 }: UseTodoCom
     }));
 
     // No immediate UI update - let the pending state handle the visual changes
-  }, [pendingCompletions, showToast, hideToast, undoCompletion, commitCompletion, undoTimeoutMs]);
+  }, [pendingCompletions, showToast, hideToast, commitCompletion, undoTimeoutMs]);
 
   const getTodoDisplayState = useCallback((todo: Todo): { completed: boolean; isPending: boolean } => {
     const pending = pendingCompletions.get(todo.id);
