@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { todoApi } from '../services/api';
 import { useTodoCompletion } from '../hooks/useTodoCompletion';
+import { formatDate } from '../utils/date';
 import TodayView from './TodayView';
 import EditTodoModal from './EditTodoModal';
 import TodoActions from './TodoActions';
@@ -8,9 +9,10 @@ import type { Todo } from '../types/todo';
 
 interface TodoListProps {
   view: string;
+  refreshTrigger?: number; // Optional refresh trigger
 }
 
-const TodoList: React.FC<TodoListProps> = ({ view }) => {
+const TodoList: React.FC<TodoListProps> = ({ view, refreshTrigger }) => {
   // Use dedicated TodayView component for today view
   if (view === 'today') {
     return <TodayView />;
@@ -60,7 +62,7 @@ const TodoList: React.FC<TodoListProps> = ({ view }) => {
 
   useEffect(() => {
     loadTodos();
-  }, [view]);
+  }, [view, refreshTrigger]);
 
   // Legacy function - now using useTodoCompletion hook
   const toggleTodo = (todo: Todo) => {
@@ -81,17 +83,7 @@ const TodoList: React.FC<TodoListProps> = ({ view }) => {
     loadTodos(); // Refresh the todo list
   };
 
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+
 
   const extractTags = (title: string) => {
     const tagRegex = /@(\w+(?:-\w+)*)/g;
@@ -227,6 +219,7 @@ const TodoList: React.FC<TodoListProps> = ({ view }) => {
                   todo={todo}
                   onEdit={handleEditTodo}
                   onUpdate={handleTodoUpdated}
+                  onToggleComplete={toggleTodo}
                 />
               </div>
             </div>

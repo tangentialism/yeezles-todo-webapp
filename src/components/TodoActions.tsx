@@ -6,9 +6,10 @@ interface TodoActionsProps {
   todo: Todo;
   onEdit: (todo: Todo) => void;
   onUpdate: () => void;
+  onToggleComplete?: (todo: Todo) => void; // New prop for completion handling
 }
 
-const TodoActions: React.FC<TodoActionsProps> = ({ todo, onEdit, onUpdate }) => {
+const TodoActions: React.FC<TodoActionsProps> = ({ todo, onEdit, onUpdate, onToggleComplete }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -52,14 +53,23 @@ const TodoActions: React.FC<TodoActionsProps> = ({ todo, onEdit, onUpdate }) => 
     setIsOpen(false);
   };
 
-  const handleToggleComplete = async () => {
-    try {
-      const response = await todoApi.updateTodo(todo.id, { completed: !todo.completed });
-      if (response.success) {
-        onUpdate();
-      }
-    } catch (error) {
-      console.error('Error updating todo:', error);
+  const handleToggleComplete = () => {
+    if (onToggleComplete) {
+      // Use the new completion system with undo functionality
+      onToggleComplete(todo);
+    } else {
+      // Fallback to old immediate completion (for backward compatibility)
+      const legacyToggle = async () => {
+        try {
+          const response = await todoApi.updateTodo(todo.id, { completed: !todo.completed });
+          if (response.success) {
+            onUpdate();
+          }
+        } catch (error) {
+          console.error('Error updating todo:', error);
+        }
+      };
+      legacyToggle();
     }
     setIsOpen(false);
   };

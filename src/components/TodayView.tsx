@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { todoApi } from '../services/api';
 import { useTodoCompletion } from '../hooks/useTodoCompletion';
+import { formatDate } from '../utils/date';
 import EditTodoModal from './EditTodoModal';
 import TodoActions from './TodoActions';
 import type { Todo, TodayView as TodayViewData } from '../types/todo';
@@ -68,17 +69,7 @@ const TodayView: React.FC = () => {
     return tags;
   };
 
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+
 
   const TodoCard: React.FC<{ todo: Todo; priority?: string }> = ({ todo, priority }) => {
     const tags = extractTags(todo.title);
@@ -163,6 +154,7 @@ const TodayView: React.FC = () => {
             todo={todo}
             onEdit={handleEditTodo}
             onUpdate={handleTodoUpdated}
+            onToggleComplete={toggleTodo}
           />
         </div>
       </div>

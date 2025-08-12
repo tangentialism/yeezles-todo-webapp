@@ -9,7 +9,7 @@ const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const [currentView, setCurrentView] = useState('all');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [todoListKey, setTodoListKey] = useState(0); // For forcing TodoList refresh
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -65,7 +65,7 @@ const Dashboard: React.FC = () => {
       <main className="max-w-7xl mx-auto py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
         <div className="py-4 sm:py-6">
           {/* Todo List */}
-          <TodoList key={todoListKey} view={currentView} />
+          <TodoList view={currentView} refreshTrigger={refreshTrigger} />
         </div>
       </main>
 
@@ -81,7 +81,7 @@ const Dashboard: React.FC = () => {
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onTodoAdded={() => {
-          setTodoListKey(prev => prev + 1); // Force TodoList to refresh
+          setRefreshTrigger(prev => prev + 1);
         }}
       />
     </div>
