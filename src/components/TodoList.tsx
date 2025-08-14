@@ -23,6 +23,7 @@ const TodoList: React.FC<TodoListProps> = ({ view, refreshTrigger }) => {
   const [error, setError] = useState<string | null>(null);
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [removingTodos, setRemovingTodos] = useState<Set<number>>(new Set());
 
   const loadTodos = async () => {
     try {
@@ -55,9 +56,31 @@ const TodoList: React.FC<TodoListProps> = ({ view, refreshTrigger }) => {
     }
   };
 
+  // Optimistic update function for smooth removal in "all" view
+  const handleOptimisticUpdate = (todoId: number, newCompleted: boolean) => {
+    if (view === 'all' && newCompleted) {
+      // For "all" view, smoothly remove completed todos
+      setRemovingTodos(prev => new Set(prev).add(todoId));
+      
+      // Remove from list after animation completes
+      setTimeout(() => {
+        setTodos(prev => prev.filter(todo => todo.id !== todoId));
+        setRemovingTodos(prev => {
+          const next = new Set(prev);
+          next.delete(todoId);
+          return next;
+        });
+      }, 300); // Match the CSS transition duration
+    } else {
+      // For other views (like "completed"), reload the full list
+      loadTodos();
+    }
+  };
+
   // Todo completion with undo functionality
   const { toggleTodoCompletion, getTodoDisplayState } = useTodoCompletion({
-    onUpdate: loadTodos
+    onUpdate: loadTodos,
+    optimisticUpdate: handleOptimisticUpdate
   });
 
   useEffect(() => {
@@ -144,13 +167,20 @@ const TodoList: React.FC<TodoListProps> = ({ view, refreshTrigger }) => {
           const displayState = getTodoDisplayState(todo);
           const isCompleted = displayState.completed;
           const isPending = displayState.isPending;
+          const isRemoving = removingTodos.has(todo.id);
           
           return (
             <div
               key={todo.id}
-              className={`bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all duration-200 ${
+              className={`bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all duration-300 transform ${
                 isCompleted ? 'bg-gray-50' : ''
-              } ${isPending ? 'ring-2 ring-blue-200 ring-opacity-50 opacity-60' : ''}`}
+              } ${isPending ? 'ring-2 ring-blue-200 ring-opacity-50 opacity-60' : ''} ${
+                isRemoving ? 'opacity-0 -translate-y-2 scale-95 pointer-events-none' : 'opacity-100 translate-y-0 scale-100'
+              }`}
+              style={{
+                marginBottom: isRemoving ? '-1rem' : undefined,
+                transition: 'all 0.3s ease-out, margin-bottom 0.3s ease-out'
+              }}
             >
               <div className="flex items-start space-x-2 sm:space-x-3">
                 <button

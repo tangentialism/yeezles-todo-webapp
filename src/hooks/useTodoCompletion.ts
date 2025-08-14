@@ -13,9 +13,10 @@ interface PendingCompletion {
 interface UseTodoCompletionOptions {
   onUpdate: () => void;
   undoTimeoutMs?: number;
+  optimisticUpdate?: (todoId: number, newCompleted: boolean) => void;
 }
 
-export const useTodoCompletion = ({ onUpdate, undoTimeoutMs = 4000 }: UseTodoCompletionOptions) => {
+export const useTodoCompletion = ({ onUpdate, undoTimeoutMs = 4000, optimisticUpdate }: UseTodoCompletionOptions) => {
   const [pendingCompletions, setPendingCompletions] = useState<Map<number, PendingCompletion>>(new Map());
   const { showToast, hideToast } = useToast();
   const pendingRef = useRef(pendingCompletions);
@@ -74,12 +75,20 @@ export const useTodoCompletion = ({ onUpdate, undoTimeoutMs = 4000 }: UseTodoCom
       // Commit the change to the server
       commitCompletion(todo.id, newCompleted);
       
-      // Remove from pending completions and refresh UI
+      // Remove from pending completions
       setPendingCompletions(prev => {
         const next = new Map(prev);
         next.delete(todo.id);
         return next;
       });
+
+      // If optimistic update is provided, use it; otherwise fall back to full reload
+      if (optimisticUpdate) {
+        optimisticUpdate(todo.id, newCompleted);
+      } else {
+        // Fallback to refresh UI for views that need full reload
+        onUpdate();
+      }
     }, undoTimeoutMs);
 
     // Add to pending completions
