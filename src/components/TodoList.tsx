@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { todoApi } from '../services/api';
+import { useApi } from '../hooks/useApi';
 import { useTodoCompletion } from '../hooks/useTodoCompletion';
 import { formatDate } from '../utils/date';
 import TodayView from './TodayView';
@@ -19,6 +19,7 @@ const TodoList: React.FC<TodoListProps> = ({ view, refreshTrigger }) => {
   }
 
   const [todos, setTodos] = useState<Todo[]>([]);
+  const apiClient = useApi();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
@@ -42,7 +43,7 @@ const TodoList: React.FC<TodoListProps> = ({ view, refreshTrigger }) => {
           break;
       }
 
-      const response = await todoApi.getTodos(filters);
+      const response = await apiClient.getTodos(filters);
       if (response.success) {
         setTodos(response.data);
       } else {

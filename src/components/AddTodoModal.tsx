@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { todoApi } from '../services/api';
+import { useApi } from '../hooks/useApi';
 
 interface AddTodoModalProps {
   isOpen: boolean;
@@ -12,6 +12,7 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const apiClient = useApi();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,7 +26,7 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
         due_date: dueDate ? new Date(dueDate).toISOString() : undefined,
       };
 
-      const response = await todoApi.createTodo(todoData);
+      const response = await apiClient.createTodo(todoData);
       if (response.success) {
         // Reset form
         setTitle('');

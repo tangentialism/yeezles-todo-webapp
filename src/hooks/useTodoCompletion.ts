@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import { todoApi } from '../services/api';
+import { useApi } from './useApi';
 import { useToast } from '../contexts/ToastContext';
 import type { Todo } from '../types/todo';
 
@@ -19,6 +19,7 @@ interface UseTodoCompletionOptions {
 export const useTodoCompletion = ({ onUpdate, undoTimeoutMs = 4000, optimisticUpdate }: UseTodoCompletionOptions) => {
   const [pendingCompletions, setPendingCompletions] = useState<Map<number, PendingCompletion>>(new Map());
   const { showToast, hideToast } = useToast();
+  const apiClient = useApi();
   const pendingRef = useRef(pendingCompletions);
   
   // Keep ref in sync for cleanup
@@ -26,7 +27,7 @@ export const useTodoCompletion = ({ onUpdate, undoTimeoutMs = 4000, optimisticUp
 
   const commitCompletion = useCallback(async (todoId: number, newCompleted: boolean) => {
     try {
-      const response = await todoApi.updateTodo(todoId, { completed: newCompleted });
+      const response = await apiClient.updateTodo(todoId, { completed: newCompleted });
       if (response.success) {
         onUpdate();
       }
@@ -35,7 +36,7 @@ export const useTodoCompletion = ({ onUpdate, undoTimeoutMs = 4000, optimisticUp
       // If commit fails, we should revert the optimistic update
       onUpdate();
     }
-  }, [onUpdate]);
+  }, [apiClient, onUpdate]);
 
 
 

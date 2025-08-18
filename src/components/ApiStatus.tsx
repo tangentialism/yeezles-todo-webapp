@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { todoApi } from '../services/api';
+import { useApi } from '../hooks/useApi';
 
 const ApiStatus: React.FC = () => {
   const [status, setStatus] = useState<'loading' | 'connected' | 'error'>('loading');
   const [apiInfo, setApiInfo] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const apiClient = useApi();
 
   useEffect(() => {
     const checkApiHealth = async () => {
       try {
         setStatus('loading');
-        const response = await todoApi.healthCheck();
+        const response = await apiClient.healthCheck();
         setApiInfo(response.data);
         setStatus('connected');
         setError(null);
@@ -22,7 +23,7 @@ const ApiStatus: React.FC = () => {
     };
 
     checkApiHealth();
-  }, []);
+  }, [apiClient]);
 
   const getStatusColor = () => {
     switch (status) {

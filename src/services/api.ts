@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import type { 
   Todo, 
   ApiResponse, 
@@ -8,32 +8,46 @@ import type {
   UpdateTodoRequest 
 } from '../types/todo';
 
-class TodoApi {
-  private api: any;
+class TokenAwareApiClient {
+  private api: AxiosInstance;
 
-  constructor(baseURL: string = 'https://yeezles-todo-production.up.railway.app', apiKey?: string) {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-
-    // Add API key if provided
-    if (apiKey) {
-      headers['Authorization'] = `Bearer ${apiKey}`;
-    }
-
+  constructor(
+    private baseURL: string,
+    private getToken: () => string | null,
+    private onAuthError: () => void
+  ) {
     this.api = axios.create({
       baseURL,
-      headers,
+      headers: {
+        'Content-Type': 'application/json',
+      },
     });
 
-    // Add request interceptor for error handling
+    // Add request interceptor to include auth token
+    this.api.interceptors.request.use(
+      (config) => {
+        const token = this.getToken();
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+      },
+      (error) => Promise.reject(error)
+    );
+
+    // Add response interceptor for error handling
     this.api.interceptors.response.use(
-      (response: any) => response,
-      (error: any) => {
+      (response) => response,
+      (error) => {
         console.error('API Error:', error);
         if (error.response) {
           console.error('Response data:', error.response.data);
           console.error('Response status:', error.response.status);
+          
+          // Handle authentication errors
+          if (error.response.status === 401) {
+            this.onAuthError();
+          }
         }
         throw error;
       }
@@ -127,10 +141,27 @@ class TodoApi {
   }
 }
 
-// Create singleton instance
-export const todoApi = new TodoApi(
-  import.meta.env.VITE_API_BASE_URL || 'https://yeezles-todo-production.up.railway.app',
-  import.meta.env.VITE_API_KEY
-);
+// Factory function to create authenticated API client
+export const createAuthenticatedApiClient = (
+  getToken: () => string | null,
+  onAuthError: () => void
+): TokenAwareApiClient => {
+  return new TokenAwareApiClient(
+    import.meta.env.VITE_API_BASE_URL || 'https://yeezles-todo-production.up.railway.app',
+    getToken,
+    onAuthError
+  );
+};
 
-export default TodoApi;
+// Legacy TodoApi class for backward compatibility (deprecated)
+class TodoApi extends TokenAwareApiClient {
+  constructor(baseURL: string, apiKey?: string) {
+    super(
+      baseURL,
+      () => apiKey || null, // Static token getter
+      () => console.warn('API authentication error - consider upgrading to token-based auth')
+    );
+  }
+}
+
+export default TokenAwareApiClient;

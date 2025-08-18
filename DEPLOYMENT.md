@@ -14,7 +14,6 @@ In Railway, set these environment variables:
 ```
 VITE_GOOGLE_CLIENT_ID=your-google-client-id-here.apps.googleusercontent.com
 VITE_API_BASE_URL=https://yeezles-todo-production.up.railway.app
-VITE_API_KEY=dddb4edc295c78d432e0fe82a95819000c55f4e0870379b6b433a928c00d658b
 NODE_ENV=production
 ```
 

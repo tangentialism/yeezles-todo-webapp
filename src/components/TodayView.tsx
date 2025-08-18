@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { todoApi } from '../services/api';
+import { useApi } from '../hooks/useApi';
 import { useTodoCompletion } from '../hooks/useTodoCompletion';
 import { formatDate } from '../utils/date';
 import EditTodoModal from './EditTodoModal';
@@ -12,12 +12,13 @@ const TodayView: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const apiClient = useApi();
 
   const loadTodayData = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await todoApi.getTodayView();
+      const response = await apiClient.getTodayView();
       if (response.success) {
         setTodayData(response.data);
       } else {

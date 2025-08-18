@@ -9,6 +9,8 @@ interface User {
 
 interface AuthState {
   user: User | null;
+  idToken: string | null;        // Store Google ID token for API calls
+  tokenExpiry: number | null;    // Track token expiration timestamp
   isAuthenticated: boolean;
   isLoading: boolean;
 }
@@ -21,6 +23,8 @@ interface GoogleCredentialResponse {
 interface AuthContextType extends AuthState {
   login: (credentialResponse: GoogleCredentialResponse) => Promise<void>;
   logout: () => void;
+  getValidToken: () => string | null;          // Get token if valid, null if expired
+  refreshTokenIfNeeded: () => Promise<void>;   // Refresh token if expired/expiring
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -40,6 +44,8 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
+    idToken: null,
+    tokenExpiry: null,
     isAuthenticated: false,
     isLoading: true,
   });
@@ -68,7 +74,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     checkGoogleLoaded();
 
-    // Check for existing session
+    // Check for existing user info (but tokens are never stored for security)
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       try {
@@ -82,9 +88,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           return;
         }
 
+        // Restore user info but not authentication state 
+        // (user must sign in again to get fresh tokens)
         setAuthState({
           user,
-          isAuthenticated: true,
+          idToken: null,          // Never restore tokens from storage
+          tokenExpiry: null,
+          isAuthenticated: false, // Require fresh authentication
           isLoading: false,
         });
       } catch (error) {
@@ -99,7 +109,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const handleCredentialResponse = async (response: GoogleCredentialResponse) => {
     try {
-      // Decode JWT token to get user info
+      // Decode JWT token to get user info and expiration
       const payload = JSON.parse(atob(response.credential.split('.')[1]));
       
       // Security: Only allow tangentialism@gmail.com
@@ -107,6 +117,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.warn('Unauthorized access attempt:', payload.email);
         setAuthState({
           user: null,
+          idToken: null,
+          tokenExpiry: null,
           isAuthenticated: false,
           isLoading: false,
         });
@@ -121,11 +133,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         picture: payload.picture,
       };
 
-      // Store user in localStorage for persistence
+      // Store user in localStorage for persistence (but NOT the token for security)
       localStorage.setItem('user', JSON.stringify(user));
       
+      // ✅ Store the actual ID token and expiration in memory for API calls
       setAuthState({
         user,
+        idToken: response.credential,     // Store the complete ID token
+        tokenExpiry: payload.exp,         // Store expiration timestamp
         isAuthenticated: true,
         isLoading: false,
       });
@@ -133,6 +148,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error('Error handling credential response:', error);
       setAuthState({
         user: null,
+        idToken: null,
+        tokenExpiry: null,
         isAuthenticated: false,
         isLoading: false,
       });
@@ -147,6 +164,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem('user');
     setAuthState({
       user: null,
+      idToken: null,
+      tokenExpiry: null,
       isAuthenticated: false,
       isLoading: false,
     });
@@ -159,12 +178,39 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Token validation utility
+  const isTokenValid = (token: string | null, expiry: number | null): boolean => {
+    if (!token || !expiry) return false;
+    // Add 5-minute buffer for network delays
+    return Date.now() < (expiry - 300) * 1000;
+  };
+
+  // Get valid token for API calls
+  const getValidToken = (): string | null => {
+    if (isTokenValid(authState.idToken, authState.tokenExpiry)) {
+      return authState.idToken;
+    }
+    return null;
+  };
+
+  // Refresh token if needed
+  const refreshTokenIfNeeded = async (): Promise<void> => {
+    if (!isTokenValid(authState.idToken, authState.tokenExpiry)) {
+      // Trigger Google's token refresh flow
+      if (window.google?.accounts?.id) {
+        window.google.accounts.id.prompt();
+      }
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
         ...authState,
         login,
         logout,
+        getValidToken,
+        refreshTokenIfNeeded,
       }}
     >
       {children}

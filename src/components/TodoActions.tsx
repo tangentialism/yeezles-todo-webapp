@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { todoApi } from '../services/api';
+import { useApi } from '../hooks/useApi';
 import type { Todo } from '../types/todo';
 
 interface TodoActionsProps {
@@ -13,6 +13,7 @@ const TodoActions: React.FC<TodoActionsProps> = ({ todo, onEdit, onUpdate, onTog
   const [isOpen, setIsOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const apiClient = useApi();
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -35,7 +36,7 @@ const TodoActions: React.FC<TodoActionsProps> = ({ todo, onEdit, onUpdate, onTog
 
     try {
       setIsDeleting(true);
-      const response = await todoApi.deleteTodo(todo.id);
+      const response = await apiClient.deleteTodo(todo.id);
       if (response.success) {
         onUpdate(); // Refresh the todo list
       }
@@ -61,7 +62,7 @@ const TodoActions: React.FC<TodoActionsProps> = ({ todo, onEdit, onUpdate, onTog
       // Fallback to old immediate completion (for backward compatibility)
       const legacyToggle = async () => {
         try {
-          const response = await todoApi.updateTodo(todo.id, { completed: !todo.completed });
+          const response = await apiClient.updateTodo(todo.id, { completed: !todo.completed });
           if (response.success) {
             onUpdate();
           }

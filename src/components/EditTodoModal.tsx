@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { todoApi } from '../services/api';
+import { useApi } from '../hooks/useApi';
 import type { Todo } from '../types/todo';
 
 interface EditTodoModalProps {
@@ -15,6 +15,7 @@ const EditTodoModal: React.FC<EditTodoModalProps> = ({ todo, isOpen, onClose, on
   const [dueDate, setDueDate] = useState('');
   const [completed, setCompleted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const apiClient = useApi();
 
   // Initialize form when todo changes
   React.useEffect(() => {
@@ -47,7 +48,7 @@ const EditTodoModal: React.FC<EditTodoModalProps> = ({ todo, isOpen, onClose, on
         due_date: dueDate ? new Date(dueDate).toISOString() : undefined,
       };
 
-      const response = await todoApi.updateTodo(todo.id, updateData);
+      const response = await apiClient.updateTodo(todo.id, updateData);
       if (response.success) {
         onTodoUpdated();
         onClose();
