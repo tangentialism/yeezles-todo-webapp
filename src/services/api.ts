@@ -1,4 +1,5 @@
-import axios, { AxiosInstance } from 'axios';
+import axios from 'axios';
+import type { AxiosInstance } from 'axios';
 import type { 
   Todo, 
   ApiResponse, 
@@ -10,14 +11,21 @@ import type {
 
 class TokenAwareApiClient {
   private api: AxiosInstance;
+  private baseURL: string;
+  private getToken: () => string | null;
+  private onAuthError: () => void;
 
   constructor(
-    private baseURL: string,
-    private getToken: () => string | null,
-    private onAuthError: () => void
+    baseURL: string,
+    getToken: () => string | null,
+    onAuthError: () => void
   ) {
+    this.baseURL = baseURL;
+    this.getToken = getToken;
+    this.onAuthError = onAuthError;
+    
     this.api = axios.create({
-      baseURL,
+      baseURL: this.baseURL,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -153,15 +161,6 @@ export const createAuthenticatedApiClient = (
   );
 };
 
-// Legacy TodoApi class for backward compatibility (deprecated)
-class TodoApi extends TokenAwareApiClient {
-  constructor(baseURL: string, apiKey?: string) {
-    super(
-      baseURL,
-      () => apiKey || null, // Static token getter
-      () => console.warn('API authentication error - consider upgrading to token-based auth')
-    );
-  }
-}
+// Legacy TodoApi class removed - all components now use TokenAwareApiClient
 
 export default TokenAwareApiClient;
