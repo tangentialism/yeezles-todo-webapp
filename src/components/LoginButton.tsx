@@ -1,11 +1,13 @@
 import React, { useEffect, useRef } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 
 const LoginButton: React.FC = () => {
-  // const { login } = useAuth(); // Removed as not used
+  const { isGoogleReady } = useAuth();
   const buttonRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (window.google && buttonRef.current) {
+    // Only render the button when Google is ready and we have a button container
+    if (isGoogleReady && window.google && buttonRef.current) {
       window.google.accounts.id.renderButton(buttonRef.current, {
         type: 'standard',
         theme: 'outline',
@@ -16,7 +18,7 @@ const LoginButton: React.FC = () => {
         width: '280px',
       });
     }
-  }, []);
+  }, [isGoogleReady]); // Re-run when Google becomes ready
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
@@ -32,7 +34,14 @@ const LoginButton: React.FC = () => {
         </div>
         
         <div className="flex justify-center">
-          <div ref={buttonRef}></div>
+          {isGoogleReady ? (
+            <div ref={buttonRef}></div>
+          ) : (
+            <div className="flex items-center justify-center py-3 px-6 border border-gray-300 rounded-md">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-600 mr-3"></div>
+              <span className="text-gray-600">Loading Sign In...</span>
+            </div>
+          )}
         </div>
         
         <div className="mt-6 text-xs text-gray-500 text-center">
