@@ -112,14 +112,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         // Restore user info but not authentication state 
         // (user must sign in again to get fresh tokens)
-        setAuthState({
+        setAuthState(prev => ({
+          ...prev,                // ✅ Preserve existing state (like isGoogleReady)
           user,
           idToken: null,          // Never restore tokens from storage
           tokenExpiry: null,
           isAuthenticated: false, // Require fresh authentication
           isLoading: false,
-          isGoogleReady: false,
-        });
+        }));
       } catch (error) {
         console.error('Error parsing stored user:', error);
         localStorage.removeItem('user');
