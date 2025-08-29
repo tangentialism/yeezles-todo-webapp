@@ -5,7 +5,10 @@ const LoginButton: React.FC = () => {
   const { isGoogleReady } = useAuth();
   const buttonRef = useRef<HTMLDivElement>(null);
 
+  console.log('🔧 LoginButton mounted with isGoogleReady:', isGoogleReady);
+
   useEffect(() => {
+    console.log('🔧 LoginButton useEffect triggered with isGoogleReady:', isGoogleReady);
     // Only render the button when Google is ready and we have a button container
     if (isGoogleReady && window.google && buttonRef.current) {
       try {
