@@ -62,6 +62,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           auto_select: false,
           cancel_on_tap_outside: false,
         });
+        // ✅ Set Google as ready after successful initialization
+        setAuthState(prev => ({ ...prev, isGoogleReady: true }));
       }
     };
 
