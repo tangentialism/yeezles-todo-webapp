@@ -49,6 +49,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     tokenExpiry: null,
     isAuthenticated: false,
     isLoading: true,
+    isGoogleReady: false,
   });
 
   // Initialize Google OAuth
@@ -97,6 +98,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           tokenExpiry: null,
           isAuthenticated: false, // Require fresh authentication
           isLoading: false,
+          isGoogleReady: false,
         });
       } catch (error) {
         console.error('Error parsing stored user:', error);
@@ -122,6 +124,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           tokenExpiry: null,
           isAuthenticated: false,
           isLoading: false,
+          isGoogleReady: false,
         });
         alert('Access denied. This application is restricted to authorized users only.');
         return;
@@ -144,6 +147,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         tokenExpiry: payload.exp,         // Store expiration timestamp
         isAuthenticated: true,
         isLoading: false,
+        isGoogleReady: true,
       });
     } catch (error) {
       console.error('Error handling credential response:', error);
@@ -153,6 +157,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         tokenExpiry: null,
         isAuthenticated: false,
         isLoading: false,
+        isGoogleReady: false,
       });
     }
   };
@@ -169,6 +174,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       tokenExpiry: null,
       isAuthenticated: false,
       isLoading: false,
+      isGoogleReady: true,
     });
     
     // Revoke Google session
