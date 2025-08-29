@@ -16,7 +16,7 @@ interface UseTodoCompletionOptions {
   optimisticUpdate?: (todoId: number, newCompleted: boolean) => void;
 }
 
-export const useTodoCompletion = ({ onUpdate, undoTimeoutMs = 4000, optimisticUpdate }: UseTodoCompletionOptions) => {
+export const useTodoCompletion = ({ onUpdate, undoTimeoutMs = 1500, optimisticUpdate }: UseTodoCompletionOptions) => {
   const [pendingCompletions, setPendingCompletions] = useState<Map<number, PendingCompletion>>(new Map());
   const { showToast, hideToast } = useToast();
   const apiClient = useApi();

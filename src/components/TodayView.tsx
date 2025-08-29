@@ -32,9 +32,37 @@ const TodayView: React.FC = () => {
     }
   };
 
+  // Optimistic update function for immediate visual feedback
+  const handleOptimisticUpdate = (todoId: number, newCompleted: boolean) => {
+    if (todayData) {
+      setTodayData(prev => {
+        if (!prev) return prev;
+        
+        // Update the todo in all relevant sections of the TodayView structure
+        const updateTodos = (todos: Todo[]) => 
+          todos.map(todo => todo.id === todoId ? { ...todo, completed: newCompleted } : todo);
+        
+        return {
+          ...prev,
+          focus: {
+            ...prev.focus,
+            today_tagged: updateTodos(prev.focus.today_tagged),
+            due_today: updateTodos(prev.focus.due_today),
+            overdue: updateTodos(prev.focus.overdue)
+          },
+          upcoming: {
+            ...prev.upcoming,
+            coming_soon: updateTodos(prev.upcoming.coming_soon)
+          }
+        };
+      });
+    }
+  };
+
   // Todo completion with undo functionality
   const { toggleTodoCompletion, getTodoDisplayState } = useTodoCompletion({
-    onUpdate: loadTodayData
+    onUpdate: loadTodayData,
+    optimisticUpdate: handleOptimisticUpdate
   });
 
   useEffect(() => {

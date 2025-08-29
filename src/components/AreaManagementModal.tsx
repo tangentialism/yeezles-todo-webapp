@@ -171,7 +171,7 @@ const AreaManagementModal: React.FC<AreaManagementModalProps> = ({
               Choose Color
             </label>
             <div className="grid grid-cols-4 gap-3">
-              {availableColors.map((color) => (
+              {Array.isArray(availableColors) && availableColors.map((color) => (
                 <button
                   key={color}
                   type="button"

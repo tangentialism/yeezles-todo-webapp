@@ -62,16 +62,29 @@ export const AreaProvider: React.FC<AreaProviderProps> = ({ children }) => {
     try {
       setIsLoading(true);
       const response = await api.getAreas();
-      if (response.success && Array.isArray(response.data)) {
-        setAreas(response.data as Area[]);
+      
+      // Handle both array response (as typed) and object response (actual API)
+      if (response.success) {
+        const responseData = response.data as any;
+        const areasArray = Array.isArray(responseData) 
+          ? responseData 
+          : responseData?.areas;
+          
+        if (Array.isArray(areasArray)) {
+          setAreas(areasArray as Area[]);
+        } else {
+          console.error('Invalid areas response - no valid array found:', response);
+          setAreas([]);
+          showToast({ message: 'Failed to load areas - invalid response format', type: 'error' });
+        }
       } else {
-        console.error('Invalid areas response:', response);
-        setAreas([]); // ✅ Ensure areas stays as empty array on failure
+        console.error('API returned unsuccessful response:', response);
+        setAreas([]);
         showToast({ message: response.message || 'Failed to load areas', type: 'error' });
       }
     } catch (error) {
       console.error('Error loading areas:', error);
-      setAreas([]); // ✅ Ensure areas stays as empty array on error
+      setAreas([]);
       showToast({ message: 'Failed to load areas', type: 'error' });
     } finally {
       setIsLoading(false);
@@ -89,6 +102,7 @@ export const AreaProvider: React.FC<AreaProviderProps> = ({ children }) => {
 
   const createArea = async (name: string, color: string): Promise<Area | null> => {
     try {
+      console.log('Creating area with:', { name, color });
       const response = await api.createArea({ name, color });
       if (response.success) {
         const newArea = response.data;
@@ -96,6 +110,7 @@ export const AreaProvider: React.FC<AreaProviderProps> = ({ children }) => {
         showToast({ message: `Area "${name}" created successfully`, type: 'success' });
         return newArea;
       } else {
+        console.error('Create area failed:', response);
         showToast({ message: response.message || 'Failed to create area', type: 'error' });
         return null;
       }
@@ -181,8 +196,18 @@ export const AreaProvider: React.FC<AreaProviderProps> = ({ children }) => {
     try {
       const response = await api.getAvailableColors();
       if (response.success) {
-        return response.data;
+        const responseData = response.data as any;
+        const colorsData = responseData?.colors;
+        
+        if (Array.isArray(colorsData)) {
+          // Extract hex colors from color objects: { color: '#hex', name: 'Name', description: 'Desc' }
+          return colorsData.map((colorObj: any) => colorObj.color || colorObj);
+        } else {
+          console.error('Invalid colors response - no colors array found:', response);
+          return [];
+        }
       } else {
+        console.error('API returned unsuccessful response for colors:', response);
         showToast({ message: response.message || 'Failed to load available colors', type: 'error' });
         return [];
       }
