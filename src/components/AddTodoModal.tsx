@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApi } from '../hooks/useApi';
+import { useArea } from '../contexts/AreaContext';
 
 interface AddTodoModalProps {
   isOpen: boolean;
@@ -11,8 +12,17 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
+  const [selectedAreaId, setSelectedAreaId] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const apiClient = useApi();
+  const { areas, currentArea } = useArea();
+
+  // Initialize with current area when modal opens
+  React.useEffect(() => {
+    if (isOpen) {
+      setSelectedAreaId(currentArea?.id || null);
+    }
+  }, [isOpen, currentArea]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,6 +34,7 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
         title: title.trim(),
         description: description.trim() || undefined,
         due_date: dueDate ? new Date(dueDate).toISOString() : undefined,
+        area_id: selectedAreaId,
       };
 
       const response = await apiClient.createTodo(todoData);
@@ -32,6 +43,7 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
         setTitle('');
         setDescription('');
         setDueDate('');
+        setSelectedAreaId(currentArea?.id || null);
         onTodoAdded();
         onClose();
       }
@@ -47,6 +59,7 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
       setTitle('');
       setDescription('');
       setDueDate('');
+      setSelectedAreaId(currentArea?.id || null);
       onClose();
     }
   };
@@ -104,6 +117,39 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 disabled={isSubmitting}
               />
+            </div>
+
+            <div>
+              <label htmlFor="area" className="block text-sm font-medium text-gray-700 mb-1">
+                Area
+              </label>
+              <select
+                id="area"
+                value={selectedAreaId || ''}
+                onChange={(e) => setSelectedAreaId(e.target.value ? parseInt(e.target.value) : null)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                disabled={isSubmitting}
+              >
+                <option value="">No area (shows in all views)</option>
+                {areas.map((area) => (
+                  <option key={area.id} value={area.id}>
+                    {area.name}
+                  </option>
+                ))}
+              </select>
+              <div className="flex items-center mt-2">
+                {selectedAreaId && (
+                  <>
+                    <div
+                      className="w-3 h-3 rounded-full mr-2 border border-gray-300"
+                      style={{ backgroundColor: areas.find(a => a.id === selectedAreaId)?.color || '#6B7280' }}
+                    ></div>
+                    <span className="text-sm text-gray-600">
+                      {areas.find(a => a.id === selectedAreaId)?.name}
+                    </span>
+                  </>
+                )}
+              </div>
             </div>
 
             <div>

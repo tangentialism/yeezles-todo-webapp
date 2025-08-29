@@ -1,6 +1,7 @@
 import React from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
+import { AreaProvider } from './contexts/AreaContext';
 import LoginButton from './components/LoginButton';
 import Dashboard from './components/Dashboard';
 
@@ -18,7 +19,13 @@ const AppContent: React.FC = () => {
     );
   }
 
-  return isAuthenticated ? <Dashboard /> : <LoginButton />;
+  return isAuthenticated ? (
+    <AreaProvider>
+      <Dashboard />
+    </AreaProvider>
+  ) : (
+    <LoginButton />
+  );
 };
 
 const App: React.FC = () => {

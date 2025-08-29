@@ -6,6 +6,7 @@ export interface Todo {
   description: string;
   completed: boolean;
   due_date: string | null;
+  area_id: number | null;
   created_at: string;
   updated_at: string;
   completed_at: string | null;
@@ -68,6 +69,8 @@ export interface TodayView {
   };
 }
 
+// Area-related types moved to types/area.ts
+
 export interface TodoFilters {
   completed?: boolean;
   tags?: string[];
@@ -79,12 +82,16 @@ export interface TodoFilters {
   sort_order?: 'ASC' | 'DESC';
   limit?: number;
   html?: boolean;
+  area_id?: number;
+  area_name?: string;
+  include_all_areas?: boolean;
 }
 
 export interface CreateTodoRequest {
   title: string;
   description?: string;
   due_date?: string;
+  area_id?: number | null;
 }
 
 export interface UpdateTodoRequest {
@@ -92,4 +99,5 @@ export interface UpdateTodoRequest {
   description?: string;
   completed?: boolean;
   due_date?: string;
+  area_id?: number | null;
 }

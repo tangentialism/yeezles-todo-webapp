@@ -6,8 +6,14 @@ import type {
   TodayView, 
   TodoFilters, 
   CreateTodoRequest, 
-  UpdateTodoRequest 
+  UpdateTodoRequest
 } from '../types/todo';
+import type {
+  Area,
+  AreaWithStats,
+  CreateAreaRequest,
+  UpdateAreaRequest
+} from '../types/area';
 
 class TokenAwareApiClient {
   private api: AxiosInstance;
@@ -82,6 +88,9 @@ class TokenAwareApiClient {
     if (filters.sort_order) params.append('sort_order', filters.sort_order);
     if (filters.limit) params.append('limit', filters.limit.toString());
     if (filters.html) params.append('html', filters.html.toString());
+    if (filters.area_id !== undefined) params.append('area_id', filters.area_id.toString());
+    if (filters.area_name) params.append('area_name', filters.area_name);
+    if (filters.include_all_areas) params.append('include_all_areas', filters.include_all_areas.toString());
 
     const response = await this.api.get(`/todos?${params.toString()}`);
     return response.data;
@@ -145,6 +154,51 @@ class TokenAwareApiClient {
   // Import data
   async importData(data: any, options: any = {}): Promise<any> {
     const response = await this.api.post('/import', { data, options });
+    return response.data;
+  }
+
+  // === AREA METHODS ===
+
+  // Get all areas (with optional statistics)
+  async getAreas(includeStats: boolean = false): Promise<ApiResponse<Area[] | AreaWithStats[]>> {
+    const params = includeStats ? '?include_stats=true' : '';
+    const response = await this.api.get(`/areas${params}`);
+    return response.data;
+  }
+
+  // Get single area by ID
+  async getArea(id: number): Promise<ApiResponse<Area>> {
+    const response = await this.api.get(`/areas/${id}`);
+    return response.data;
+  }
+
+  // Get area statistics
+  async getAreaStats(id: number): Promise<ApiResponse<AreaWithStats>> {
+    const response = await this.api.get(`/areas/${id}/stats`);
+    return response.data;
+  }
+
+  // Create new area
+  async createArea(area: CreateAreaRequest): Promise<ApiResponse<Area>> {
+    const response = await this.api.post('/areas', area);
+    return response.data;
+  }
+
+  // Update area
+  async updateArea(id: number, updates: UpdateAreaRequest): Promise<ApiResponse<Area>> {
+    const response = await this.api.put(`/areas/${id}`, updates);
+    return response.data;
+  }
+
+  // Delete area
+  async deleteArea(id: number): Promise<ApiResponse<void>> {
+    const response = await this.api.delete(`/areas/${id}`);
+    return response.data;
+  }
+
+  // Get available Material Design colors
+  async getAvailableColors(): Promise<ApiResponse<string[]>> {
+    const response = await this.api.get('/areas/colors');
     return response.data;
   }
 }

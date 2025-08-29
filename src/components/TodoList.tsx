@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApi } from '../hooks/useApi';
 import { useTodoCompletion } from '../hooks/useTodoCompletion';
+import { useArea } from '../contexts/AreaContext';
 import { formatDate } from '../utils/date';
 import TodayView from './TodayView';
 import EditTodoModal from './EditTodoModal';
@@ -20,6 +21,7 @@ const TodoList: React.FC<TodoListProps> = ({ view, refreshTrigger }) => {
 
   const [todos, setTodos] = useState<Todo[]>([]);
   const apiClient = useApi();
+  const { currentArea } = useArea();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
@@ -33,14 +35,24 @@ const TodoList: React.FC<TodoListProps> = ({ view, refreshTrigger }) => {
 
       let filters: any = {};
       
+      // Add view-based filters
       switch (view) {
         case 'completed':
           filters.completed = true;
           break;
         case 'all':
         default:
-          // No filters for all todos
+          // No completion filters for all todos
           break;
+      }
+
+      // Add area-based filters
+      if (currentArea) {
+        // Filter by specific area
+        filters.area_id = currentArea.id;
+      } else {
+        // "All Areas" view - include todos from all areas
+        filters.include_all_areas = true;
       }
 
       const response = await apiClient.getTodos(filters);
@@ -86,7 +98,7 @@ const TodoList: React.FC<TodoListProps> = ({ view, refreshTrigger }) => {
 
   useEffect(() => {
     loadTodos();
-  }, [view, refreshTrigger]);
+  }, [view, refreshTrigger, currentArea]);
 
   // Legacy function - now using useTodoCompletion hook
   const toggleTodo = (todo: Todo) => {
@@ -158,7 +170,27 @@ const TodoList: React.FC<TodoListProps> = ({ view, refreshTrigger }) => {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 capitalize">{view} Todos</h2>
+        <div className="flex items-center space-x-2 mb-2">
+          <h2 className="text-2xl font-bold text-gray-900 capitalize">{view} Todos</h2>
+          {currentArea && (
+            <>
+              <span className="text-gray-400">in</span>
+              <div className="flex items-center space-x-2">
+                <div
+                  className="w-4 h-4 rounded-full border border-gray-300"
+                  style={{ backgroundColor: currentArea.color }}
+                ></div>
+                <span className="text-lg font-medium text-gray-700">{currentArea.name}</span>
+              </div>
+            </>
+          )}
+          {!currentArea && (
+            <>
+              <span className="text-gray-400">from</span>
+              <span className="text-lg font-medium text-gray-700">All Areas</span>
+            </>
+          )}
+        </div>
         <p className="text-gray-600">{todos.length} todo{todos.length !== 1 ? 's' : ''}</p>
       </div>
 

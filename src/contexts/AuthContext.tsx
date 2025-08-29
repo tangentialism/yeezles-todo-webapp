@@ -13,7 +13,6 @@ interface AuthState {
   tokenExpiry: number | null;    // Track token expiration timestamp
   isAuthenticated: boolean;
   isLoading: boolean;
-  isGoogleReady: boolean;        // Track if Google OAuth script is loaded and ready
 }
 
 interface GoogleCredentialResponse {
@@ -49,7 +48,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     tokenExpiry: null,
     isAuthenticated: false,
     isLoading: true,
-    isGoogleReady: false,
   });
 
   // Initialize Google OAuth
@@ -62,9 +60,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           auto_select: false,
           cancel_on_tap_outside: false,
         });
-        
-        // Mark Google as ready for use
-        setAuthState(prev => ({ ...prev, isGoogleReady: true }));
       }
     };
 
@@ -95,14 +90,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         // Restore user info but not authentication state 
         // (user must sign in again to get fresh tokens)
-        setAuthState(prev => ({
-          ...prev,
+        setAuthState({
           user,
           idToken: null,          // Never restore tokens from storage
           tokenExpiry: null,
           isAuthenticated: false, // Require fresh authentication
           isLoading: false,
-        }));
+        });
       } catch (error) {
         console.error('Error parsing stored user:', error);
         localStorage.removeItem('user');
@@ -121,14 +115,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Security: Only allow tangentialism@gmail.com
       if (payload.email !== 'tangentialism@gmail.com') {
         console.warn('Unauthorized access attempt:', payload.email);
-        setAuthState(prev => ({
-          ...prev,
+        setAuthState({
           user: null,
           idToken: null,
           tokenExpiry: null,
           isAuthenticated: false,
           isLoading: false,
-        }));
+        });
         alert('Access denied. This application is restricted to authorized users only.');
         return;
       }
@@ -144,24 +137,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.setItem('user', JSON.stringify(user));
       
       // ✅ Store the actual ID token and expiration in memory for API calls
-      setAuthState(prev => ({
-        ...prev,
+      setAuthState({
         user,
         idToken: response.credential,     // Store the complete ID token
         tokenExpiry: payload.exp,         // Store expiration timestamp
         isAuthenticated: true,
         isLoading: false,
-      }));
+      });
     } catch (error) {
       console.error('Error handling credential response:', error);
-      setAuthState(prev => ({
-        ...prev,
+      setAuthState({
         user: null,
         idToken: null,
         tokenExpiry: null,
         isAuthenticated: false,
         isLoading: false,
-      }));
+      });
     }
   };
 
@@ -171,14 +162,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem('user');
-    setAuthState(prev => ({
-      ...prev,
+    setAuthState({
       user: null,
       idToken: null,
       tokenExpiry: null,
       isAuthenticated: false,
       isLoading: false,
-    }));
+    });
     
     // Revoke Google session
     if (window.google && authState.user) {

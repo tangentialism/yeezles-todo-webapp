@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApi } from '../hooks/useApi';
+import { useArea } from '../contexts/AreaContext';
 import type { Todo } from '../types/todo';
 
 interface EditTodoModalProps {
@@ -14,8 +15,10 @@ const EditTodoModal: React.FC<EditTodoModalProps> = ({ todo, isOpen, onClose, on
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [completed, setCompleted] = useState(false);
+  const [selectedAreaId, setSelectedAreaId] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const apiClient = useApi();
+  const { areas } = useArea();
 
   // Initialize form when todo changes
   React.useEffect(() => {
@@ -23,6 +26,7 @@ const EditTodoModal: React.FC<EditTodoModalProps> = ({ todo, isOpen, onClose, on
       setTitle(todo.title);
       setDescription(todo.description || '');
       setCompleted(todo.completed);
+      setSelectedAreaId(todo.area_id);
       
       // Format due date for datetime-local input
       if (todo.due_date) {
@@ -46,6 +50,7 @@ const EditTodoModal: React.FC<EditTodoModalProps> = ({ todo, isOpen, onClose, on
         description: description.trim() || undefined,
         completed,
         due_date: dueDate ? new Date(dueDate).toISOString() : undefined,
+        area_id: selectedAreaId,
       };
 
       const response = await apiClient.updateTodo(todo.id, updateData);
@@ -119,6 +124,39 @@ const EditTodoModal: React.FC<EditTodoModalProps> = ({ todo, isOpen, onClose, on
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 disabled={isSubmitting}
               />
+            </div>
+
+            <div>
+              <label htmlFor="edit-area" className="block text-sm font-medium text-gray-700 mb-1">
+                Area
+              </label>
+              <select
+                id="edit-area"
+                value={selectedAreaId || ''}
+                onChange={(e) => setSelectedAreaId(e.target.value ? parseInt(e.target.value) : null)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                disabled={isSubmitting}
+              >
+                <option value="">No area (shows in all views)</option>
+                {areas.map((area) => (
+                  <option key={area.id} value={area.id}>
+                    {area.name}
+                  </option>
+                ))}
+              </select>
+              <div className="flex items-center mt-2">
+                {selectedAreaId && (
+                  <>
+                    <div
+                      className="w-3 h-3 rounded-full mr-2 border border-gray-300"
+                      style={{ backgroundColor: areas.find(a => a.id === selectedAreaId)?.color || '#6B7280' }}
+                    ></div>
+                    <span className="text-sm text-gray-600">
+                      {areas.find(a => a.id === selectedAreaId)?.name}
+                    </span>
+                  </>
+                )}
+              </div>
             </div>
 
             <div>
