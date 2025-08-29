@@ -6,12 +6,9 @@ import LoginButton from './components/LoginButton';
 import Dashboard from './components/Dashboard';
 
 const AppContent: React.FC = () => {
-  const { isAuthenticated, isLoading, isGoogleReady } = useAuth();
-
-  console.log('🔧 AppContent render state:', { isAuthenticated, isLoading, isGoogleReady });
+  const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
-    console.log('📱 Rendering: Loading screen');
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center">
@@ -22,17 +19,13 @@ const AppContent: React.FC = () => {
     );
   }
 
-  if (isAuthenticated) {
-    console.log('📱 Rendering: Dashboard (authenticated)');
-    return (
-      <AreaProvider>
-        <Dashboard />
-      </AreaProvider>
-    );
-  } else {
-    console.log('📱 Rendering: LoginButton (not authenticated)');
-    return <LoginButton />;
-  }
+  return isAuthenticated ? (
+    <AreaProvider>
+      <Dashboard />
+    </AreaProvider>
+  ) : (
+    <LoginButton />
+  );
 };
 
 const App: React.FC = () => {

@@ -57,14 +57,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const initializeGoogleAuth = () => {
       if (window.google) {
         try {
-          console.log('🔧 Initializing Google OAuth with client ID:', import.meta.env.VITE_GOOGLE_CLIENT_ID);
           window.google.accounts.id.initialize({
             client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
             callback: handleCredentialResponse,
             auto_select: false,
             cancel_on_tap_outside: false,
           });
-          console.log('✅ Google OAuth initialized successfully');
           // ✅ Set Google as ready and stop loading after successful initialization
           setAuthState(prev => ({ ...prev, isGoogleReady: true, isLoading: false }));
         } catch (error) {
@@ -87,8 +85,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (timeoutCount < maxTimeouts) {
           setTimeout(checkGoogleLoaded, 100);
         } else {
-          console.error('❌ Google OAuth script failed to load after 5 seconds');
-          // Set as ready and stop loading to show error state
+          // Set as ready and stop loading to show error state after timeout
           setAuthState(prev => ({ ...prev, isGoogleReady: true, isLoading: false }));
         }
       }
