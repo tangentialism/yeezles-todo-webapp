@@ -1,3 +1,74 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Custom animations for subtle interactions */
+@keyframes gentle-fade-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-gentle-fade-in {
+  animation: gentle-fade-in 0.25s ease-out;
+}
+
+/* Dropdown animation */
+@keyframes dropdown-appear {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-dropdown-appear {
+  animation: dropdown-appear 0.15s ease-out;
+}
+
+/* Enhanced todo completion animations */
+@keyframes checkmark-draw {
+  0% {
+    stroke-dasharray: 0 24;
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dasharray: 24 24;
+    opacity: 1;
+  }
+}
+
+
+
+.animate-checkmark-draw {
+  animation: checkmark-draw 0.4s ease-out forwards;
+}
+
+/* Enhanced strikethrough animation */
+@keyframes strikethrough-draw {
+  0% {
+    background-size: 0% 2px;
+  }
+  100% {
+    background-size: 100% 2px;
+  }
+}
+
+.animate-strikethrough {
+  background-image: linear-gradient(to right, #9CA3AF, #9CA3AF);
+  background-repeat: no-repeat;
+  background-position: left center;
+  background-size: 0% 2px;
+  animation: strikethrough-draw 0.4s ease-out forwards;
+}

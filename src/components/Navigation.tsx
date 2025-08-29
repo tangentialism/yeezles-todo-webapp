@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useArea } from '../contexts/AreaContext';
 import AreaManagementModal from './AreaManagementModal';
 
@@ -10,6 +10,9 @@ interface NavigationProps {
 const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) => {
   const [isAreaDropdownOpen, setIsAreaDropdownOpen] = useState(false);
   const [isAreaModalOpen, setIsAreaModalOpen] = useState(false);
+  const [newlyCreatedAreaId, setNewlyCreatedAreaId] = useState<number | null>(null);
+  const [tabIndicatorStyle, setTabIndicatorStyle] = useState<{ left: string; width: string }>({ left: '0px', width: '0px' });
+  const tabsContainerRef = useRef<HTMLDivElement>(null);
   const { areas, currentArea, setCurrentArea, isLoading } = useArea();
 
   const views = [
@@ -17,6 +20,49 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) =>
     { id: 'today', label: 'Today', icon: '⭐' },
     { id: 'completed', label: 'Completed', icon: '✅' },
   ];
+
+  // Track newly created areas for animation
+  const prevAreasLength = useRef(areas.length);
+  useEffect(() => {
+    if (areas.length > prevAreasLength.current && areas.length > 0) {
+      // New area was added - get the latest one
+      const latestArea = areas[areas.length - 1];
+      setNewlyCreatedAreaId(latestArea.id);
+      
+      // Clear the animation after 2 seconds
+      const timer = setTimeout(() => {
+        setNewlyCreatedAreaId(null);
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+    prevAreasLength.current = areas.length;
+  }, [areas]);
+
+  // Update tab indicator position
+  useEffect(() => {
+    const updateTabIndicator = () => {
+      if (!tabsContainerRef.current) return;
+      
+      const activeTabButton = tabsContainerRef.current.querySelector(`[data-tab="${currentView}"]`) as HTMLElement;
+      if (activeTabButton) {
+        const containerRect = tabsContainerRef.current.getBoundingClientRect();
+        const buttonRect = activeTabButton.getBoundingClientRect();
+        
+        setTabIndicatorStyle({
+          left: `${buttonRect.left - containerRect.left}px`,
+          width: `${buttonRect.width}px`
+        });
+      }
+    };
+
+    // Update immediately
+    updateTabIndicator();
+    
+    // Update on window resize
+    window.addEventListener('resize', updateTabIndicator);
+    return () => window.removeEventListener('resize', updateTabIndicator);
+  }, [currentView]);
 
   const handleAreaChange = (areaId: number | null) => {
     const selectedArea = areaId && Array.isArray(areas) 
@@ -31,15 +77,25 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) =>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between">
           {/* Navigation Views */}
-          <div className="flex space-x-4 sm:space-x-8 overflow-x-auto">
+          <div ref={tabsContainerRef} className="relative flex space-x-4 sm:space-x-8 overflow-x-auto">
+            {/* Sliding Tab Indicator */}
+            <div
+              className="absolute bottom-0 h-0.5 bg-indigo-500 transition-all duration-300 ease-out"
+              style={{
+                left: tabIndicatorStyle.left,
+                width: tabIndicatorStyle.width,
+              }}
+            />
+            
             {views.map((view) => (
               <button
                 key={view.id}
+                data-tab={view.id}
                 onClick={() => onViewChange(view.id)}
-                className={`py-4 px-2 sm:px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                className={`py-4 px-2 sm:px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-all duration-200 ${
                   currentView === view.id
-                    ? 'border-indigo-500 text-indigo-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-transparent text-indigo-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >
                 <span className="mr-1 sm:mr-2">{view.icon}</span>
@@ -81,7 +137,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) =>
 
             {/* Area Dropdown */}
             {isAreaDropdownOpen && (
-              <div className="absolute right-0 mt-1 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+              <div className="absolute right-0 mt-1 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-10 animate-dropdown-appear">
                 <div className="py-1">
                   {/* All Areas Option */}
                   <button
@@ -100,13 +156,15 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) =>
                   </button>
 
                   {/* Individual Areas */}
-                  {Array.isArray(areas) && areas.map((area) => (
-                    <button
-                      key={area.id}
-                      onClick={() => handleAreaChange(area.id)}
-                      className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center ${
-                        currentArea?.id === area.id ? 'bg-indigo-50 text-indigo-600' : 'text-gray-700'
-                      }`}
+                  {Array.isArray(areas) && areas.map((area) => {
+                    const isNewlyCreated = newlyCreatedAreaId === area.id;
+                    return (
+                      <button
+                        key={area.id}
+                        onClick={() => handleAreaChange(area.id)}
+                        className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center transition-all duration-200 ${
+                          currentArea?.id === area.id ? 'bg-indigo-50 text-indigo-600' : 'text-gray-700'
+                        } ${isNewlyCreated ? 'animate-pulse bg-green-50 border-l-2 border-green-400' : ''}`}
                     >
                       <div
                         className="w-3 h-3 rounded-full mr-3 border border-gray-300"
@@ -122,7 +180,8 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) =>
                         </svg>
                       )}
                     </button>
-                  ))}
+                  );
+                  })}
 
                   {/* Divider */}
                   <div className="border-t border-gray-100 my-1"></div>

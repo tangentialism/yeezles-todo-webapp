@@ -21,11 +21,27 @@ const AreaManagementModal: React.FC<AreaManagementModalProps> = ({
 
   const { createArea, updateArea, deleteArea, getAvailableColors, areas } = useArea();
 
+  // Fallback colors if API fails
+  const fallbackColors = [
+    '#1976D2', // Blue
+    '#388E3C', // Green  
+    '#7B1FA2', // Purple
+    '#F57C00', // Orange
+    '#D32F2F', // Red
+    '#00796B', // Teal
+    '#303F9F', // Indigo
+    '#5D4037'  // Brown
+  ];
+
   // Load available colors on mount
   useEffect(() => {
     const loadColors = async () => {
       const colors = await getAvailableColors();
-      setAvailableColors(colors);
+      if (colors.length > 0) {
+        setAvailableColors(colors);
+      } else {
+        setAvailableColors(fallbackColors);
+      }
     };
     loadColors();
   }, [getAvailableColors]);
@@ -66,7 +82,9 @@ const AreaManagementModal: React.FC<AreaManagementModalProps> = ({
     }
 
     // Validate color
-    if (!selectedColor || !availableColors.includes(selectedColor)) {
+    if (!selectedColor) {
+      newErrors.color = 'Please select a valid color';
+    } else if (availableColors.length > 0 && !availableColors.includes(selectedColor)) {
       newErrors.color = 'Please select a valid color';
     }
 

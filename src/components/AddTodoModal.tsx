@@ -5,7 +5,7 @@ import { useArea } from '../contexts/AreaContext';
 interface AddTodoModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onTodoAdded: () => void;
+  onTodoAdded: (newTodoId?: number) => void;
 }
 
 const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdded }) => {
@@ -44,7 +44,7 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
         setDescription('');
         setDueDate('');
         setSelectedAreaId(currentArea?.id || null);
-        onTodoAdded();
+        onTodoAdded(response.data.id);
         onClose();
       }
     } catch (error) {

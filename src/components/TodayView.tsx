@@ -123,15 +123,28 @@ const TodayView: React.FC = () => {
             } ${isPending ? 'shadow-lg scale-105 animate-pulse' : ''}`}
           >
             {isCompleted && (
-              <span className={`text-xs transition-all duration-200 ${isPending ? 'animate-pulse' : ''}`}>
-                ✓
-              </span>
+              <svg 
+                className="w-3 h-3" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="3" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+              >
+                <polyline 
+                  points="20,6 9,17 4,12" 
+                  className={`animate-checkmark-draw ${isPending ? 'animate-pulse' : ''}`}
+                  strokeDasharray="24"
+                  strokeDashoffset="0"
+                />
+              </svg>
             )}
           </button>
 
           <div className="flex-1 min-w-0">
             <h4 className={`text-sm sm:text-base font-medium transition-all duration-200 ${
-              isCompleted ? 'line-through text-gray-500' : 'text-gray-900'
+              isCompleted ? 'text-gray-500 animate-strikethrough' : 'text-gray-900'
             }`}>
               {todo.title}
               {isPending && (

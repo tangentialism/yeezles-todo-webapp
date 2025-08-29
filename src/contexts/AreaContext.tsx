@@ -102,7 +102,6 @@ export const AreaProvider: React.FC<AreaProviderProps> = ({ children }) => {
 
   const createArea = async (name: string, color: string): Promise<Area | null> => {
     try {
-      console.log('Creating area with:', { name, color });
       const response = await api.createArea({ name, color });
       if (response.success) {
         const newArea = response.data;
@@ -110,7 +109,6 @@ export const AreaProvider: React.FC<AreaProviderProps> = ({ children }) => {
         showToast({ message: `Area "${name}" created successfully`, type: 'success' });
         return newArea;
       } else {
-        console.error('Create area failed:', response);
         showToast({ message: response.message || 'Failed to create area', type: 'error' });
         return null;
       }

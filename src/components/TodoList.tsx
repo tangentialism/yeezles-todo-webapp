@@ -3,7 +3,7 @@ import { useApi } from '../hooks/useApi';
 import { useTodoCompletion } from '../hooks/useTodoCompletion';
 import { useArea } from '../contexts/AreaContext';
 import { formatDate } from '../utils/date';
-import TodayView from './TodayView';
+
 import EditTodoModal from './EditTodoModal';
 import TodoActions from './TodoActions';
 import type { Todo } from '../types/todo';
@@ -11,13 +11,16 @@ import type { Todo } from '../types/todo';
 interface TodoListProps {
   view: string;
   refreshTrigger?: number; // Optional refresh trigger
+  newTodoId?: number | null; // ID of newly created todo to animate
+  onNewTodoAnimationComplete?: () => void; // Called when animation finishes
 }
 
-const TodoList: React.FC<TodoListProps> = ({ view, refreshTrigger }) => {
-  // Use dedicated TodayView component for today view
-  if (view === 'today') {
-    return <TodayView />;
-  }
+const TodoList: React.FC<TodoListProps> = ({ 
+  view, 
+  refreshTrigger, 
+  newTodoId, 
+  onNewTodoAnimationComplete 
+}) => {
 
   const [todos, setTodos] = useState<Todo[]>([]);
   const apiClient = useApi();
@@ -27,6 +30,7 @@ const TodoList: React.FC<TodoListProps> = ({ view, refreshTrigger }) => {
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [removingTodos, setRemovingTodos] = useState<Set<number>>(new Set());
+  const [animatingTodos, setAnimatingTodos] = useState<Set<number>>(new Set());
 
   const loadTodos = async () => {
     try {
@@ -83,7 +87,7 @@ const TodoList: React.FC<TodoListProps> = ({ view, refreshTrigger }) => {
           next.delete(todoId);
           return next;
         });
-      }, 300); // Match the CSS transition duration
+      }, 450); // Match the new CSS transition duration (200ms opacity + 250ms height/margin)
     } else {
       // For other views (like "completed"), reload the full list
       loadTodos();
@@ -99,6 +103,26 @@ const TodoList: React.FC<TodoListProps> = ({ view, refreshTrigger }) => {
   useEffect(() => {
     loadTodos();
   }, [view, refreshTrigger, currentArea]);
+
+  // Handle new todo animation
+  useEffect(() => {
+    if (newTodoId && !animatingTodos.has(newTodoId)) {
+      // Add to animating set
+      setAnimatingTodos(prev => new Set(prev).add(newTodoId));
+      
+      // Remove from animating set and call completion callback after animation
+      const timer = setTimeout(() => {
+        setAnimatingTodos(prev => {
+          const next = new Set(prev);
+          next.delete(newTodoId);
+          return next;
+        });
+        onNewTodoAnimationComplete?.();
+      }, 400); // Animation duration: 250ms entrance + 150ms highlight
+      
+      return () => clearTimeout(timer);
+    }
+  }, [newTodoId, animatingTodos, onNewTodoAnimationComplete]);
 
   // Legacy function - now using useTodoCompletion hook
   const toggleTodo = (todo: Todo) => {
@@ -201,18 +225,23 @@ const TodoList: React.FC<TodoListProps> = ({ view, refreshTrigger }) => {
           const isCompleted = displayState.completed;
           const isPending = displayState.isPending;
           const isRemoving = removingTodos.has(todo.id);
+          const isAnimating = animatingTodos.has(todo.id);
           
           return (
             <div
               key={todo.id}
-              className={`bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all duration-300 transform ${
+              className={`bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all duration-200 ${
                 isCompleted ? 'bg-gray-50' : ''
               } ${isPending ? 'ring-2 ring-blue-200 ring-opacity-50 opacity-60' : ''} ${
-                isRemoving ? 'opacity-0 -translate-y-2 scale-95 pointer-events-none' : 'opacity-100 translate-y-0 scale-100'
+                isRemoving ? 'opacity-0 pointer-events-none' : 
+                isAnimating ? 'animate-gentle-fade-in bg-green-50 border-green-200' :
+                'opacity-100'
               }`}
               style={{
-                marginBottom: isRemoving ? '-1rem' : undefined,
-                transition: 'all 0.3s ease-out, margin-bottom 0.3s ease-out'
+                height: isRemoving ? '0' : 'auto',
+                marginBottom: isRemoving ? '0' : '12px',
+                overflow: 'hidden',
+                transition: 'opacity 0.2s ease-out, height 0.25s ease-out 0.1s, margin 0.25s ease-out 0.1s'
               }}
             >
               <div className="flex items-start space-x-2 sm:space-x-3">
@@ -225,16 +254,29 @@ const TodoList: React.FC<TodoListProps> = ({ view, refreshTrigger }) => {
                   } ${isPending ? 'shadow-lg scale-105 animate-pulse' : ''}`}
                 >
                   {isCompleted && (
-                    <span className={`text-xs transition-all duration-200 ${isPending ? 'animate-pulse' : ''}`}>
-                      ✓
-                    </span>
+                    <svg 
+                      className="w-3 h-3" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      strokeWidth="3" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round"
+                    >
+                      <polyline 
+                        points="20,6 9,17 4,12" 
+                        className={`animate-checkmark-draw ${isPending ? 'animate-pulse' : ''}`}
+                        strokeDasharray="24"
+                        strokeDashoffset="0"
+                      />
+                    </svg>
                   )}
                 </button>
 
                 <div className="flex-1 min-w-0">
                   <h3
                     className={`text-base sm:text-lg font-medium transition-all duration-200 ${
-                      isCompleted ? 'line-through text-gray-500' : 'text-gray-900'
+                      isCompleted ? 'text-gray-500 animate-strikethrough' : 'text-gray-900'
                     }`}
                   >
                     {todo.title}

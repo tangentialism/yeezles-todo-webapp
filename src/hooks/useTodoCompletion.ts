@@ -47,7 +47,10 @@ export const useTodoCompletion = ({ onUpdate, undoTimeoutMs = 1500, optimisticUp
     if (existingPending) {
       // There's a pending operation - cancel it
       clearTimeout(existingPending.timeoutId);
-      hideToast(existingPending.toastId);
+      // Only hide toast if it exists (might be empty if toast hasn't appeared yet)
+      if (existingPending.toastId) {
+        hideToast(existingPending.toastId);
+      }
       setPendingCompletions(prev => {
         const next = new Map(prev);
         next.delete(todo.id);
@@ -61,15 +64,28 @@ export const useTodoCompletion = ({ onUpdate, undoTimeoutMs = 1500, optimisticUp
     // No pending operation - create a new one
     const newCompleted = !todo.completed;
 
-    // Create the undo toast
+    // Create the undo toast with a brief delay for completions to avoid position clash
     const todoTitle = todo.title.length > 30 ? `${todo.title.substring(0, 30)}...` : todo.title;
     const message = newCompleted ? `Completed "${todoTitle}"` : `Marked "${todoTitle}" as incomplete`;
     
-    const toastId = showToast({
-      message: `${message} • Click checkbox again to cancel`,
-      type: 'success',
-      duration: undoTimeoutMs
-    });
+    // Create the undo toast with a brief delay to separate from immediate visual feedback
+    let toastId: string;
+    setTimeout(() => {
+      toastId = showToast({
+        message: `${message} • Click checkbox again to cancel`,
+        type: 'success',
+        duration: undoTimeoutMs - 200 // Adjust duration since it appears later
+      });
+      
+      // Update the pending completion with the actual toast ID
+      setPendingCompletions(prev => {
+        const existing = prev.get(todo.id);
+        if (existing) {
+          return new Map(prev).set(todo.id, { ...existing, toastId });
+        }
+        return prev;
+      });
+    }, 200);
 
     // Set up the auto-commit timeout
     const timeoutId = setTimeout(() => {
@@ -92,12 +108,12 @@ export const useTodoCompletion = ({ onUpdate, undoTimeoutMs = 1500, optimisticUp
       }
     }, undoTimeoutMs);
 
-    // Add to pending completions
+    // Add to pending completions (toast ID will be updated when toast appears)
     setPendingCompletions(prev => new Map(prev).set(todo.id, {
       todoId: todo.id,
       originalCompleted: todo.completed,
       timeoutId,
-      toastId
+      toastId: '' // Will be updated when toast appears
     }));
 
     // No immediate UI update - let the pending state handle the visual changes

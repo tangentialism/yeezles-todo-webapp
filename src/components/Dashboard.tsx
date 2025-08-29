@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import ApiStatus from './ApiStatus';
 import Navigation from './Navigation';
-import TodoList from './TodoList';
+import ViewContainer from './ViewContainer';
 import AddTodoModal from './AddTodoModal';
 
 const Dashboard: React.FC = () => {
@@ -10,6 +10,22 @@ const Dashboard: React.FC = () => {
   const [currentView, setCurrentView] = useState('all');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [newTodoId, setNewTodoId] = useState<number | null>(null);
+  const [isViewTransitioning, setIsViewTransitioning] = useState(false);
+
+  const handleViewChange = (newView: string) => {
+    if (newView !== currentView) {
+      setIsViewTransitioning(true);
+      
+      // Immediate view change with smooth transition
+      setCurrentView(newView);
+      
+      // End transition after animation completes
+      setTimeout(() => {
+        setIsViewTransitioning(false);
+      }, 200); // Match ViewContainer transition duration
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -59,13 +75,19 @@ const Dashboard: React.FC = () => {
       </header>
 
       {/* Navigation */}
-      <Navigation currentView={currentView} onViewChange={setCurrentView} />
+      <Navigation currentView={currentView} onViewChange={handleViewChange} />
 
       {/* Main content */}
       <main className="max-w-7xl mx-auto py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
         <div className="py-4 sm:py-6">
-          {/* Todo List */}
-          <TodoList view={currentView} refreshTrigger={refreshTrigger} />
+          {/* Multi-View Container */}
+          <ViewContainer
+            currentView={currentView}
+            isTransitioning={isViewTransitioning}
+            refreshTrigger={refreshTrigger}
+            newTodoId={newTodoId}
+            onNewTodoAnimationComplete={() => setNewTodoId(null)}
+          />
         </div>
       </main>
 
@@ -80,7 +102,10 @@ const Dashboard: React.FC = () => {
       <AddTodoModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        onTodoAdded={() => {
+        onTodoAdded={(newId) => {
+          if (newId) {
+            setNewTodoId(newId);
+          }
           setRefreshTrigger(prev => prev + 1);
         }}
       />
