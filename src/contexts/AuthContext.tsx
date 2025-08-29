@@ -65,12 +65,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             cancel_on_tap_outside: false,
           });
           console.log('✅ Google OAuth initialized successfully');
-          // ✅ Set Google as ready after successful initialization
-          setAuthState(prev => ({ ...prev, isGoogleReady: true }));
+          // ✅ Set Google as ready and stop loading after successful initialization
+          setAuthState(prev => ({ ...prev, isGoogleReady: true, isLoading: false }));
         } catch (error) {
           console.error('❌ Google OAuth initialization failed:', error);
-          // Still set as ready so user sees the error instead of loading forever
-          setAuthState(prev => ({ ...prev, isGoogleReady: true }));
+          // Still set as ready and stop loading so user sees the error instead of loading forever
+          setAuthState(prev => ({ ...prev, isGoogleReady: true, isLoading: false }));
         }
       }
     };
@@ -88,8 +88,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setTimeout(checkGoogleLoaded, 100);
         } else {
           console.error('❌ Google OAuth script failed to load after 5 seconds');
-          // Set as ready anyway to show error state
-          setAuthState(prev => ({ ...prev, isGoogleReady: true }));
+          // Set as ready and stop loading to show error state
+          setAuthState(prev => ({ ...prev, isGoogleReady: true, isLoading: false }));
         }
       }
     };
