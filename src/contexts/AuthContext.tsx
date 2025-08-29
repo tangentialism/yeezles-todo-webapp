@@ -56,23 +56,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const initializeGoogleAuth = () => {
       if (window.google) {
-        window.google.accounts.id.initialize({
-          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-          callback: handleCredentialResponse,
-          auto_select: false,
-          cancel_on_tap_outside: false,
-        });
-        // ✅ Set Google as ready after successful initialization
-        setAuthState(prev => ({ ...prev, isGoogleReady: true }));
+        try {
+          console.log('🔧 Initializing Google OAuth with client ID:', import.meta.env.VITE_GOOGLE_CLIENT_ID);
+          window.google.accounts.id.initialize({
+            client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+            callback: handleCredentialResponse,
+            auto_select: false,
+            cancel_on_tap_outside: false,
+          });
+          console.log('✅ Google OAuth initialized successfully');
+          // ✅ Set Google as ready after successful initialization
+          setAuthState(prev => ({ ...prev, isGoogleReady: true }));
+        } catch (error) {
+          console.error('❌ Google OAuth initialization failed:', error);
+          // Still set as ready so user sees the error instead of loading forever
+          setAuthState(prev => ({ ...prev, isGoogleReady: true }));
+        }
       }
     };
+
+    let timeoutCount = 0;
+    const maxTimeouts = 50; // 5 seconds maximum wait
 
     // Wait for Google script to load
     const checkGoogleLoaded = () => {
       if (window.google) {
         initializeGoogleAuth();
       } else {
-        setTimeout(checkGoogleLoaded, 100);
+        timeoutCount++;
+        if (timeoutCount < maxTimeouts) {
+          setTimeout(checkGoogleLoaded, 100);
+        } else {
+          console.error('❌ Google OAuth script failed to load after 5 seconds');
+          // Set as ready anyway to show error state
+          setAuthState(prev => ({ ...prev, isGoogleReady: true }));
+        }
       }
     };
 

@@ -8,15 +8,23 @@ const LoginButton: React.FC = () => {
   useEffect(() => {
     // Only render the button when Google is ready and we have a button container
     if (isGoogleReady && window.google && buttonRef.current) {
-      window.google.accounts.id.renderButton(buttonRef.current, {
-        type: 'standard',
-        theme: 'outline',
-        size: 'large',
-        text: 'signin_with',
-        shape: 'rectangular',
-        logo_alignment: 'left',
-        width: '280px',
-      });
+      try {
+        console.log('🔧 Rendering Google sign-in button');
+        window.google.accounts.id.renderButton(buttonRef.current, {
+          type: 'standard',
+          theme: 'outline',
+          size: 'large',
+          text: 'signin_with',
+          shape: 'rectangular',
+          logo_alignment: 'left',
+          width: '280px',
+        });
+        console.log('✅ Google sign-in button rendered successfully');
+      } catch (error) {
+        console.error('❌ Failed to render Google sign-in button:', error);
+      }
+    } else if (isGoogleReady && !window.google) {
+      console.error('❌ Google OAuth marked as ready but window.google is missing');
     }
   }, [isGoogleReady]); // Re-run when Google becomes ready
 
@@ -35,7 +43,18 @@ const LoginButton: React.FC = () => {
         
         <div className="flex justify-center">
           {isGoogleReady ? (
-            <div ref={buttonRef}></div>
+            <>
+              <div ref={buttonRef}></div>
+              {/* Fallback if Google button fails to render */}
+              {isGoogleReady && !window.google && (
+                <div className="text-center py-4">
+                  <div className="text-red-600 mb-2">❌ Google OAuth failed to load</div>
+                  <div className="text-sm text-gray-600">
+                    Please check your internet connection and refresh the page.
+                  </div>
+                </div>
+              )}
+            </>
           ) : (
             <div className="flex items-center justify-center py-3 px-6 border border-gray-300 rounded-md">
               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-600 mr-3"></div>
