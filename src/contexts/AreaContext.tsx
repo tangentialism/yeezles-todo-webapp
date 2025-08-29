@@ -62,13 +62,16 @@ export const AreaProvider: React.FC<AreaProviderProps> = ({ children }) => {
     try {
       setIsLoading(true);
       const response = await api.getAreas();
-      if (response.success) {
+      if (response.success && Array.isArray(response.data)) {
         setAreas(response.data as Area[]);
       } else {
+        console.error('Invalid areas response:', response);
+        setAreas([]); // ✅ Ensure areas stays as empty array on failure
         showToast({ message: response.message || 'Failed to load areas', type: 'error' });
       }
     } catch (error) {
       console.error('Error loading areas:', error);
+      setAreas([]); // ✅ Ensure areas stays as empty array on error
       showToast({ message: 'Failed to load areas', type: 'error' });
     } finally {
       setIsLoading(false);

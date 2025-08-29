@@ -19,7 +19,9 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) =>
   ];
 
   const handleAreaChange = (areaId: number | null) => {
-    const selectedArea = areaId ? areas.find(area => area.id === areaId) || null : null;
+    const selectedArea = areaId && Array.isArray(areas) 
+      ? areas.find(area => area.id === areaId) || null 
+      : null;
     setCurrentArea(selectedArea);
     setIsAreaDropdownOpen(false);
   };
@@ -98,7 +100,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) =>
                   </button>
 
                   {/* Individual Areas */}
-                  {areas.map((area) => (
+                  {Array.isArray(areas) && areas.map((area) => (
                     <button
                       key={area.id}
                       onClick={() => handleAreaChange(area.id)}
