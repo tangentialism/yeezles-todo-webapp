@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import type { Area, AreaWithStats } from '../types/area';
 import { useApi } from '../hooks/useApi';
 import { useToast } from './ToastContext';
@@ -64,11 +65,11 @@ export const AreaProvider: React.FC<AreaProviderProps> = ({ children }) => {
       if (response.success) {
         setAreas(response.data as Area[]);
       } else {
-        showToast(response.message || 'Failed to load areas', 'error');
+        showToast({ message: response.message || 'Failed to load areas', type: 'error' });
       }
     } catch (error) {
       console.error('Error loading areas:', error);
-      showToast('Failed to load areas', 'error');
+      showToast({ message: 'Failed to load areas', type: 'error' });
     } finally {
       setIsLoading(false);
     }
@@ -89,15 +90,15 @@ export const AreaProvider: React.FC<AreaProviderProps> = ({ children }) => {
       if (response.success) {
         const newArea = response.data;
         setAreas(prev => [...prev, newArea]);
-        showToast(`Area "${name}" created successfully`, 'success');
+        showToast({ message: `Area "${name}" created successfully`, type: 'success' });
         return newArea;
       } else {
-        showToast(response.message || 'Failed to create area', 'error');
+        showToast({ message: response.message || 'Failed to create area', type: 'error' });
         return null;
       }
     } catch (error) {
       console.error('Error creating area:', error);
-      showToast('Failed to create area', 'error');
+      showToast({ message: 'Failed to create area', type: 'error' });
       return null;
     }
   };
@@ -118,15 +119,15 @@ export const AreaProvider: React.FC<AreaProviderProps> = ({ children }) => {
           setCurrentAreaState(updatedArea);
         }
         
-        showToast(`Area updated successfully`, 'success');
+        showToast({ message: `Area updated successfully`, type: 'success' });
         return updatedArea;
       } else {
-        showToast(response.message || 'Failed to update area', 'error');
+        showToast({ message: response.message || 'Failed to update area', type: 'error' });
         return null;
       }
     } catch (error) {
       console.error('Error updating area:', error);
-      showToast('Failed to update area', 'error');
+      showToast({ message: 'Failed to update area', type: 'error' });
       return null;
     }
   };
@@ -144,15 +145,15 @@ export const AreaProvider: React.FC<AreaProviderProps> = ({ children }) => {
           setCurrentArea(defaultArea || null);
         }
         
-        showToast('Area deleted successfully', 'success');
+        showToast({ message: 'Area deleted successfully', type: 'success' });
         return true;
       } else {
-        showToast(response.message || 'Failed to delete area', 'error');
+        showToast({ message: response.message || 'Failed to delete area', type: 'error' });
         return false;
       }
     } catch (error) {
       console.error('Error deleting area:', error);
-      showToast('Failed to delete area', 'error');
+      showToast({ message: 'Failed to delete area', type: 'error' });
       return false;
     }
   };
@@ -163,12 +164,12 @@ export const AreaProvider: React.FC<AreaProviderProps> = ({ children }) => {
       if (response.success) {
         return response.data;
       } else {
-        showToast(response.message || 'Failed to load area statistics', 'error');
+        showToast({ message: response.message || 'Failed to load area statistics', type: 'error' });
         return null;
       }
     } catch (error) {
       console.error('Error loading area stats:', error);
-      showToast('Failed to load area statistics', 'error');
+      showToast({ message: 'Failed to load area statistics', type: 'error' });
       return null;
     }
   };
@@ -179,12 +180,12 @@ export const AreaProvider: React.FC<AreaProviderProps> = ({ children }) => {
       if (response.success) {
         return response.data;
       } else {
-        showToast(response.message || 'Failed to load available colors', 'error');
+        showToast({ message: response.message || 'Failed to load available colors', type: 'error' });
         return [];
       }
     } catch (error) {
       console.error('Error loading available colors:', error);
-      showToast('Failed to load available colors', 'error');
+      showToast({ message: 'Failed to load available colors', type: 'error' });
       return [];
     }
   };

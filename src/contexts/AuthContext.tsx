@@ -13,6 +13,7 @@ interface AuthState {
   tokenExpiry: number | null;    // Track token expiration timestamp
   isAuthenticated: boolean;
   isLoading: boolean;
+  isGoogleReady: boolean;        // Track if Google OAuth script is loaded and ready
 }
 
 interface GoogleCredentialResponse {
