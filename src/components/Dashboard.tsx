@@ -88,15 +88,13 @@ const Dashboard: React.FC = () => {
             newTodoId={newTodoId}
             onNewTodoAnimationComplete={() => setNewTodoId(null)}
           />
+          
+          {/* API Status at bottom of content */}
+          <div className="mt-8 pt-6 border-t border-gray-200">
+            <ApiStatus />
+          </div>
         </div>
       </main>
-
-      {/* API Status at bottom */}
-      <footer className="border-t border-gray-200 bg-white">
-        <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4 sm:px-6 lg:px-8">
-          <ApiStatus />
-        </div>
-      </footer>
 
       {/* Add Todo Modal */}
       <AddTodoModal
