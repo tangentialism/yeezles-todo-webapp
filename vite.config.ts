@@ -7,7 +7,7 @@ export default defineConfig({
   preview: {
     port: Number(process.env.PORT) || 4173,
     host: '0.0.0.0',
-    allowedHosts: ['yeezles-todo-webapp-production.up.railway.app'],
+    allowedHosts: ['yeezles-todo-webapp-production.up.railway.app', 'yeezlestodo.com'],
     strictPort: true
   },
   server: {
