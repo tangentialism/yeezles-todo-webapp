@@ -39,8 +39,8 @@ const ApiStatus: React.FC = () => {
   };
 
   return (
-    <div className="text-center py-4">
-      <p className={`text-sm ${getStatusColor()}`}>
+    <div className="text-center py-1">
+      <p className={`text-xs ${getStatusColor()}`}>
         {getStatusText()}
       </p>
     </div>

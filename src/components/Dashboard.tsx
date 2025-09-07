@@ -90,7 +90,7 @@ const Dashboard: React.FC = () => {
           />
           
           {/* API Status at bottom of content */}
-          <div className="mt-8 pt-6 border-t border-gray-200">
+          <div className="mt-4 pt-2 border-t border-gray-200">
             <ApiStatus />
           </div>
         </div>
