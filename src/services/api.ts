@@ -15,6 +15,61 @@ import type {
   UpdateAreaRequest
 } from '../types/area';
 
+// Authentication types
+export interface LoginRequest {
+  googleToken: string;
+  rememberMe?: boolean;
+}
+
+export interface LoginResponse {
+  success: boolean;
+  data: {
+    user: {
+      email: string;
+      name: string;
+      picture?: string;
+    };
+    sessionCreated: boolean;
+    rememberMeEnabled: boolean;
+  };
+}
+
+export interface ValidatePersistentResponse {
+  success: boolean;
+  data: {
+    user: {
+      email: string;
+      name: string;
+      authMethod: string;
+    };
+    session: {
+      id: number;
+      platform: string;
+      lastUsed: string;
+      expiresAt: string;
+    };
+    tokenRotated: boolean;
+  };
+}
+
+export interface UserSession {
+  id: number;
+  platform: string;
+  createdAt: string;
+  lastUsedAt: string;
+  expiresAt: string;
+  userAgentHash: string;
+  isCurrent: boolean;
+}
+
+export interface SessionsResponse {
+  success: boolean;
+  data: {
+    sessions: UserSession[];
+    totalCount: number;
+  };
+}
+
 class TokenAwareApiClient {
   private api: AxiosInstance;
   private baseURL: string;
@@ -35,6 +90,7 @@ class TokenAwareApiClient {
       headers: {
         'Content-Type': 'application/json',
       },
+      withCredentials: true, // Include cookies in requests
     });
 
     // Add request interceptor to include auth token
@@ -71,6 +127,48 @@ class TokenAwareApiClient {
   // Health check
   async healthCheck(): Promise<any> {
     const response = await this.api.get('/health');
+    return response.data;
+  }
+
+  // Authentication Methods
+
+  /**
+   * Login with Google token and optional remember me
+   */
+  async login(loginData: LoginRequest): Promise<LoginResponse> {
+    const response = await this.api.post('/auth/login', loginData);
+    return response.data;
+  }
+
+  /**
+   * Validate persistent session from cookie
+   */
+  async validatePersistentSession(): Promise<ValidatePersistentResponse> {
+    const response = await this.api.post('/auth/validate-persistent');
+    return response.data;
+  }
+
+  /**
+   * Get user's active sessions
+   */
+  async getUserSessions(): Promise<SessionsResponse> {
+    const response = await this.api.get('/auth/sessions');
+    return response.data;
+  }
+
+  /**
+   * Revoke specific session
+   */
+  async revokeSession(sessionId: number): Promise<ApiResponse<{ sessionId: number; revoked: boolean }>> {
+    const response = await this.api.delete(`/auth/sessions/${sessionId}`);
+    return response.data;
+  }
+
+  /**
+   * Revoke all sessions (sign out everywhere)
+   */
+  async revokeAllSessions(): Promise<ApiResponse<{ revokedCount: number; message: string }>> {
+    const response = await this.api.delete('/auth/sessions');
     return response.data;
   }
 
