@@ -70,8 +70,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             auto_select: false,
             cancel_on_tap_outside: false,
           });
-          // ✅ Set Google as ready and stop loading after successful initialization
-          setAuthState(prev => ({ ...prev, isGoogleReady: true, isLoading: false }));
+          // ✅ Set Google as ready but keep loading until auth check completes
+          setAuthState(prev => ({ ...prev, isGoogleReady: true }));
         } catch (error) {
           console.error('❌ Google OAuth initialization failed:', error);
           // Still set as ready and stop loading so user sees the error instead of loading forever
@@ -92,16 +92,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (timeoutCount < maxTimeouts) {
           setTimeout(checkGoogleLoaded, 100);
         } else {
-          // Set as ready and stop loading to show error state after timeout
-          setAuthState(prev => ({ ...prev, isGoogleReady: true, isLoading: false }));
+          // Set as ready but keep loading until auth check completes
+          setAuthState(prev => ({ ...prev, isGoogleReady: true }));
         }
       }
     };
 
     checkGoogleLoaded();
 
-    // Check for persistent session first, then fall back to stored user
-    checkInitialAuth();
+    // Check for persistent session after a short delay to prevent flash
+    setTimeout(async () => {
+      await checkInitialAuth();
+    }, 100);
     
   }, []);
 
