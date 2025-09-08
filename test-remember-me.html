@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remember Me Integration Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #6c757d; cursor: not-allowed; }
+        .code {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔐 Remember Me Integration Test</h1>
+    <p>This page tests the remember me functionality by making API calls directly to the backend.</p>
+
+    <div class="test-section">
+        <h2>Backend Connection Test</h2>
+        <button onclick="testBackendConnection()">Test Backend Connection</button>
+        <div id="backend-status"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Authentication Endpoints Test</h2>
+        <button onclick="testAuthEndpoints()">Test Auth Endpoints</button>
+        <div id="auth-status"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Persistent Session Test</h2>
+        <p>This test simulates the persistent session validation flow:</p>
+        <button onclick="testPersistentSession()">Test Persistent Session Validation</button>
+        <div id="session-status"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Cookie Test</h2>
+        <p>Check if cookies are being set and read correctly:</p>
+        <button onclick="testCookies()">Test Cookie Handling</button>
+        <div id="cookie-status"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Frontend Integration Test</h2>
+        <p>Test the frontend auth flow (requires manual Google OAuth):</p>
+        <div id="frontend-test">
+            <p><strong>Instructions:</strong></p>
+            <ol>
+                <li>Open the webapp in another tab</li>
+                <li>Try logging in with the "Remember me" checkbox checked</li>
+                <li>Close the browser and reopen to test persistent session</li>
+                <li>Check the browser's Developer Tools → Application → Cookies for the remember token</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:3000'; // Adjust if needed
+
+        function updateStatus(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        function addToStatus(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.innerHTML += `<div class="status ${type}">${message}</div>`;
+        }
+
+        async function testBackendConnection() {
+            updateStatus('backend-status', 'Testing backend connection...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/health`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    updateStatus('backend-status', 
+                        `✅ Backend connected successfully!<br>
+                        <div class="code">${JSON.stringify(data, null, 2)}</div>`, 
+                        'success'
+                    );
+                } else {
+                    updateStatus('backend-status', 
+                        `❌ Backend responded with status: ${response.status}`, 
+                        'error'
+                    );
+                }
+            } catch (error) {
+                updateStatus('backend-status', 
+                    `❌ Failed to connect to backend: ${error.message}<br>
+                    Make sure the backend is running on ${API_BASE_URL}`, 
+                    'error'
+                );
+            }
+        }
+
+        async function testAuthEndpoints() {
+            updateStatus('auth-status', 'Testing authentication endpoints...', 'info');
+            
+            // Test 1: Check if auth endpoints exist
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/validate-persistent`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                // We expect this to fail with 401 (no session), but it should not be 404
+                if (response.status === 401) {
+                    addToStatus('auth-status', 
+                        '✅ Auth endpoints are available (got expected 401)', 
+                        'success'
+                    );
+                } else if (response.status === 404) {
+                    addToStatus('auth-status', 
+                        '❌ Auth endpoints not found (404) - backend may not be updated', 
+                        'error'
+                    );
+                } else {
+                    const data = await response.json();
+                    addToStatus('auth-status', 
+                        `ℹ️ Unexpected response: ${response.status}<br>
+                        <div class="code">${JSON.stringify(data, null, 2)}</div>`, 
+                        'info'
+                    );
+                }
+            } catch (error) {
+                addToStatus('auth-status', 
+                    `❌ Error testing auth endpoints: ${error.message}`, 
+                    'error'
+                );
+            }
+
+            // Test 2: Check session stats endpoint
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/session-stats`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    addToStatus('auth-status', 
+                        `✅ Session stats endpoint working<br>
+                        <div class="code">${JSON.stringify(data, null, 2)}</div>`, 
+                        'success'
+                    );
+                } else {
+                    addToStatus('auth-status', 
+                        `ℹ️ Session stats returned: ${response.status}`, 
+                        'info'
+                    );
+                }
+            } catch (error) {
+                addToStatus('auth-status', 
+                    `❌ Error testing session stats: ${error.message}`, 
+                    'error'
+                );
+            }
+        }
+
+        async function testPersistentSession() {
+            updateStatus('session-status', 'Testing persistent session validation...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/validate-persistent`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.status === 401) {
+                    addToStatus('session-status', 
+                        '✅ Persistent session validation working (no session found)<br>' +
+                        `Response: ${data.error?.message || 'No session'}`, 
+                        'success'
+                    );
+                } else if (response.ok) {
+                    addToStatus('session-status', 
+                        `✅ Found valid persistent session!<br>
+                        <div class="code">${JSON.stringify(data, null, 2)}</div>`, 
+                        'success'
+                    );
+                } else {
+                    addToStatus('session-status', 
+                        `ℹ️ Unexpected response: ${response.status}<br>
+                        <div class="code">${JSON.stringify(data, null, 2)}</div>`, 
+                        'info'
+                    );
+                }
+            } catch (error) {
+                addToStatus('session-status', 
+                    `❌ Error testing persistent session: ${error.message}`, 
+                    'error'
+                );
+            }
+        }
+
+        async function testCookies() {
+            updateStatus('cookie-status', 'Testing cookie handling...', 'info');
+            
+            // Check current cookies
+            const cookies = document.cookie;
+            addToStatus('cookie-status', 
+                `Current cookies: ${cookies || 'None'}`, 
+                'info'
+            );
+            
+            // Test setting a test cookie
+            document.cookie = 'test-cookie=test-value; path=/; secure; samesite=strict';
+            
+            // Check if it was set
+            const newCookies = document.cookie;
+            if (newCookies.includes('test-cookie')) {
+                addToStatus('cookie-status', 
+                    '✅ Cookie setting/reading works', 
+                    'success'
+                );
+            } else {
+                addToStatus('cookie-status', 
+                    '❌ Cookie setting failed (might be due to HTTP vs HTTPS)', 
+                    'error'
+                );
+            }
+            
+            // Look for remember me cookie
+            if (cookies.includes('remember_token') || cookies.includes('__Host-remember_token')) {
+                addToStatus('cookie-status', 
+                    '✅ Remember me cookie found!', 
+                    'success'
+                );
+            } else {
+                addToStatus('cookie-status', 
+                    'ℹ️ No remember me cookie found (expected if not logged in)', 
+                    'info'
+                );
+            }
+        }
+
+        // Auto-run basic tests on page load
+        window.addEventListener('load', () => {
+            setTimeout(testBackendConnection, 500);
+        });
+    </script>
+</body>
+</html>

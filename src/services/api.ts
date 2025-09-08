@@ -307,7 +307,7 @@ export const createAuthenticatedApiClient = (
   onAuthError: () => void
 ): TokenAwareApiClient => {
   return new TokenAwareApiClient(
-    import.meta.env.VITE_API_BASE_URL || 'https://yeezles-todo-production.up.railway.app',
+    import.meta.env.VITE_API_BASE_URL || 'https://api.yeezlestodo.com',
     getToken,
     onAuthError
   );
