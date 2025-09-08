@@ -211,31 +211,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (credentialResponse: GoogleCredentialResponse, rememberMe: boolean = false) => {
     try {
+      console.log('🔍 [Frontend] Login called with rememberMe:', rememberMe);
+      
       // First handle the Google credential response
       await handleCredentialResponse(credentialResponse);
       
       // If remember me is requested, create persistent session
       if (rememberMe) {
         try {
+          console.log('🔍 [Frontend] Creating persistent session...');
           const apiClient = createAuthenticatedApiClient(getValidToken, () => {});
           const loginRequest: LoginRequest = {
             googleToken: credentialResponse.credential,
             rememberMe: true
           };
           
+          console.log('🔍 [Frontend] Sending login request:', loginRequest);
           const loginResponse = await apiClient.login(loginRequest);
+          console.log('🔍 [Frontend] Login response:', loginResponse);
           
           if (loginResponse.success && loginResponse.data.sessionCreated) {
             setAuthState(prev => ({
               ...prev,
               hasPersistentSession: true,
             }));
-            console.log('✅ Persistent session created successfully');
+            console.log('✅ [Frontend] Persistent session created successfully');
+            console.log('🔍 [Frontend] Cookies after login:', document.cookie);
+          } else {
+            console.log('❌ [Frontend] Session creation failed:', loginResponse);
           }
         } catch (error) {
-          console.error('Failed to create persistent session:', error);
+          console.error('❌ [Frontend] Failed to create persistent session:', error);
           // Don't fail the entire login process if persistent session creation fails
         }
+      } else {
+        console.log('🔍 [Frontend] Remember me not requested, skipping persistent session');
       }
     } catch (error) {
       console.error('Login failed:', error);
@@ -308,6 +318,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Check for valid persistent session
   const checkPersistentSession = async (): Promise<boolean> => {
     try {
+      console.log('🔍 [Frontend] Checking for persistent session...');
+      console.log('🔍 [Frontend] Current cookies:', document.cookie);
+      
       const apiClient = createAuthenticatedApiClient(() => null, () => {}); // No token needed for this call
       const response = await apiClient.validatePersistentSession();
       
@@ -340,7 +353,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       return false;
     } catch (error) {
-      console.log('No valid persistent session found:', error instanceof Error ? error.message : 'Unknown error');
+      console.log('❌ [Frontend] No valid persistent session found:', error instanceof Error ? error.message : 'Unknown error');
+      console.log('🔍 [Frontend] Error details:', error);
       return false;
     }
   };

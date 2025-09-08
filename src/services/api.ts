@@ -136,7 +136,16 @@ class TokenAwareApiClient {
    * Login with Google token and optional remember me
    */
   async login(loginData: LoginRequest): Promise<LoginResponse> {
+    console.log('🔍 [Frontend API] Sending login request:', loginData);
+    console.log('🔍 [Frontend API] Cookies before login:', document.cookie);
+    
     const response = await this.api.post('/auth/login', loginData);
+    
+    console.log('🔍 [Frontend API] Login response status:', response.status);
+    console.log('🔍 [Frontend API] Login response headers:', response.headers);
+    console.log('🔍 [Frontend API] Login response data:', response.data);
+    console.log('🔍 [Frontend API] Cookies after login:', document.cookie);
+    
     return response.data;
   }
 
@@ -144,7 +153,14 @@ class TokenAwareApiClient {
    * Validate persistent session from cookie
    */
   async validatePersistentSession(): Promise<ValidatePersistentResponse> {
+    console.log('🔍 [Frontend API] About to validate persistent session');
+    console.log('🔍 [Frontend API] Current cookies before request:', document.cookie);
+    
     const response = await this.api.post('/auth/validate-persistent');
+    
+    console.log('🔍 [Frontend API] Validation response status:', response.status);
+    console.log('🔍 [Frontend API] Validation response data:', response.data);
+    
     return response.data;
   }
 
