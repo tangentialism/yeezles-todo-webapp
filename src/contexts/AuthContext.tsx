@@ -342,7 +342,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           idToken: null, // No Google ID token for persistent sessions
           tokenExpiry: null,
           isAuthenticated: true,
-          isLoading: false,
+          isLoading: false, // Ensure loading is false
           authMethod: 'persistent-session',
           hasPersistentSession: true,
         }));
@@ -351,10 +351,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return true;
       }
       
+      // Ensure loading state is updated when no session is found
+      setAuthState(prev => ({ ...prev, isLoading: false }));
       return false;
     } catch (error) {
       console.log('❌ [Frontend] No valid persistent session found:', error instanceof Error ? error.message : 'Unknown error');
       console.log('🔍 [Frontend] Error details:', error);
+      // Ensure loading state is updated on error
+      setAuthState(prev => ({ ...prev, isLoading: false }));
       return false;
     }
   };
