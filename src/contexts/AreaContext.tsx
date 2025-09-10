@@ -1,14 +1,14 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { Area, AreaWithStats } from '../types/area';
-import { useApi } from '../hooks/useApi';
-import { useToast } from './ToastContext';
+import { useAreaStore } from '../hooks/useAreaStore';
 
 interface AreaContextType {
   // State
   areas: Area[];
   currentArea: Area | null;
   isLoading: boolean;
+  availableColors: string[];
   
   // Actions
   setCurrentArea: (area: Area | null) => void;
@@ -17,7 +17,9 @@ interface AreaContextType {
   updateArea: (id: number, name?: string, color?: string) => Promise<Area | null>;
   deleteArea: (id: number) => Promise<boolean>;
   getAreaStats: (id: number) => Promise<AreaWithStats | null>;
-  getAvailableColors: () => Promise<string[]>;
+  
+  // Store utilities
+  getAreaDisplayState: (area: Area) => { isPending: boolean; isDeleting: boolean; isCreating: boolean };
 }
 
 const AreaContext = createContext<AreaContextType | undefined>(undefined);
@@ -27,17 +29,23 @@ interface AreaProviderProps {
 }
 
 export const AreaProvider: React.FC<AreaProviderProps> = ({ children }) => {
-  const [areas, setAreas] = useState<Area[]>([]);
   const [currentArea, setCurrentAreaState] = useState<Area | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   
-  const api = useApi();
-  const { showToast } = useToast();
+  // Use the optimized area store
+  const {
+    areas,
+    availableColors,
+    defaultArea,
+    isLoading,
+    createArea: storeCreateArea,
+    updateArea: storeUpdateArea,
+    deleteArea: storeDeleteArea,
+    getAreaStats,
+    getAreaDisplayState,
+    refetchAreas
+  } = useAreaStore();
 
-  // Load areas on mount
-  useEffect(() => {
-    refreshAreas();
-  }, []);
+  // Areas are automatically loaded by the store
 
   // Load saved current area from localStorage
   useEffect(() => {
@@ -47,48 +55,17 @@ export const AreaProvider: React.FC<AreaProviderProps> = ({ children }) => {
       if (savedArea) {
         setCurrentAreaState(savedArea);
       } else {
-        // If saved area not found, use first default area
-        const defaultArea = areas.find(area => area.is_default) || areas[0];
-        setCurrentAreaState(defaultArea || null);
+        // If saved area not found, use default area from store
+        setCurrentAreaState(defaultArea);
       }
     } else if (areas.length > 0) {
-      // No saved area, use first default area
-      const defaultArea = areas.find(area => area.is_default) || areas[0];
-      setCurrentAreaState(defaultArea || null);
+      // No saved area, use default area from store
+      setCurrentAreaState(defaultArea);
     }
-  }, [areas]);
+  }, [areas, defaultArea]);
 
   const refreshAreas = async (): Promise<void> => {
-    try {
-      setIsLoading(true);
-      const response = await api.getAreas();
-      
-      // Handle both array response (as typed) and object response (actual API)
-      if (response.success) {
-        const responseData = response.data as any;
-        const areasArray = Array.isArray(responseData) 
-          ? responseData 
-          : responseData?.areas;
-          
-        if (Array.isArray(areasArray)) {
-          setAreas(areasArray as Area[]);
-        } else {
-          console.error('Invalid areas response - no valid array found:', response);
-          setAreas([]);
-          showToast({ message: 'Failed to load areas - invalid response format', type: 'error' });
-        }
-      } else {
-        console.error('API returned unsuccessful response:', response);
-        setAreas([]);
-        showToast({ message: response.message || 'Failed to load areas', type: 'error' });
-      }
-    } catch (error) {
-      console.error('Error loading areas:', error);
-      setAreas([]);
-      showToast({ message: 'Failed to load areas', type: 'error' });
-    } finally {
-      setIsLoading(false);
-    }
+    await refetchAreas();
   };
 
   const setCurrentArea = (area: Area | null): void => {
@@ -102,19 +79,10 @@ export const AreaProvider: React.FC<AreaProviderProps> = ({ children }) => {
 
   const createArea = async (name: string, color: string): Promise<Area | null> => {
     try {
-      const response = await api.createArea({ name, color });
-      if (response.success) {
-        const newArea = response.data;
-        setAreas(prev => [...prev, newArea]);
-        showToast({ message: `Area "${name}" created successfully`, type: 'success' });
-        return newArea;
-      } else {
-        showToast({ message: response.message || 'Failed to create area', type: 'error' });
-        return null;
-      }
+      const newArea = await storeCreateArea({ name, color });
+      return newArea;
     } catch (error) {
       console.error('Error creating area:', error);
-      showToast({ message: 'Failed to create area', type: 'error' });
       return null;
     }
   };
@@ -125,102 +93,48 @@ export const AreaProvider: React.FC<AreaProviderProps> = ({ children }) => {
       if (name !== undefined) updates.name = name;
       if (color !== undefined) updates.color = color;
 
-      const response = await api.updateArea(id, updates);
-      if (response.success) {
-        const updatedArea = response.data;
-        setAreas(prev => prev.map(area => area.id === id ? updatedArea : area));
-        
-        // Update current area if it's the one being updated
-        if (currentArea?.id === id) {
-          setCurrentAreaState(updatedArea);
-        }
-        
-        showToast({ message: `Area updated successfully`, type: 'success' });
-        return updatedArea;
-      } else {
-        showToast({ message: response.message || 'Failed to update area', type: 'error' });
-        return null;
+      const updatedArea = await storeUpdateArea(id, updates);
+      
+      // Update current area if it's the one being updated
+      if (currentArea?.id === id) {
+        setCurrentAreaState(updatedArea);
       }
+      
+      return updatedArea;
     } catch (error) {
       console.error('Error updating area:', error);
-      showToast({ message: 'Failed to update area', type: 'error' });
       return null;
     }
   };
 
   const deleteArea = async (id: number): Promise<boolean> => {
     try {
-      const response = await api.deleteArea(id);
-      if (response.success) {
-        setAreas(prev => prev.filter(area => area.id !== id));
-        
-        // If deleted area was current, switch to first available area
-        if (currentArea?.id === id) {
-          const remainingAreas = areas.filter(area => area.id !== id);
-          const defaultArea = remainingAreas.find(area => area.is_default) || remainingAreas[0];
-          setCurrentArea(defaultArea || null);
-        }
-        
-        showToast({ message: 'Area deleted successfully', type: 'success' });
-        return true;
-      } else {
-        showToast({ message: response.message || 'Failed to delete area', type: 'error' });
-        return false;
+      await storeDeleteArea(id);
+      
+      // If deleted area was current, switch to default area
+      if (currentArea?.id === id) {
+        const remainingAreas = areas.filter(area => area.id !== id);
+        const newDefaultArea = remainingAreas.find(area => area.is_default) || remainingAreas[0];
+        setCurrentArea(newDefaultArea || null);
       }
+      
+      return true;
     } catch (error) {
       console.error('Error deleting area:', error);
-      showToast({ message: 'Failed to delete area', type: 'error' });
       return false;
     }
   };
 
-  const getAreaStats = async (id: number): Promise<AreaWithStats | null> => {
-    try {
-      const response = await api.getAreaStats(id);
-      if (response.success) {
-        return response.data;
-      } else {
-        showToast({ message: response.message || 'Failed to load area statistics', type: 'error' });
-        return null;
-      }
-    } catch (error) {
-      console.error('Error loading area stats:', error);
-      showToast({ message: 'Failed to load area statistics', type: 'error' });
-      return null;
-    }
-  };
+  // getAreaStats is provided by the store
 
-  const getAvailableColors = async (): Promise<string[]> => {
-    try {
-      const response = await api.getAvailableColors();
-      if (response.success) {
-        const responseData = response.data as any;
-        const colorsData = responseData?.colors;
-        
-        if (Array.isArray(colorsData)) {
-          // Extract hex colors from color objects: { color: '#hex', name: 'Name', description: 'Desc' }
-          return colorsData.map((colorObj: any) => colorObj.color || colorObj);
-        } else {
-          console.error('Invalid colors response - no colors array found:', response);
-          return [];
-        }
-      } else {
-        console.error('API returned unsuccessful response for colors:', response);
-        showToast({ message: response.message || 'Failed to load available colors', type: 'error' });
-        return [];
-      }
-    } catch (error) {
-      console.error('Error loading available colors:', error);
-      showToast({ message: 'Failed to load available colors', type: 'error' });
-      return [];
-    }
-  };
+  // availableColors is provided by the store
 
   const value: AreaContextType = {
     // State
     areas,
     currentArea,
     isLoading,
+    availableColors,
     
     // Actions
     setCurrentArea,
@@ -229,7 +143,16 @@ export const AreaProvider: React.FC<AreaProviderProps> = ({ children }) => {
     updateArea,
     deleteArea,
     getAreaStats,
-    getAvailableColors,
+    
+    // Store utilities  
+    getAreaDisplayState: (area: Area) => {
+      const state = getAreaDisplayState(area as any);
+      return {
+        isPending: state.isPending || false,
+        isDeleting: state.isDeleting || false,
+        isCreating: state.isCreating || false
+      };
+    },
   };
 
   return (

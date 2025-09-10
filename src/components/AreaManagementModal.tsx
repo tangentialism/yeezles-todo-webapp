@@ -15,11 +15,14 @@ const AreaManagementModal: React.FC<AreaManagementModalProps> = ({
 }) => {
   const [name, setName] = useState('');
   const [selectedColor, setSelectedColor] = useState('#1976D2'); // Default blue
-  const [availableColors, setAvailableColors] = useState<string[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ name?: string; color?: string }>({});
 
-  const { createArea, updateArea, deleteArea, getAvailableColors, areas } = useArea();
+  const { createArea, updateArea, deleteArea, availableColors, areas, getAreaDisplayState } = useArea();
+  
+  // Get submission state from context (areas are now managed optimistically)
+  const isSubmitting = editingArea ? 
+    getAreaDisplayState(editingArea).isPending : 
+    false; // For new areas, we'll track locally
 
   // Fallback colors if API fails
   const fallbackColors = [
@@ -33,18 +36,8 @@ const AreaManagementModal: React.FC<AreaManagementModalProps> = ({
     '#5D4037'  // Brown
   ];
 
-  // Load available colors on mount
-  useEffect(() => {
-    const loadColors = async () => {
-      const colors = await getAvailableColors();
-      if (colors.length > 0) {
-        setAvailableColors(colors);
-      } else {
-        setAvailableColors(fallbackColors);
-      }
-    };
-    loadColors();
-  }, [getAvailableColors]);
+  // Use colors from context (automatically loaded by store)
+  const colorsToUse = availableColors.length > 0 ? availableColors : fallbackColors;
 
   // Reset form when modal opens/closes or editing area changes
   useEffect(() => {
@@ -84,7 +77,7 @@ const AreaManagementModal: React.FC<AreaManagementModalProps> = ({
     // Validate color
     if (!selectedColor) {
       newErrors.color = 'Please select a valid color';
-    } else if (availableColors.length > 0 && !availableColors.includes(selectedColor)) {
+    } else if (colorsToUse.length > 0 && !colorsToUse.includes(selectedColor)) {
       newErrors.color = 'Please select a valid color';
     }
 
@@ -99,25 +92,19 @@ const AreaManagementModal: React.FC<AreaManagementModalProps> = ({
       return;
     }
 
-    setIsSubmitting(true);
     try {
       if (editingArea) {
-        // Update existing area
-        const result = await updateArea(editingArea.id, name.trim(), selectedColor);
-        if (result) {
-          onClose();
-        }
+        // Update existing area (store handles optimistic updates)
+        await updateArea(editingArea.id, name.trim(), selectedColor);
+        onClose();
       } else {
-        // Create new area
-        const result = await createArea(name.trim(), selectedColor);
-        if (result) {
-          onClose();
-        }
+        // Create new area (store handles optimistic updates)
+        await createArea(name.trim(), selectedColor);
+        onClose();
       }
     } catch (error) {
       console.error('Error saving area:', error);
-    } finally {
-      setIsSubmitting(false);
+      // Error handling is done in the store with toast notifications
     }
   };
 
@@ -125,16 +112,12 @@ const AreaManagementModal: React.FC<AreaManagementModalProps> = ({
     if (!editingArea) return;
 
     if (window.confirm(`Are you sure you want to delete "${editingArea.name}"? This action cannot be undone.`)) {
-      setIsSubmitting(true);
       try {
-        const success = await deleteArea(editingArea.id);
-        if (success) {
-          onClose();
-        }
+        await deleteArea(editingArea.id);
+        onClose();
       } catch (error) {
         console.error('Error deleting area:', error);
-      } finally {
-        setIsSubmitting(false);
+        // Error handling is done in the store with toast notifications
       }
     }
   };
@@ -189,7 +172,7 @@ const AreaManagementModal: React.FC<AreaManagementModalProps> = ({
               Choose Color
             </label>
             <div className="grid grid-cols-4 gap-3">
-              {Array.isArray(availableColors) && availableColors.map((color) => (
+              {Array.isArray(colorsToUse) && colorsToUse.map((color) => (
                 <button
                   key={color}
                   type="button"

@@ -1,77 +1,35 @@
-import React, { useState, useEffect } from 'react';
-import { useApi } from '../hooks/useApi';
-import { useTodoCompletion } from '../hooks/useTodoCompletion';
+import React, { useState } from 'react';
+import { useTodayViewStore } from '../hooks/useTodayViewStore';
 import { formatDate } from '../utils/date';
 import EditTodoModal from './EditTodoModal';
 import TodoActions from './TodoActions';
-import type { Todo, TodayView as TodayViewData } from '../types/todo';
+import type { Todo } from '../types/todo';
 
 const TodayView: React.FC = () => {
-  const [todayData, setTodayData] = useState<TodayViewData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const apiClient = useApi();
+  
+  // Use the optimized today view store
+  const {
+    todayData,
+    isLoading: loading,
+    error: queryError,
+    toggleTodoCompletion,
+    getTodoDisplayState,
+    refetchTodayView
+  } = useTodayViewStore();
+  
+  const error = queryError ? (queryError as Error).message : null;
 
-  const loadTodayData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await apiClient.getTodayView();
-      if (response.success) {
-        setTodayData(response.data);
-      } else {
-        setError('Failed to load today view');
-      }
-    } catch (err: any) {
-      setError(err.message || 'Failed to load today view');
-      console.error('Error loading today view:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Data loading is now handled by the store
 
-  // Optimistic update function for immediate visual feedback
-  const handleOptimisticUpdate = (todoId: number, newCompleted: boolean) => {
-    if (todayData) {
-      setTodayData(prev => {
-        if (!prev) return prev;
-        
-        // Update the todo in all relevant sections of the TodayView structure
-        const updateTodos = (todos: Todo[]) => 
-          todos.map(todo => todo.id === todoId ? { ...todo, completed: newCompleted } : todo);
-        
-        return {
-          ...prev,
-          focus: {
-            ...prev.focus,
-            today_tagged: updateTodos(prev.focus.today_tagged),
-            due_today: updateTodos(prev.focus.due_today),
-            overdue: updateTodos(prev.focus.overdue)
-          },
-          upcoming: {
-            ...prev.upcoming,
-            coming_soon: updateTodos(prev.upcoming.coming_soon)
-          }
-        };
-      });
-    }
-  };
+  // Optimistic updates are now handled by the store
 
-  // Todo completion with undo functionality
-  const { toggleTodoCompletion, getTodoDisplayState } = useTodoCompletion({
-    onUpdate: loadTodayData,
-    optimisticUpdate: handleOptimisticUpdate
-  });
+  // Todo completion is now handled by the store
+  // Data loading is automatic
 
-  useEffect(() => {
-    loadTodayData();
-  }, []);
-
-  // Legacy function - now using useTodoCompletion hook
-  const toggleTodo = (todo: Todo) => {
-    toggleTodoCompletion(todo);
+  const toggleTodo = async (todo: Todo) => {
+    await toggleTodoCompletion(todo);
   };
 
   const handleEditTodo = (todo: Todo) => {
@@ -85,7 +43,8 @@ const TodayView: React.FC = () => {
   };
 
   const handleTodoUpdated = () => {
-    loadTodayData(); // Refresh the today view
+    // Store automatically handles updates, but we can trigger a refetch if needed
+    refetchTodayView();
   };
 
   const extractTags = (title: string) => {
@@ -218,7 +177,7 @@ const TodayView: React.FC = () => {
         <div className="text-red-600 mb-4">❌ Error loading today view</div>
         <p className="text-gray-600 mb-4">{error}</p>
         <button
-          onClick={loadTodayData}
+          onClick={() => refetchTodayView()}
           className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
         >
           Try Again
