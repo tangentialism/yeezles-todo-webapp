@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useApi } from '../hooks/useApi';
+import { useTodoStore } from '../hooks/useTodoStore';
 import type { Todo } from '../types/todo';
 
 interface TodoActionsProps {
@@ -11,9 +11,8 @@ interface TodoActionsProps {
 
 const TodoActions: React.FC<TodoActionsProps> = ({ todo, onEdit, onUpdate, onToggleComplete }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const apiClient = useApi();
+  const { deleteTodo, toggleTodoCompletion, isDeleting } = useTodoStore();
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -35,16 +34,13 @@ const TodoActions: React.FC<TodoActionsProps> = ({ todo, onEdit, onUpdate, onTog
     }
 
     try {
-      setIsDeleting(true);
-      const response = await apiClient.deleteTodo(todo.id);
-      if (response.success) {
-        onUpdate(); // Refresh the todo list
-      }
+      await deleteTodo(todo.id);
+      // Store handles optimistic updates and error messages
+      onUpdate(); // Still call for any additional logic parent might need
     } catch (error) {
       console.error('Error deleting todo:', error);
-      alert('Failed to delete todo. Please try again.');
+      // Error handling is done in the store with toast
     } finally {
-      setIsDeleting(false);
       setIsOpen(false);
     }
   };
@@ -54,23 +50,14 @@ const TodoActions: React.FC<TodoActionsProps> = ({ todo, onEdit, onUpdate, onTog
     setIsOpen(false);
   };
 
-  const handleToggleComplete = () => {
+  const handleToggleComplete = async () => {
     if (onToggleComplete) {
-      // Use the new completion system with undo functionality
+      // Use parent's completion handler (maintains existing behavior)
       onToggleComplete(todo);
     } else {
-      // Fallback to old immediate completion (for backward compatibility)
-      const legacyToggle = async () => {
-        try {
-          const response = await apiClient.updateTodo(todo.id, { completed: !todo.completed });
-          if (response.success) {
-            onUpdate();
-          }
-        } catch (error) {
-          console.error('Error updating todo:', error);
-        }
-      };
-      legacyToggle();
+      // Use store's completion system with undo functionality
+      await toggleTodoCompletion(todo);
+      onUpdate(); // Still call for any additional logic parent might need
     }
     setIsOpen(false);
   };

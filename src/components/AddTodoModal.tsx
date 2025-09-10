@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useApi } from '../hooks/useApi';
+import { useTodoStore } from '../hooks/useTodoStore';
 import { useArea } from '../contexts/AreaContext';
 
 interface AddTodoModalProps {
@@ -13,9 +13,9 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [selectedAreaId, setSelectedAreaId] = useState<number | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const apiClient = useApi();
+  const { createTodo, isCreating } = useTodoStore();
   const { areas, currentArea } = useArea();
+  const isSubmitting = isCreating;
 
   // Initialize with current area when modal opens
   React.useEffect(() => {
@@ -29,28 +29,25 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
     if (!title.trim()) return;
 
     try {
-      setIsSubmitting(true);
-      const todoData: any = {
+      const todoData = {
         title: title.trim(),
         description: description.trim() || undefined,
         due_date: dueDate ? new Date(dueDate).toISOString() : undefined,
         area_id: selectedAreaId,
       };
 
-      const response = await apiClient.createTodo(todoData);
-      if (response.success) {
-        // Reset form
-        setTitle('');
-        setDescription('');
-        setDueDate('');
-        setSelectedAreaId(currentArea?.id || null);
-        onTodoAdded(response.data.id);
-        onClose();
-      }
+      const newTodo = await createTodo(todoData);
+      
+      // Reset form
+      setTitle('');
+      setDescription('');
+      setDueDate('');
+      setSelectedAreaId(currentArea?.id || null);
+      onTodoAdded(newTodo.id);
+      onClose();
     } catch (error) {
       console.error('Error creating todo:', error);
-    } finally {
-      setIsSubmitting(false);
+      // Error handling is done in the store with toast
     }
   };
 

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useApi } from '../hooks/useApi';
-import { useTodoCompletion } from '../hooks/useTodoCompletion';
+import { useTodoStore } from '../hooks/useTodoStore';
 import { useArea } from '../contexts/AreaContext';
 import { formatDate } from '../utils/date';
 
@@ -17,92 +16,34 @@ interface TodoListProps {
 
 const TodoList: React.FC<TodoListProps> = ({ 
   view, 
-  refreshTrigger, 
+  refreshTrigger: _, // Unused with new store but kept for API compatibility
   newTodoId, 
   onNewTodoAnimationComplete 
 }) => {
 
-  const [todos, setTodos] = useState<Todo[]>([]);
-  const apiClient = useApi();
   const { currentArea } = useArea();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [removingTodos, setRemovingTodos] = useState<Set<number>>(new Set());
   const [animatingTodos, setAnimatingTodos] = useState<Set<number>>(new Set());
 
-  const loadTodos = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  // Use the new todo store
+  const {
+    todos,
+    isLoading: loading,
+    error: queryError,
+    getTodoDisplayState,
+    toggleTodoCompletion,
+    refetchTodos
+  } = useTodoStore({ view });
 
-      let filters: any = {};
-      
-      // Add view-based filters
-      switch (view) {
-        case 'completed':
-          filters.completed = true;
-          break;
-        case 'all':
-        default:
-          // No completion filters for all todos
-          break;
-      }
+  const error = queryError ? (queryError as Error).message : null;
 
-      // Add area-based filters
-      if (currentArea) {
-        // Filter by specific area
-        filters.area_id = currentArea.id;
-      } else {
-        // "All Areas" view - include todos from all areas
-        filters.include_all_areas = true;
-      }
+  // Remove the loadTodos function - now handled by useTodoStore
 
-      const response = await apiClient.getTodos(filters);
-      if (response.success) {
-        setTodos(response.data);
-      } else {
-        setError('Failed to load todos');
-      }
-    } catch (err: any) {
-      setError(err.message || 'Failed to load todos');
-      console.error('Error loading todos:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Optimistic updates are now handled by the store
 
-  // Optimistic update function for smooth removal in "all" view
-  const handleOptimisticUpdate = (todoId: number, newCompleted: boolean) => {
-    if (view === 'all' && newCompleted) {
-      // For "all" view, smoothly remove completed todos
-      setRemovingTodos(prev => new Set(prev).add(todoId));
-      
-      // Remove from list after animation completes
-      setTimeout(() => {
-        setTodos(prev => prev.filter(todo => todo.id !== todoId));
-        setRemovingTodos(prev => {
-          const next = new Set(prev);
-          next.delete(todoId);
-          return next;
-        });
-      }, 450); // Match the new CSS transition duration (200ms opacity + 250ms height/margin)
-    } else {
-      // For other views (like "completed"), reload the full list
-      loadTodos();
-    }
-  };
-
-  // Todo completion with undo functionality
-  const { toggleTodoCompletion, getTodoDisplayState } = useTodoCompletion({
-    onUpdate: loadTodos,
-    optimisticUpdate: handleOptimisticUpdate
-  });
-
-  useEffect(() => {
-    loadTodos();
-  }, [view, refreshTrigger, currentArea]);
+  // Todo completion is now handled by the store
+  // No useEffect needed - the store handles view/area changes automatically
 
   // Handle new todo animation
   useEffect(() => {
@@ -124,9 +65,8 @@ const TodoList: React.FC<TodoListProps> = ({
     }
   }, [newTodoId, animatingTodos, onNewTodoAnimationComplete]);
 
-  // Legacy function - now using useTodoCompletion hook
-  const toggleTodo = (todo: Todo) => {
-    toggleTodoCompletion(todo);
+  const toggleTodo = async (todo: Todo) => {
+    await toggleTodoCompletion(todo);
   };
 
   const handleEditTodo = (todo: Todo) => {
@@ -140,7 +80,8 @@ const TodoList: React.FC<TodoListProps> = ({
   };
 
   const handleTodoUpdated = () => {
-    loadTodos(); // Refresh the todo list
+    // Store automatically handles updates, but we can trigger a refetch if needed
+    refetchTodos();
   };
 
 
@@ -170,7 +111,7 @@ const TodoList: React.FC<TodoListProps> = ({
         <div className="text-red-600 mb-4">❌ Error loading todos</div>
         <p className="text-gray-600 mb-4">{error}</p>
         <button
-          onClick={loadTodos}
+          onClick={() => refetchTodos()}
           className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
         >
           Try Again
@@ -224,7 +165,7 @@ const TodoList: React.FC<TodoListProps> = ({
           const displayState = getTodoDisplayState(todo);
           const isCompleted = displayState.completed;
           const isPending = displayState.isPending;
-          const isRemoving = removingTodos.has(todo.id);
+          const isRemoving = displayState.isRemoving;
           const isAnimating = animatingTodos.has(todo.id);
           
           return (

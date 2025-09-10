@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useApi } from '../hooks/useApi';
+import { useTodoStore } from '../hooks/useTodoStore';
 import { useArea } from '../contexts/AreaContext';
 import type { Todo } from '../types/todo';
 
@@ -16,9 +16,9 @@ const EditTodoModal: React.FC<EditTodoModalProps> = ({ todo, isOpen, onClose, on
   const [dueDate, setDueDate] = useState('');
   const [completed, setCompleted] = useState(false);
   const [selectedAreaId, setSelectedAreaId] = useState<number | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const apiClient = useApi();
+  const { updateTodo, isUpdating } = useTodoStore();
   const { areas } = useArea();
+  const isSubmitting = isUpdating;
 
   // Initialize form when todo changes
   React.useEffect(() => {
@@ -44,8 +44,7 @@ const EditTodoModal: React.FC<EditTodoModalProps> = ({ todo, isOpen, onClose, on
     if (!todo || !title.trim()) return;
 
     try {
-      setIsSubmitting(true);
-      const updateData: any = {
+      const updateData = {
         title: title.trim(),
         description: description.trim() || undefined,
         completed,
@@ -53,15 +52,12 @@ const EditTodoModal: React.FC<EditTodoModalProps> = ({ todo, isOpen, onClose, on
         area_id: selectedAreaId,
       };
 
-      const response = await apiClient.updateTodo(todo.id, updateData);
-      if (response.success) {
-        onTodoUpdated();
-        onClose();
-      }
+      await updateTodo(todo.id, updateData);
+      onTodoUpdated();
+      onClose();
     } catch (error) {
       console.error('Error updating todo:', error);
-    } finally {
-      setIsSubmitting(false);
+      // Error handling is done in the store with toast
     }
   };
 
