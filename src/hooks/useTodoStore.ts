@@ -286,7 +286,7 @@ export const useTodoStore = (options: UseTodoStoreOptions = {}) => {
         undoToastId = showToast({
           message: `Completed "${todoTitle}" • Click to undo`,
           type: 'success',
-          duration: 5000,
+          duration: 2000,
           action: {
             label: 'Undo',
             onClick: () => {
