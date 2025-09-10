@@ -196,6 +196,27 @@ export const useTodoStore = (options: UseTodoStoreOptions = {}) => {
       updateTodosOptimistically((todos) =>
         todos.map(todo => todo.id === data.id ? { ...data, _optimistic: false } : todo)
       );
+      
+      // Handle removal animation for completed todos in "all" view
+      if (data.completed && view === 'all') {
+        // Mark todo for removal animation
+        setTimeout(() => {
+          updateTodosOptimistically((todos) =>
+            todos.map(todo =>
+              todo.id === data.id
+                ? { ...todo, _optimistic: true, _pendingAction: 'delete' }
+                : todo
+            )
+          );
+          
+          // Remove from cache after animation completes
+          setTimeout(() => {
+            updateTodosOptimistically((todos) =>
+              todos.filter(todo => todo.id !== data.id)
+            );
+          }, 450); // Match animation duration
+        }, 100); // Small delay to let optimistic update settle
+      }
     },
   });
 
@@ -269,11 +290,21 @@ export const useTodoStore = (options: UseTodoStoreOptions = {}) => {
           action: {
             label: 'Undo',
             onClick: () => {
-              // Revert the completion
+              // Revert the completion and cancel any pending removal
               updateTodoMutation.mutate({
                 id: todo.id,
                 updates: { completed: false }
               });
+              
+              // If todo was marked for removal, restore it immediately
+              updateTodosOptimistically((todos) =>
+                todos.map(t =>
+                  t.id === todo.id && t._pendingAction === 'delete'
+                    ? { ...t, _optimistic: false, _pendingAction: undefined }
+                    : t
+                )
+              );
+              
               hideToast(undoToastId!);
             }
           }
@@ -282,7 +313,7 @@ export const useTodoStore = (options: UseTodoStoreOptions = {}) => {
 
       return { canUndo: newCompleted, undoId: undoToastId };
     },
-    [updateTodoMutation, showToast, hideToast]
+    [updateTodoMutation, showToast, hideToast, updateTodosOptimistically]
   );
 
   // Helper to get display state for a todo (handles pending states)
