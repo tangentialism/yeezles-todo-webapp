@@ -120,13 +120,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           try {
             const user = JSON.parse(storedUser);
             
-            // Security: Validate stored user email
-            if (user.email !== 'tangentialism@gmail.com') {
-              console.warn('Invalid stored user email:', user.email);
-              localStorage.removeItem('user');
-              setAuthState(prev => ({ ...prev, isLoading: false }));
-              return;
-            }
+            // Note: Backend will validate user authorization
 
             // Restore user info but not authentication state 
             // (user must sign in again to get fresh tokens)
@@ -158,22 +152,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Decode JWT token to get user info and expiration
       const payload = JSON.parse(atob(response.credential.split('.')[1]));
       
-      // Security: Only allow tangentialism@gmail.com
-      if (payload.email !== 'tangentialism@gmail.com') {
-        console.warn('Unauthorized access attempt:', payload.email);
-        setAuthState(prev => ({
-          ...prev,
-          user: null,
-          idToken: null,
-          tokenExpiry: null,
-          isAuthenticated: false,
-          isLoading: false,
-          authMethod: null,
-          hasPersistentSession: false,
-        }));
-        alert('Access denied. This application is restricted to authorized users only.');
-        return;
-      }
+      // Let backend handle authorization - frontend shouldn't restrict users
 
       const user: User = {
         id: payload.sub,
