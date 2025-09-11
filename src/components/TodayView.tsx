@@ -257,6 +257,18 @@ const TodayView: React.FC = () => {
         <div>
           <h2 className="text-xl font-bold text-gray-900 mb-4">🎯 Today's Focus</h2>
           
+          {/* For Today Items */}
+          {focus.today_tagged.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-blue-600 mb-3">⭐ For Today ({focus.today_tagged.length})</h3>
+              <div className="space-y-3">
+                {focus.today_tagged.map((todo) => (
+                  <TodoCard key={todo.id} todo={todo} priority="today-tagged" />
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Overdue Items */}
           {focus.overdue.length > 0 && (
             <div className="mb-6">
@@ -264,18 +276,6 @@ const TodayView: React.FC = () => {
               <div className="space-y-3">
                 {focus.overdue.map((todo) => (
                   <TodoCard key={todo.id} todo={todo} priority="overdue" />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Today Tagged Items */}
-          {focus.today_tagged.length > 0 && (
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-blue-600 mb-3">⭐ Today Tagged ({focus.today_tagged.length})</h3>
-              <div className="space-y-3">
-                {focus.today_tagged.map((todo) => (
-                  <TodoCard key={todo.id} todo={todo} priority="today-tagged" />
                 ))}
               </div>
             </div>
