@@ -145,6 +145,15 @@ export const useTodoStore = (options: UseTodoStoreOptions = {}) => {
           todo.id === context?.optimisticTodo.id ? data : todo
         )
       );
+      
+      // Invalidate today view cache if the created todo is marked for today
+      if (data.is_today) {
+        queryClient.invalidateQueries({ 
+          queryKey: ['todayView'],
+          refetchType: 'active'
+        });
+      }
+      
       showToast({
         message: 'Todo created successfully!',
         type: 'success'
@@ -197,6 +206,12 @@ export const useTodoStore = (options: UseTodoStoreOptions = {}) => {
       updateTodosOptimistically((todos) =>
         todos.map(todo => todo.id === data.id ? { ...data, _optimistic: false } : todo)
       );
+      
+      // Invalidate today view cache since any todo update might affect today view
+      queryClient.invalidateQueries({ 
+        queryKey: ['todayView'],
+        refetchType: 'active'
+      });
       
       // Handle removal animation for completed todos in "all" view
       if (data.completed && view === 'all') {
@@ -260,6 +275,13 @@ export const useTodoStore = (options: UseTodoStoreOptions = {}) => {
       updateTodosOptimistically((todos) =>
         todos.filter(todo => todo.id !== deletedId)
       );
+      
+      // Invalidate today view cache since deleted todo might have been in today view
+      queryClient.invalidateQueries({ 
+        queryKey: ['todayView'],
+        refetchType: 'active'
+      });
+      
       showToast({
         message: 'Todo deleted successfully!',
         type: 'success'
@@ -352,6 +374,13 @@ export const useTodoStore = (options: UseTodoStoreOptions = {}) => {
             : todo
         )
       );
+      
+      // Invalidate today view cache to ensure it updates immediately
+      queryClient.invalidateQueries({ 
+        queryKey: ['todayView'],
+        refetchType: 'active' // Refetch any active today views
+      });
+      
       showToast({
         message: 'Todo moved to today list!',
         type: 'success'
@@ -394,6 +423,13 @@ export const useTodoStore = (options: UseTodoStoreOptions = {}) => {
             : todo
         )
       );
+      
+      // Invalidate today view cache to ensure it updates immediately
+      queryClient.invalidateQueries({ 
+        queryKey: ['todayView'],
+        refetchType: 'active' // Refetch any active today views
+      });
+      
       showToast({
         message: 'Todo removed from today list!',
         type: 'success'
