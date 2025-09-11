@@ -7,9 +7,10 @@ interface TodoActionsProps {
   onEdit: (todo: Todo) => void;
   onUpdate: () => void;
   onToggleComplete?: (todo: Todo) => void; // New prop for completion handling
+  onDropdownToggle?: (isOpen: boolean) => void; // New prop for dropdown state
 }
 
-const TodoActions: React.FC<TodoActionsProps> = ({ todo, onEdit, onUpdate, onToggleComplete }) => {
+const TodoActions: React.FC<TodoActionsProps> = ({ todo, onEdit, onUpdate, onToggleComplete, onDropdownToggle }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { deleteTodo, toggleTodoCompletion, isDeleting } = useTodoStore();
@@ -19,6 +20,7 @@ const TodoActions: React.FC<TodoActionsProps> = ({ todo, onEdit, onUpdate, onTog
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
+        onDropdownToggle?.(false);
       }
     };
 
@@ -42,12 +44,14 @@ const TodoActions: React.FC<TodoActionsProps> = ({ todo, onEdit, onUpdate, onTog
       // Error handling is done in the store with toast
     } finally {
       setIsOpen(false);
+      onDropdownToggle?.(false);
     }
   };
 
   const handleEdit = () => {
     onEdit(todo);
     setIsOpen(false);
+    onDropdownToggle?.(false);
   };
 
   const handleToggleComplete = async () => {
@@ -60,12 +64,17 @@ const TodoActions: React.FC<TodoActionsProps> = ({ todo, onEdit, onUpdate, onTog
       onUpdate(); // Still call for any additional logic parent might need
     }
     setIsOpen(false);
+    onDropdownToggle?.(false);
   };
 
   return (
     <div className="relative" ref={dropdownRef}>
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          const newState = !isOpen;
+          setIsOpen(newState);
+          onDropdownToggle?.(newState);
+        }}
         className="p-1 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 rounded"
         disabled={isDeleting}
       >
@@ -75,7 +84,7 @@ const TodoActions: React.FC<TodoActionsProps> = ({ todo, onEdit, onUpdate, onTog
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-20">
+        <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-50">
           <div className="py-1">
             <button
               onClick={handleEdit}

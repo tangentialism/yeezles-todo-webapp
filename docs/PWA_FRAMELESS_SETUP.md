@@ -145,3 +145,4 @@ Add offline functionality:
 5. **Analytics**: Track PWA install rates and usage
 
 Your webapp is now ready to provide a native app-like experience on iOS! 🚀
+

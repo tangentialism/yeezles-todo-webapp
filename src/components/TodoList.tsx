@@ -25,6 +25,7 @@ const TodoList: React.FC<TodoListProps> = ({
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [animatingTodos, setAnimatingTodos] = useState<Set<number>>(new Set());
+  const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
 
   // Use the new todo store
   const {
@@ -82,6 +83,10 @@ const TodoList: React.FC<TodoListProps> = ({
   const handleTodoUpdated = () => {
     // Store automatically handles updates, but we can trigger a refetch if needed
     refetchTodos();
+  };
+
+  const handleDropdownToggle = (todoId: number, isOpen: boolean) => {
+    setOpenDropdownId(isOpen ? todoId : null);
   };
 
 
@@ -181,7 +186,7 @@ const TodoList: React.FC<TodoListProps> = ({
               style={{
                 height: isRemoving ? '0' : 'auto',
                 marginBottom: isRemoving ? '0' : '12px',
-                overflow: 'hidden',
+                overflow: openDropdownId === todo.id ? 'visible' : 'hidden',
                 transition: 'opacity 0.2s ease-out, height 0.25s ease-out 0.1s, margin 0.25s ease-out 0.1s'
               }}
             >
@@ -266,6 +271,7 @@ const TodoList: React.FC<TodoListProps> = ({
                   onEdit={handleEditTodo}
                   onUpdate={handleTodoUpdated}
                   onToggleComplete={toggleTodo}
+                  onDropdownToggle={(isOpen) => handleDropdownToggle(todo.id, isOpen)}
                 />
               </div>
             </div>
