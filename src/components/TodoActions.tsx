@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useTodoStore } from '../hooks/useTodoStore';
 import type { Todo } from '../types/todo';
 
@@ -7,11 +8,12 @@ interface TodoActionsProps {
   onEdit: (todo: Todo) => void;
   onUpdate: () => void;
   onToggleComplete?: (todo: Todo) => void; // New prop for completion handling
-  onDropdownToggle?: (isOpen: boolean) => void; // New prop for dropdown state
 }
 
-const TodoActions: React.FC<TodoActionsProps> = ({ todo, onEdit, onUpdate, onToggleComplete, onDropdownToggle }) => {
+const TodoActions: React.FC<TodoActionsProps> = ({ todo, onEdit, onUpdate, onToggleComplete }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { deleteTodo, toggleTodoCompletion, moveToToday, removeFromToday, isDeleting, isMovingToToday, isRemovingFromToday } = useTodoStore();
 
@@ -20,7 +22,6 @@ const TodoActions: React.FC<TodoActionsProps> = ({ todo, onEdit, onUpdate, onTog
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
-        onDropdownToggle?.(false);
       }
     };
 
@@ -44,14 +45,12 @@ const TodoActions: React.FC<TodoActionsProps> = ({ todo, onEdit, onUpdate, onTog
       // Error handling is done in the store with toast
     } finally {
       setIsOpen(false);
-      onDropdownToggle?.(false);
     }
   };
 
   const handleEdit = () => {
     onEdit(todo);
     setIsOpen(false);
-    onDropdownToggle?.(false);
   };
 
   const handleToggleComplete = async () => {
@@ -64,7 +63,6 @@ const TodoActions: React.FC<TodoActionsProps> = ({ todo, onEdit, onUpdate, onTog
       onUpdate(); // Still call for any additional logic parent might need
     }
     setIsOpen(false);
-    onDropdownToggle?.(false);
   };
 
   const handleMoveToToday = async () => {
@@ -76,7 +74,6 @@ const TodoActions: React.FC<TodoActionsProps> = ({ todo, onEdit, onUpdate, onTog
       // Error handling is done in the store with toast
     } finally {
       setIsOpen(false);
-      onDropdownToggle?.(false);
     }
   };
 
@@ -89,7 +86,6 @@ const TodoActions: React.FC<TodoActionsProps> = ({ todo, onEdit, onUpdate, onTog
       // Error handling is done in the store with toast
     } finally {
       setIsOpen(false);
-      onDropdownToggle?.(false);
     }
   };
 
@@ -98,9 +94,17 @@ const TodoActions: React.FC<TodoActionsProps> = ({ todo, onEdit, onUpdate, onTog
       <button
         onClick={() => {
           const newState = !isOpen;
+          if (newState && buttonRef.current) {
+            // Calculate position for portal dropdown
+            const rect = buttonRef.current.getBoundingClientRect();
+            setDropdownPosition({
+              top: rect.bottom + window.scrollY + 8, // 8px margin
+              left: rect.right - 192 + window.scrollX // 192px is w-48 (12rem = 192px)
+            });
+          }
           setIsOpen(newState);
-          onDropdownToggle?.(newState);
         }}
+        ref={buttonRef}
         className="p-1 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 rounded"
         disabled={isDeleting}
       >
@@ -109,8 +113,15 @@ const TodoActions: React.FC<TodoActionsProps> = ({ todo, onEdit, onUpdate, onTog
         </svg>
       </button>
 
-      {isOpen && (
-        <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-50">
+      {isOpen && createPortal(
+        <div 
+          className="fixed w-48 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-50"
+          style={{ 
+            top: dropdownPosition.top, 
+            left: dropdownPosition.left 
+          }}
+          ref={dropdownRef}
+        >
           <div className="py-1">
             <button
               onClick={handleEdit}
@@ -217,7 +228,8 @@ const TodoActions: React.FC<TodoActionsProps> = ({ todo, onEdit, onUpdate, onTog
               )}
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
