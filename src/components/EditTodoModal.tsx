@@ -15,6 +15,7 @@ const EditTodoModal: React.FC<EditTodoModalProps> = ({ todo, isOpen, onClose, on
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [completed, setCompleted] = useState(false);
+  const [isToday, setIsToday] = useState(false);
   const [selectedAreaId, setSelectedAreaId] = useState<number | null>(null);
   const { updateTodo, isUpdating } = useTodoStore();
   const { areas } = useArea();
@@ -26,6 +27,7 @@ const EditTodoModal: React.FC<EditTodoModalProps> = ({ todo, isOpen, onClose, on
       setTitle(todo.title);
       setDescription(todo.description || '');
       setCompleted(todo.completed);
+      setIsToday(todo.is_today);
       setSelectedAreaId(todo.area_id);
       
       // Format due date for datetime-local input
@@ -49,6 +51,7 @@ const EditTodoModal: React.FC<EditTodoModalProps> = ({ todo, isOpen, onClose, on
         description: description.trim() || undefined,
         completed,
         due_date: dueDate ? new Date(dueDate).toISOString() : undefined,
+        is_today: isToday,
         area_id: selectedAreaId,
       };
 
@@ -167,6 +170,28 @@ const EditTodoModal: React.FC<EditTodoModalProps> = ({ todo, isOpen, onClose, on
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 disabled={isSubmitting}
               />
+            </div>
+
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-md">
+              <div className="flex items-center">
+                <svg className="w-5 h-5 text-indigo-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                </svg>
+                <div>
+                  <span className="text-sm font-medium text-gray-900">Today List</span>
+                  <p className="text-xs text-gray-500">Mark this todo for today's focus</p>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isToday}
+                  onChange={(e) => setIsToday(e.target.checked)}
+                  disabled={isSubmitting}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+              </label>
             </div>
 
             <div className="flex items-center">

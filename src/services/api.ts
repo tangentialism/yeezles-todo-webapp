@@ -237,6 +237,20 @@ class TokenAwareApiClient {
     return response.data;
   }
 
+  // Move todo to today list
+  async moveToToday(id: number, html: boolean = false): Promise<ApiResponse<Todo>> {
+    const params = html ? '?html=true' : '';
+    const response = await this.api.post(`/todos/${id}/move-to-today${params}`);
+    return response.data;
+  }
+
+  // Remove todo from today list
+  async removeFromToday(id: number, html: boolean = false): Promise<ApiResponse<Todo>> {
+    const params = html ? '?html=true' : '';
+    const response = await this.api.post(`/todos/${id}/remove-from-today${params}`);
+    return response.data;
+  }
+
   // Get today view
   async getTodayView(
     includeDueToday: boolean = true,

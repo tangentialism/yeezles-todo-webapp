@@ -6,6 +6,7 @@ export interface Todo {
   description: string;
   completed: boolean;
   due_date: string | null;
+  is_today: boolean;
   area_id: number | null;
   created_at: string;
   updated_at: string;
@@ -91,6 +92,7 @@ export interface CreateTodoRequest {
   title: string;
   description?: string;
   due_date?: string;
+  is_today?: boolean;
   area_id?: number | null;
 }
 
@@ -99,5 +101,6 @@ export interface UpdateTodoRequest {
   description?: string;
   completed?: boolean;
   due_date?: string;
+  is_today?: boolean;
   area_id?: number | null;
 }

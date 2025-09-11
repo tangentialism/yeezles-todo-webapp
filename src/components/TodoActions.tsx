@@ -13,7 +13,7 @@ interface TodoActionsProps {
 const TodoActions: React.FC<TodoActionsProps> = ({ todo, onEdit, onUpdate, onToggleComplete, onDropdownToggle }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const { deleteTodo, toggleTodoCompletion, isDeleting } = useTodoStore();
+  const { deleteTodo, toggleTodoCompletion, moveToToday, removeFromToday, isDeleting, isMovingToToday, isRemovingFromToday } = useTodoStore();
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -67,6 +67,32 @@ const TodoActions: React.FC<TodoActionsProps> = ({ todo, onEdit, onUpdate, onTog
     onDropdownToggle?.(false);
   };
 
+  const handleMoveToToday = async () => {
+    try {
+      await moveToToday(todo.id);
+      onUpdate();
+    } catch (error) {
+      console.error('Error moving todo to today:', error);
+      // Error handling is done in the store with toast
+    } finally {
+      setIsOpen(false);
+      onDropdownToggle?.(false);
+    }
+  };
+
+  const handleRemoveFromToday = async () => {
+    try {
+      await removeFromToday(todo.id);
+      onUpdate();
+    } catch (error) {
+      console.error('Error removing todo from today:', error);
+      // Error handling is done in the store with toast
+    } finally {
+      setIsOpen(false);
+      onDropdownToggle?.(false);
+    }
+  };
+
   return (
     <div className="relative" ref={dropdownRef}>
       <button
@@ -116,6 +142,55 @@ const TodoActions: React.FC<TodoActionsProps> = ({ todo, onEdit, onUpdate, onTog
                 </>
               )}
             </button>
+
+            {/* Today Actions */}
+            {todo.is_today ? (
+              <button
+                onClick={handleRemoveFromToday}
+                disabled={isRemovingFromToday}
+                className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 disabled:opacity-50"
+              >
+                {isRemovingFromToday ? (
+                  <>
+                    <svg className="animate-spin w-4 h-4 mr-3" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Removing...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Remove from Today
+                  </>
+                )}
+              </button>
+            ) : (
+              <button
+                onClick={handleMoveToToday}
+                disabled={isMovingToToday}
+                className="flex items-center w-full px-4 py-2 text-sm text-indigo-700 hover:bg-indigo-50 focus:outline-none focus:bg-indigo-50 disabled:opacity-50"
+              >
+                {isMovingToToday ? (
+                  <>
+                    <svg className="animate-spin w-4 h-4 mr-3" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Moving...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                    </svg>
+                    Move to Today
+                  </>
+                )}
+              </button>
+            )}
 
             <hr className="my-1" />
 

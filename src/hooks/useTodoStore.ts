@@ -117,6 +117,7 @@ export const useTodoStore = (options: UseTodoStoreOptions = {}) => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         due_date: newTodo.due_date || null,
+        is_today: newTodo.is_today || false,
         completed_at: null,
         area_id: newTodo.area_id || null,
         _optimistic: true,
@@ -316,6 +317,90 @@ export const useTodoStore = (options: UseTodoStoreOptions = {}) => {
     [updateTodoMutation, showToast, hideToast, updateTodosOptimistically]
   );
 
+  // Move to today mutation
+  const moveToTodayMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await apiClient.moveToToday(id);
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to move todo to today');
+      }
+      return response.data;
+    },
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: QUERY_KEYS.todos(filters) });
+      
+      // Optimistically update
+      updateTodosOptimistically((todos) =>
+        todos.map(todo =>
+          todo.id === id
+            ? { ...todo, is_today: true, _optimistic: true, _pendingAction: 'update' }
+            : todo
+        )
+      );
+    },
+    onError: (err) => {
+      showToast({
+        message: `Failed to move todo to today: ${err.message}`,
+        type: 'error'
+      });
+    },
+    onSuccess: (updatedTodo) => {
+      updateTodosOptimistically((todos) =>
+        todos.map(todo =>
+          todo.id === updatedTodo.id
+            ? { ...updatedTodo, _optimistic: false, _pendingAction: undefined }
+            : todo
+        )
+      );
+      showToast({
+        message: 'Todo moved to today list!',
+        type: 'success'
+      });
+    },
+  });
+
+  // Remove from today mutation
+  const removeFromTodayMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await apiClient.removeFromToday(id);
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to remove todo from today');
+      }
+      return response.data;
+    },
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: QUERY_KEYS.todos(filters) });
+      
+      // Optimistically update
+      updateTodosOptimistically((todos) =>
+        todos.map(todo =>
+          todo.id === id
+            ? { ...todo, is_today: false, _optimistic: true, _pendingAction: 'update' }
+            : todo
+        )
+      );
+    },
+    onError: (err) => {
+      showToast({
+        message: `Failed to remove todo from today: ${err.message}`,
+        type: 'error'
+      });
+    },
+    onSuccess: (updatedTodo) => {
+      updateTodosOptimistically((todos) =>
+        todos.map(todo =>
+          todo.id === updatedTodo.id
+            ? { ...updatedTodo, _optimistic: false, _pendingAction: undefined }
+            : todo
+        )
+      );
+      showToast({
+        message: 'Todo removed from today list!',
+        type: 'success'
+      });
+    },
+  });
+
   // Helper to get display state for a todo (handles pending states)
   const getTodoDisplayState = useCallback((todo: OptimisticTodo) => {
     return {
@@ -339,6 +424,8 @@ export const useTodoStore = (options: UseTodoStoreOptions = {}) => {
     updateTodo: (id: number, updates: UpdateTodoRequest) => 
       updateTodoMutation.mutateAsync({ id, updates }),
     deleteTodo: deleteTodoMutation.mutateAsync,
+    moveToToday: moveToTodayMutation.mutateAsync,
+    removeFromToday: removeFromTodayMutation.mutateAsync,
     toggleTodoCompletion,
     refetchTodos: refetch,
 
@@ -349,6 +436,8 @@ export const useTodoStore = (options: UseTodoStoreOptions = {}) => {
     isCreating: createTodoMutation.isPending,
     isUpdating: updateTodoMutation.isPending,
     isDeleting: deleteTodoMutation.isPending,
+    isMovingToToday: moveToTodayMutation.isPending,
+    isRemovingFromToday: removeFromTodayMutation.isPending,
 
     // Query key for external cache invalidation
     queryKey: QUERY_KEYS.todos(filters),
