@@ -255,7 +255,29 @@ const TodayView: React.FC = () => {
       {/* Focus Section */}
       <div className="space-y-6">
         <div>
-          <h2 className="text-xl font-bold text-gray-900 mb-4">🎯 Today's Focus</h2>
+          <div className="flex items-center space-x-2 mb-4">
+            <h2 className="text-xl font-bold text-gray-900">🎯 Today's Focus</h2>
+            <button
+              onClick={() => refetchTodayView()}
+              disabled={loading}
+              className="flex items-center justify-center w-5 h-5 text-gray-400 hover:text-gray-600 focus:text-gray-600 transition-colors duration-200 focus:outline-none"
+              title="Refresh today view"
+            >
+              <svg
+                className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+            </button>
+          </div>
           
           {/* For Today Items */}
           {focus.today_tagged.length > 0 && (
