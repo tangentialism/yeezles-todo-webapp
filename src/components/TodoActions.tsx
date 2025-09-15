@@ -98,8 +98,8 @@ const TodoActions: React.FC<TodoActionsProps> = ({ todo, onEdit, onUpdate, onTog
             // Calculate position for portal dropdown
             const rect = buttonRef.current.getBoundingClientRect();
             setDropdownPosition({
-              top: rect.bottom + window.scrollY + 8, // 8px margin
-              left: rect.right - 192 + window.scrollX // 192px is w-48 (12rem = 192px)
+              top: rect.bottom + 8, // 8px margin below button
+              left: rect.right - 192 // 192px is w-48 (12rem = 192px), align right edge
             });
           }
           setIsOpen(newState);
