@@ -80,6 +80,8 @@ export const AreaProvider: React.FC<AreaProviderProps> = ({ children }) => {
   const createArea = async (name: string, color: string): Promise<Area | null> => {
     try {
       const newArea = await storeCreateArea({ name, color });
+      // Force refresh areas to ensure UI is updated
+      await refreshAreas();
       return newArea;
     } catch (error) {
       console.error('Error creating area:', error);
@@ -94,12 +96,15 @@ export const AreaProvider: React.FC<AreaProviderProps> = ({ children }) => {
       if (color !== undefined) updates.color = color;
 
       const updatedArea = await storeUpdateArea(id, updates);
-      
+
       // Update current area if it's the one being updated
       if (currentArea?.id === id) {
         setCurrentAreaState(updatedArea);
       }
-      
+
+      // Force refresh areas to ensure UI is updated
+      await refreshAreas();
+
       return updatedArea;
     } catch (error) {
       console.error('Error updating area:', error);
@@ -110,14 +115,17 @@ export const AreaProvider: React.FC<AreaProviderProps> = ({ children }) => {
   const deleteArea = async (id: number): Promise<boolean> => {
     try {
       await storeDeleteArea(id);
-      
+
       // If deleted area was current, switch to default area
       if (currentArea?.id === id) {
         const remainingAreas = areas.filter(area => area.id !== id);
         const newDefaultArea = remainingAreas.find(area => area.is_default) || remainingAreas[0];
         setCurrentArea(newDefaultArea || null);
       }
-      
+
+      // Force refresh areas to ensure UI is updated
+      await refreshAreas();
+
       return true;
     } catch (error) {
       console.error('Error deleting area:', error);

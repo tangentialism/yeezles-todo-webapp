@@ -153,6 +153,10 @@ export const useAreaStore = (options: UseAreaStoreOptions = {}) => {
           area.id === context?.optimisticArea.id ? data : area
         )
       );
+
+      // Force a fresh fetch to ensure consistency across all area queries
+      queryClient.invalidateQueries({ queryKey: ['areas'] });
+
       showToast({
         message: `Area "${variables.name}" created successfully!`,
         type: 'success'
@@ -205,6 +209,10 @@ export const useAreaStore = (options: UseAreaStoreOptions = {}) => {
       updateAreasOptimistically((areas) =>
         areas.map(area => area.id === data.id ? { ...data, _optimistic: false } : area)
       );
+
+      // Force a fresh fetch to ensure consistency across all area queries
+      queryClient.invalidateQueries({ queryKey: ['areas'] });
+
       showToast({
         message: 'Area updated successfully!',
         type: 'success'
@@ -252,6 +260,9 @@ export const useAreaStore = (options: UseAreaStoreOptions = {}) => {
         updateAreasOptimistically((areas) =>
           areas.filter(area => area.id !== deletedId)
         );
+
+        // Force a fresh fetch to ensure consistency
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.areas(includeStats) });
       }, 300); // Small delay for any deletion animation
 
       showToast({
