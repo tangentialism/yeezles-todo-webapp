@@ -18,6 +18,11 @@ interface AuthState {
   isGoogleReady: boolean;        // Track if Google OAuth script is loaded and ready
   authMethod: 'google-oauth' | 'persistent-session' | null; // Track authentication method
   hasPersistentSession: boolean; // Track if user has remember me enabled
+  sessionHealth: {               // Session health information
+    daysUntilExpiry: number | null;
+    needsRefreshWarning: boolean;
+    lastChecked: number | null;
+  };
 }
 
 interface GoogleCredentialResponse {
@@ -31,6 +36,7 @@ interface AuthContextType extends AuthState {
   getValidToken: () => string | null;          // Get token if valid, null if expired
   refreshTokenIfNeeded: () => Promise<void>;   // Refresh token if expired/expiring
   checkPersistentSession: () => Promise<boolean>; // Check for valid persistent session
+  checkSessionHealth: () => Promise<void>;     // Check session health and update state
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -57,6 +63,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isGoogleReady: false,
     authMethod: null,
     hasPersistentSession: false,
+    sessionHealth: {
+      daysUntilExpiry: null,
+      needsRefreshWarning: false,
+      lastChecked: null,
+    },
   });
 
   // Initialize Google OAuth
@@ -101,9 +112,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     checkGoogleLoaded();
 
     // Check for persistent session after a short delay to prevent flash
+    // Use a longer delay for more reliable network operations
     setTimeout(async () => {
       await checkInitialAuth();
-    }, 100);
+    }, 250);
     
   }, []);
 
@@ -296,12 +308,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Check for valid persistent session
-  const checkPersistentSession = async (): Promise<boolean> => {
+  // Check for valid persistent session with retry logic
+  const checkPersistentSession = async (retryCount: number = 0): Promise<boolean> => {
+    const maxRetries = 2;
     try {
-      console.log('🔍 [Frontend] Checking for persistent session...');
+      console.log(`🔍 [Frontend] Checking for persistent session... (attempt ${retryCount + 1})`);
       console.log('🔍 [Frontend] Current cookies:', document.cookie);
-      
+
       const apiClient = createAuthenticatedApiClient(() => null, () => {}); // No token needed for this call
       const response = await apiClient.validatePersistentSession();
       
@@ -336,13 +349,71 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setAuthState(prev => ({ ...prev, isLoading: false }));
       return false;
     } catch (error) {
-      console.log('❌ [Frontend] No valid persistent session found:', error instanceof Error ? error.message : 'Unknown error');
+      console.log(`❌ [Frontend] Persistent session check failed (attempt ${retryCount + 1}):`, error instanceof Error ? error.message : 'Unknown error');
+
+      // Retry on network errors or temporary failures
+      if (retryCount < maxRetries &&
+          (error instanceof Error &&
+           (error.message.includes('Network Error') ||
+            error.message.includes('timeout') ||
+            error.message.includes('fetch')))) {
+        console.log(`🔄 [Frontend] Retrying persistent session check in ${(retryCount + 1) * 1000}ms...`);
+        return new Promise(resolve => {
+          setTimeout(async () => {
+            resolve(await checkPersistentSession(retryCount + 1));
+          }, (retryCount + 1) * 1000); // Exponential backoff: 1s, 2s
+        });
+      }
+
       console.log('🔍 [Frontend] Error details:', error);
       // Ensure loading state is updated on error
       setAuthState(prev => ({ ...prev, isLoading: false }));
       return false;
     }
   };
+
+  // Check session health and update state
+  const checkSessionHealth = async (): Promise<void> => {
+    try {
+      if (!authState.hasPersistentSession || authState.authMethod !== 'persistent-session') {
+        return;
+      }
+
+      console.log('🔍 [Frontend] Checking session health...');
+      const apiClient = createAuthenticatedApiClient(() => null, () => {});
+      const response = await apiClient.getSessionHealth();
+
+      if (response.success && response.data) {
+        const healthData = response.data;
+        setAuthState(prev => ({
+          ...prev,
+          sessionHealth: {
+            daysUntilExpiry: healthData.daysUntilExpiry ?? null,
+            needsRefreshWarning: healthData.needsRefreshWarning ?? false,
+            lastChecked: Date.now(),
+          },
+        }));
+
+        if (healthData.needsRefreshWarning) {
+          console.log(`⚠️ [Frontend] Session expires in ${healthData.daysUntilExpiry} days - consider refreshing`);
+        }
+      }
+    } catch (error) {
+      console.error('❌ [Frontend] Session health check failed:', error);
+    }
+  };
+
+  // Check session health periodically for persistent sessions
+  useEffect(() => {
+    if (authState.isAuthenticated && authState.hasPersistentSession && authState.authMethod === 'persistent-session') {
+      // Check immediately
+      checkSessionHealth();
+
+      // Then check every hour
+      const interval = setInterval(checkSessionHealth, 60 * 60 * 1000);
+      return () => clearInterval(interval);
+    }
+  }, [authState.isAuthenticated, authState.hasPersistentSession, authState.authMethod]);
 
   return (
     <AuthContext.Provider
@@ -353,6 +424,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         getValidToken,
         refreshTokenIfNeeded,
         checkPersistentSession,
+        checkSessionHealth,
       }}
     >
       {children}

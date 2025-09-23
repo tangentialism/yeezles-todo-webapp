@@ -70,6 +70,22 @@ export interface SessionsResponse {
   };
 }
 
+export interface SessionHealthResponse {
+  success: boolean;
+  data: {
+    hasSession: boolean;
+    isValid: boolean;
+    sessionId?: number;
+    platform?: string;
+    expiresAt?: string;
+    daysUntilExpiry?: number;
+    needsRefreshWarning?: boolean;
+    lastUsedAt?: string;
+    userEmail?: string;
+    message?: string;
+  };
+}
+
 class TokenAwareApiClient {
   private api: AxiosInstance;
   private baseURL: string;
@@ -113,11 +129,17 @@ class TokenAwareApiClient {
         if (error.response) {
           console.error('Response data:', error.response.data);
           console.error('Response status:', error.response.status);
-          
+          console.error('Response headers:', error.response.headers);
+
           // Handle authentication errors
           if (error.response.status === 401) {
+            console.error('🔐 Authentication failed - triggering auth error handler');
             this.onAuthError();
           }
+        } else if (error.request) {
+          console.error('Network error - no response received:', error.request);
+        } else {
+          console.error('Request configuration error:', error.message);
         }
         throw error;
       }
@@ -185,6 +207,21 @@ class TokenAwareApiClient {
    */
   async revokeAllSessions(): Promise<ApiResponse<{ revokedCount: number; message: string }>> {
     const response = await this.api.delete('/auth/sessions');
+    return response.data;
+  }
+
+  /**
+   * Check session health and expiration info
+   */
+  async getSessionHealth(): Promise<SessionHealthResponse> {
+    console.log('🔍 [Frontend API] Checking session health...');
+    console.log('🔍 [Frontend API] Cookies before health check:', document.cookie);
+
+    const response = await this.api.get('/auth/session-health');
+
+    console.log('🔍 [Frontend API] Health check response status:', response.status);
+    console.log('🔍 [Frontend API] Health check response data:', response.data);
+
     return response.data;
   }
 

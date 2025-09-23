@@ -83,7 +83,7 @@ const LoginButton: React.FC = () => {
                 onChange={(e) => setRememberMe(e.target.checked)}
                 className="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
               />
-              <span>Remember me for 30 days</span>
+              <span>Remember me for 90 days</span>
             </label>
           </div>
         )}
