@@ -32,7 +32,7 @@ interface GoogleCredentialResponse {
 
 interface AuthContextType extends AuthState {
   login: (credentialResponse: GoogleCredentialResponse, rememberMe?: boolean) => Promise<void>;
-  logout: () => void;
+  logout: (signOutEverywhere?: boolean) => void; // Optional param to sign out from all devices
   getValidToken: () => string | null;          // Get token if valid, null if expired
   refreshTokenIfNeeded: () => Promise<void>;   // Refresh token if expired/expiring
   checkPersistentSession: () => Promise<boolean>; // Check for valid persistent session
@@ -246,18 +246,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const logout = async () => {
+  const logout = async (signOutEverywhere: boolean = false) => {
     try {
-      // If user has persistent session, revoke all sessions
-      if (authState.hasPersistentSession) {
+      // Only revoke all sessions if explicitly requested (sign out everywhere)
+      if (authState.hasPersistentSession && signOutEverywhere) {
         try {
           const apiClient = createAuthenticatedApiClient(getValidToken, () => {});
           await apiClient.revokeAllSessions();
-          console.log('✅ All persistent sessions revoked');
+          console.log('✅ All persistent sessions revoked (sign out everywhere)');
         } catch (error) {
-          console.error('Failed to revoke persistent sessions:', error);
+          console.error('Failed to revoke all persistent sessions:', error);
           // Continue with logout even if session revocation fails
         }
+      } else if (authState.hasPersistentSession) {
+        console.log('🔍 [Frontend] Logging out current session only (other devices remain signed in)');
+        // Note: We're only clearing local state, not revoking the server-side session
+        // This allows the user to stay logged in on other devices
       }
     } catch (error) {
       console.error('Error during logout cleanup:', error);
