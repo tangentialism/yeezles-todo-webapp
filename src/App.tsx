@@ -1,11 +1,14 @@
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { AreaProvider } from './contexts/AreaContext';
 import LoginButton from './components/LoginButton';
 import Dashboard from './components/Dashboard';
+import CreateTodoFromExternal from './components/CreateTodoFromExternal';
+import CreateMultipleTodos from './components/CreateMultipleTodos';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -40,25 +43,51 @@ const AppContent: React.FC = () => {
     );
   }
 
-  return isAuthenticated ? (
-    <AreaProvider>
-      <Dashboard />
-    </AreaProvider>
-  ) : (
-    <LoginButton />
+  return (
+    <Routes>
+      <Route path="/create-todo-from-external" element={
+        isAuthenticated ? (
+          <AreaProvider>
+            <CreateTodoFromExternal />
+          </AreaProvider>
+        ) : (
+          <LoginButton />
+        )
+      } />
+      <Route path="/create-multiple-todos" element={
+        isAuthenticated ? (
+          <AreaProvider>
+            <CreateMultipleTodos />
+          </AreaProvider>
+        ) : (
+          <LoginButton />
+        )
+      } />
+      <Route path="/*" element={
+        isAuthenticated ? (
+          <AreaProvider>
+            <Dashboard />
+          </AreaProvider>
+        ) : (
+          <LoginButton />
+        )
+      } />
+    </Routes>
   );
 };
 
 const App: React.FC = () => {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ToastProvider>
-        <AuthProvider>
-          <AppContent />
-        </AuthProvider>
-      </ToastProvider>
-      <ReactQueryDevtools initialIsOpen={false} />
-    </QueryClientProvider>
+    <BrowserRouter>
+      <QueryClientProvider client={queryClient}>
+        <ToastProvider>
+          <AuthProvider>
+            <AppContent />
+          </AuthProvider>
+        </ToastProvider>
+        <ReactQueryDevtools initialIsOpen={false} />
+      </QueryClientProvider>
+    </BrowserRouter>
   );
 };
 
