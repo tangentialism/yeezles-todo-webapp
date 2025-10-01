@@ -236,18 +236,34 @@ const TodoList: React.FC<TodoListProps> = ({
                 </button>
 
                 <div className="flex-1 min-w-0">
-                  <h3
-                    className={`text-base sm:text-lg font-medium transition-all duration-200 ${
-                      isCompleted ? 'text-gray-500 animate-strikethrough' : 'text-gray-900'
-                    }`}
-                  >
-                    {todo.title}
-                    {isPending && (
-                      <span className="ml-2 text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full animate-pulse">
-                        Click again to cancel
-                      </span>
+                  <div className="flex items-center gap-2">
+                    <h3
+                      className={`text-base sm:text-lg font-medium transition-all duration-200 ${
+                        isCompleted ? 'text-gray-500 animate-strikethrough' : 'text-gray-900'
+                      }`}
+                    >
+                      {todo.title}
+                      {isPending && (
+                        <span className="ml-2 text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full animate-pulse">
+                          Click again to cancel
+                        </span>
+                      )}
+                    </h3>
+                    {todo.reference_url && (
+                      <a
+                        href={todo.reference_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-shrink-0 text-indigo-500 hover:text-indigo-700 transition-colors"
+                        title="Open reference link"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </a>
                     )}
-                  </h3>
+                  </div>
                   
                   {todo.description && (
                     <p className={`mt-1 text-sm transition-all duration-200 ${
@@ -264,20 +280,6 @@ const TodoList: React.FC<TodoListProps> = ({
                     )}
                     {todo.completed_at && (
                       <span className="text-green-600">Completed: {formatDate(todo.completed_at)}</span>
-                    )}
-                    {todo.reference_url && (
-                      <a
-                        href={todo.reference_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center text-indigo-600 hover:text-indigo-800 transition-colors"
-                        title="Open reference link"
-                      >
-                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                        </svg>
-                        Reference
-                      </a>
                     )}
                   </div>
 
