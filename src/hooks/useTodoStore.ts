@@ -120,6 +120,7 @@ export const useTodoStore = (options: UseTodoStoreOptions = {}) => {
         is_today: newTodo.is_today || false,
         completed_at: null,
         area_id: newTodo.area_id || null,
+        reference_url: newTodo.reference_url || null,
         _optimistic: true,
         _pendingAction: 'create'
       };

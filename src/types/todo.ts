@@ -8,6 +8,7 @@ export interface Todo {
   due_date: string | null;
   is_today: boolean;
   area_id: number | null;
+  reference_url: string | null;
   created_at: string;
   updated_at: string;
   completed_at: string | null;
@@ -94,6 +95,7 @@ export interface CreateTodoRequest {
   due_date?: string;
   is_today?: boolean;
   area_id?: number | null;
+  reference_url?: string;
 }
 
 export interface UpdateTodoRequest {
@@ -103,4 +105,5 @@ export interface UpdateTodoRequest {
   due_date?: string;
   is_today?: boolean;
   area_id?: number | null;
+  reference_url?: string;
 }

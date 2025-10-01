@@ -30,7 +30,7 @@ const EditTodoModal: React.FC<EditTodoModalProps> = ({ todo, isOpen, onClose, on
       setCompleted(todo.completed);
       setIsToday(todo.is_today);
       setSelectedAreaId(todo.area_id);
-      setReferenceUrl((todo as any).reference_url || '');
+      setReferenceUrl(todo.reference_url || '');
 
       // Format due date for datetime-local input
       if (todo.due_date) {
