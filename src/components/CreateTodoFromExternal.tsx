@@ -13,6 +13,7 @@ const CreateTodoFromExternal: React.FC = () => {
   const searchParams = new URLSearchParams(location.search);
   const initialTitle = searchParams.get('title') || '';
   const initialDescription = searchParams.get('description') || '';
+  const initialReferenceUrl = searchParams.get('reference_url') || '';
   const source = searchParams.get('source') || '';
   const vault = searchParams.get('vault') || '';
   const file = searchParams.get('file') || '';
@@ -20,6 +21,7 @@ const CreateTodoFromExternal: React.FC = () => {
   // Form state
   const [title, setTitle] = useState(initialTitle);
   const [description, setDescription] = useState(initialDescription);
+  const [referenceUrl, setReferenceUrl] = useState(initialReferenceUrl);
   const [dueDate, setDueDate] = useState('');
   const [isToday, setIsToday] = useState(false);
   const [selectedAreaId, setSelectedAreaId] = useState<number | null>(null);
@@ -37,6 +39,7 @@ const CreateTodoFromExternal: React.FC = () => {
       const todoData = {
         title: title.trim(),
         description: description.trim() || undefined,
+        reference_url: referenceUrl.trim() || undefined,
         due_date: dueDate ? new Date(dueDate).toISOString() : undefined,
         is_today: isToday,
         area_id: selectedAreaId,
@@ -96,6 +99,23 @@ const CreateTodoFromExternal: React.FC = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 placeholder="Enter todo description"
               />
+            </div>
+
+            <div>
+              <label htmlFor="referenceUrl" className="block text-sm font-medium text-gray-700 mb-2">
+                Reference URL
+              </label>
+              <input
+                type="text"
+                id="referenceUrl"
+                value={referenceUrl}
+                onChange={(e) => setReferenceUrl(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                placeholder="e.g., obsidian://open?vault=MyVault&file=Note.md"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Link to source note or related content
+              </p>
             </div>
 
             <div>
