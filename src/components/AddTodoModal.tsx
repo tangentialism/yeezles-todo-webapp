@@ -6,24 +6,35 @@ interface AddTodoModalProps {
   isOpen: boolean;
   onClose: () => void;
   onTodoAdded: (newTodoId?: number) => void;
+  initialData?: {
+    title?: string;
+    description?: string;
+    referenceUrl?: string;
+  };
 }
 
-const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdded }) => {
+const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdded, initialData }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [isToday, setIsToday] = useState(false);
   const [selectedAreaId, setSelectedAreaId] = useState<number | null>(null);
+  const [referenceUrl, setReferenceUrl] = useState('');
   const { createTodo, isCreating } = useTodoStore();
   const { areas, currentArea } = useArea();
   const isSubmitting = isCreating;
 
-  // Initialize with current area when modal opens
+  // Initialize with current area and any initial data when modal opens
   React.useEffect(() => {
     if (isOpen) {
       setSelectedAreaId(currentArea?.id || null);
+      if (initialData) {
+        if (initialData.title) setTitle(initialData.title);
+        if (initialData.description) setDescription(initialData.description);
+        if (initialData.referenceUrl) setReferenceUrl(initialData.referenceUrl);
+      }
     }
-  }, [isOpen, currentArea]);
+  }, [isOpen, currentArea, initialData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,6 +47,7 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
         due_date: dueDate ? new Date(dueDate).toISOString() : undefined,
         is_today: isToday,
         area_id: selectedAreaId,
+        reference_url: referenceUrl.trim() || undefined,
       };
 
       const newTodo = await createTodo(todoData);
@@ -46,6 +58,7 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
       setDueDate('');
       setIsToday(false);
       setSelectedAreaId(currentArea?.id || null);
+      setReferenceUrl('');
       onTodoAdded(newTodo.id);
       onClose();
     } catch (error) {
@@ -61,6 +74,7 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
       setDueDate('');
       setIsToday(false);
       setSelectedAreaId(currentArea?.id || null);
+      setReferenceUrl('');
       onClose();
     }
   };
@@ -118,6 +132,24 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 disabled={isSubmitting}
               />
+            </div>
+
+            <div>
+              <label htmlFor="referenceUrl" className="block text-sm font-medium text-gray-700 mb-1">
+                Reference URL
+              </label>
+              <input
+                type="text"
+                id="referenceUrl"
+                value={referenceUrl}
+                onChange={(e) => setReferenceUrl(e.target.value)}
+                placeholder="e.g., obsidian://open?vault=MyVault&file=Note.md"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                disabled={isSubmitting}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Link to source note or related content
+              </p>
             </div>
 
             <div>

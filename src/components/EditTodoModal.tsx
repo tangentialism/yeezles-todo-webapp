@@ -17,6 +17,7 @@ const EditTodoModal: React.FC<EditTodoModalProps> = ({ todo, isOpen, onClose, on
   const [completed, setCompleted] = useState(false);
   const [isToday, setIsToday] = useState(false);
   const [selectedAreaId, setSelectedAreaId] = useState<number | null>(null);
+  const [referenceUrl, setReferenceUrl] = useState('');
   const { updateTodo, isUpdating } = useTodoStore();
   const { areas } = useArea();
   const isSubmitting = isUpdating;
@@ -29,7 +30,8 @@ const EditTodoModal: React.FC<EditTodoModalProps> = ({ todo, isOpen, onClose, on
       setCompleted(todo.completed);
       setIsToday(todo.is_today);
       setSelectedAreaId(todo.area_id);
-      
+      setReferenceUrl((todo as any).reference_url || '');
+
       // Format due date for datetime-local input
       if (todo.due_date) {
         const date = new Date(todo.due_date);
@@ -53,6 +55,7 @@ const EditTodoModal: React.FC<EditTodoModalProps> = ({ todo, isOpen, onClose, on
         due_date: dueDate ? new Date(dueDate).toISOString() : undefined,
         is_today: isToday,
         area_id: selectedAreaId,
+        reference_url: referenceUrl.trim() || undefined,
       };
 
       await updateTodo(todo.id, updateData);
@@ -123,6 +126,24 @@ const EditTodoModal: React.FC<EditTodoModalProps> = ({ todo, isOpen, onClose, on
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 disabled={isSubmitting}
               />
+            </div>
+
+            <div>
+              <label htmlFor="edit-referenceUrl" className="block text-sm font-medium text-gray-700 mb-1">
+                Reference URL
+              </label>
+              <input
+                type="text"
+                id="edit-referenceUrl"
+                value={referenceUrl}
+                onChange={(e) => setReferenceUrl(e.target.value)}
+                placeholder="e.g., obsidian://open?vault=MyVault&file=Note.md"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                disabled={isSubmitting}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Link to source note or related content
+              </p>
             </div>
 
             <div>
