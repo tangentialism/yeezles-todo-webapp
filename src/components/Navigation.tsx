@@ -18,7 +18,6 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) =>
   const views = [
     { id: 'all', label: 'All Todos', icon: '📝' },
     { id: 'today', label: 'Today', icon: '⭐' },
-    { id: 'completed', label: 'Completed', icon: '✅' },
     { id: 'accomplishments', label: 'Accomplishments', icon: '🎉' },
   ];
 
