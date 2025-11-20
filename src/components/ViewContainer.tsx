@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import TodoList from './TodoList';
 import TodayView from './TodayView';
+import AccomplishmentsView from './AccomplishmentsView';
 
 interface ViewContainerProps {
   currentView: string;
@@ -21,12 +22,14 @@ const ViewContainer: React.FC<ViewContainerProps> = ({
   const allViewRef = useRef<HTMLDivElement>(null);
   const todayViewRef = useRef<HTMLDivElement>(null);
   const completedViewRef = useRef<HTMLDivElement>(null);
+  const accomplishmentsViewRef = useRef<HTMLDivElement>(null);
   
   // Store scroll positions when switching views
   const scrollPositions = useRef<Record<string, number>>({
     all: 0,
     today: 0,
-    completed: 0
+    completed: 0,
+    accomplishments: 0
   });
 
   // Save scroll position when view changes
@@ -36,6 +39,7 @@ const ViewContainer: React.FC<ViewContainerProps> = ({
         case 'all': return allViewRef.current;
         case 'today': return todayViewRef.current;
         case 'completed': return completedViewRef.current;
+        case 'accomplishments': return accomplishmentsViewRef.current;
         default: return null;
       }
     };
@@ -67,6 +71,7 @@ const ViewContainer: React.FC<ViewContainerProps> = ({
       case 'all': return allViewRef.current;
       case 'today': return todayViewRef.current;
       case 'completed': return completedViewRef.current;
+      case 'accomplishments': return accomplishmentsViewRef.current;
       default: return null;
     }
   };
@@ -133,6 +138,19 @@ const ViewContainer: React.FC<ViewContainerProps> = ({
           newTodoId={currentView === 'completed' ? newTodoId : null}
           onNewTodoAnimationComplete={onNewTodoAnimationComplete}
         />
+      </div>
+
+      {/* Accomplishments View */}
+      <div
+        ref={accomplishmentsViewRef}
+        className="absolute inset-0 overflow-auto transition-opacity duration-200"
+        style={{
+          opacity: getViewOpacity('accomplishments'),
+          visibility: getViewVisibility('accomplishments'),
+          pointerEvents: getViewPointerEvents('accomplishments'),
+        }}
+      >
+        <AccomplishmentsView />
       </div>
     </div>
   );
