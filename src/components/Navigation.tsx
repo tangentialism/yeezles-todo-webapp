@@ -19,6 +19,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) =>
     { id: 'all', label: 'All Todos', icon: '📝' },
     { id: 'today', label: 'Today', icon: '⭐' },
     { id: 'completed', label: 'Completed', icon: '✅' },
+    { id: 'accomplishments', label: 'Accomplishments', icon: '🎉' },
   ];
 
   // Track newly created areas for animation

@@ -12,10 +12,10 @@ export interface Todo {
   created_at: string;
   updated_at: string;
   completed_at: string | null;
+  tags?: string[];
 }
 
 export interface TodoWithHtml extends Todo {
-  tags?: Tag[];
   title_html: string;
   description_html: string;
   cross_references: {
