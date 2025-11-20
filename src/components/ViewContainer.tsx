@@ -21,14 +21,12 @@ const ViewContainer: React.FC<ViewContainerProps> = ({
   // Refs to preserve scroll positions
   const allViewRef = useRef<HTMLDivElement>(null);
   const todayViewRef = useRef<HTMLDivElement>(null);
-  const completedViewRef = useRef<HTMLDivElement>(null);
   const accomplishmentsViewRef = useRef<HTMLDivElement>(null);
   
   // Store scroll positions when switching views
   const scrollPositions = useRef<Record<string, number>>({
     all: 0,
     today: 0,
-    completed: 0,
     accomplishments: 0
   });
 
@@ -38,7 +36,6 @@ const ViewContainer: React.FC<ViewContainerProps> = ({
       switch (view) {
         case 'all': return allViewRef.current;
         case 'today': return todayViewRef.current;
-        case 'completed': return completedViewRef.current;
         case 'accomplishments': return accomplishmentsViewRef.current;
         default: return null;
       }
@@ -70,7 +67,6 @@ const ViewContainer: React.FC<ViewContainerProps> = ({
     switch (view) {
       case 'all': return allViewRef.current;
       case 'today': return todayViewRef.current;
-      case 'completed': return completedViewRef.current;
       case 'accomplishments': return accomplishmentsViewRef.current;
       default: return null;
     }
@@ -120,24 +116,6 @@ const ViewContainer: React.FC<ViewContainerProps> = ({
         }}
       >
         <TodayView />
-      </div>
-
-      {/* Completed Todos View */}
-      <div
-        ref={completedViewRef}
-        className="absolute inset-0 overflow-auto transition-opacity duration-200"
-        style={{
-          opacity: getViewOpacity('completed'),
-          visibility: getViewVisibility('completed'),
-          pointerEvents: getViewPointerEvents('completed'),
-        }}
-      >
-        <TodoList
-          view="completed"
-          refreshTrigger={refreshTrigger}
-          newTodoId={currentView === 'completed' ? newTodoId : null}
-          onNewTodoAnimationComplete={onNewTodoAnimationComplete}
-        />
       </div>
 
       {/* Accomplishments View */}
