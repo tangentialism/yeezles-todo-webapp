@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
 import { useApi } from './useApi';
+import { useCrossTabSync } from './useCrossTabSync';
 import { useToast } from '../contexts/ToastContext';
 import { useArea } from '../contexts/AreaContext';
 import type { Todo, TodoFilters, CreateTodoRequest, UpdateTodoRequest } from '../types/todo';
@@ -34,6 +35,7 @@ export const useTodoStore = (options: UseTodoStoreOptions = {}) => {
   const queryClient = useQueryClient();
   const { showToast, hideToast } = useToast();
   const { currentArea } = useArea();
+  const { broadcast } = useCrossTabSync();
 
   // Build filters based on view and current area
   const filters = useMemo((): TodoFilters => {
@@ -155,6 +157,9 @@ export const useTodoStore = (options: UseTodoStoreOptions = {}) => {
         });
       }
       
+      // Broadcast to other tabs
+      broadcast('TODO_CREATED', { id: data.id, timestamp: Date.now() });
+      
       showToast({
         message: 'Todo created successfully!',
         type: 'success'
@@ -212,6 +217,14 @@ export const useTodoStore = (options: UseTodoStoreOptions = {}) => {
       queryClient.invalidateQueries({ 
         queryKey: ['todayView'],
         refetchType: 'active'
+      });
+      
+      // Broadcast to other tabs
+      broadcast('TODO_UPDATED', { 
+        id: data.id, 
+        timestamp: Date.now(),
+        completed: data.completed,
+        is_today: data.is_today
       });
       
       // Handle removal animation for completed todos in "all" view
@@ -282,6 +295,9 @@ export const useTodoStore = (options: UseTodoStoreOptions = {}) => {
         queryKey: ['todayView'],
         refetchType: 'active'
       });
+      
+      // Broadcast to other tabs
+      broadcast('TODO_DELETED', { id: deletedId, timestamp: Date.now() });
       
       showToast({
         message: 'Todo deleted successfully!',
@@ -382,6 +398,13 @@ export const useTodoStore = (options: UseTodoStoreOptions = {}) => {
         refetchType: 'active' // Refetch any active today views
       });
       
+      // Broadcast to other tabs
+      broadcast('TODO_MOVED_TO_TODAY', { 
+        id: updatedTodo.id, 
+        timestamp: Date.now(),
+        is_today: true
+      });
+      
       showToast({
         message: 'Todo moved to today list!',
         type: 'success'
@@ -429,6 +452,13 @@ export const useTodoStore = (options: UseTodoStoreOptions = {}) => {
       queryClient.invalidateQueries({ 
         queryKey: ['todayView'],
         refetchType: 'active' // Refetch any active today views
+      });
+      
+      // Broadcast to other tabs
+      broadcast('TODO_REMOVED_FROM_TODAY', { 
+        id: updatedTodo.id, 
+        timestamp: Date.now(),
+        is_today: false
       });
       
       showToast({

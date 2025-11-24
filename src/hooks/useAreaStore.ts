@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
 import { useApi } from './useApi';
+import { useCrossTabSync } from './useCrossTabSync';
 import { useToast } from '../contexts/ToastContext';
 import type { Area, AreaWithStats, CreateAreaRequest, UpdateAreaRequest } from '../types/area';
 
@@ -33,6 +34,7 @@ export const useAreaStore = (options: UseAreaStoreOptions = {}) => {
   const apiClient = useApi();
   const queryClient = useQueryClient();
   const { showToast } = useToast();
+  const { broadcast } = useCrossTabSync();
 
   // Main areas query
   const {
@@ -157,6 +159,9 @@ export const useAreaStore = (options: UseAreaStoreOptions = {}) => {
       // Force a fresh fetch to ensure consistency across all area queries
       queryClient.invalidateQueries({ queryKey: ['areas'] });
 
+      // Broadcast to other tabs
+      broadcast('AREA_CREATED', { id: data.id, timestamp: Date.now() });
+
       showToast({
         message: `Area "${variables.name}" created successfully!`,
         type: 'success'
@@ -213,6 +218,9 @@ export const useAreaStore = (options: UseAreaStoreOptions = {}) => {
       // Force a fresh fetch to ensure consistency across all area queries
       queryClient.invalidateQueries({ queryKey: ['areas'] });
 
+      // Broadcast to other tabs
+      broadcast('AREA_UPDATED', { id: data.id, timestamp: Date.now() });
+
       showToast({
         message: 'Area updated successfully!',
         type: 'success'
@@ -264,6 +272,9 @@ export const useAreaStore = (options: UseAreaStoreOptions = {}) => {
         // Force a fresh fetch to ensure consistency
         queryClient.invalidateQueries({ queryKey: QUERY_KEYS.areas(includeStats) });
       }, 300); // Small delay for any deletion animation
+
+      // Broadcast to other tabs
+      broadcast('AREA_DELETED', { id: deletedId, timestamp: Date.now() });
 
       showToast({
         message: 'Area deleted successfully!',
