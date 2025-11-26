@@ -6,6 +6,7 @@ interface AddTodoModalProps {
   isOpen: boolean;
   onClose: () => void;
   onTodoAdded: (newTodoId?: number) => void;
+  currentView?: string;
   initialData?: {
     title?: string;
     description?: string;
@@ -13,7 +14,7 @@ interface AddTodoModalProps {
   };
 }
 
-const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdded, initialData }) => {
+const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdded, currentView, initialData }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
@@ -28,13 +29,15 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
   React.useEffect(() => {
     if (isOpen) {
       setSelectedAreaId(currentArea?.id || null);
+      // Auto-enable "Add to Today List" when on Today tab
+      setIsToday(currentView === 'today');
       if (initialData) {
         if (initialData.title) setTitle(initialData.title);
         if (initialData.description) setDescription(initialData.description);
         if (initialData.referenceUrl) setReferenceUrl(initialData.referenceUrl);
       }
     }
-  }, [isOpen, currentArea, initialData]);
+  }, [isOpen, currentArea, currentView, initialData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

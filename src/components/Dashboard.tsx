@@ -106,6 +106,7 @@ const Dashboard: React.FC = () => {
           }
           setRefreshTrigger(prev => prev + 1);
         }}
+        currentView={currentView}
       />
     </div>
   );
