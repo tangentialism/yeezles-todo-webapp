@@ -51,3 +51,4 @@ export const generateTabId = (): string => {
   return `tab-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 };
 
+

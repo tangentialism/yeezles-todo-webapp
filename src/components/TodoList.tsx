@@ -5,6 +5,7 @@ import { formatDate } from '../utils/date';
 
 import EditTodoModal from './EditTodoModal';
 import TodoActions from './TodoActions';
+import TodayCorner from './TodayCorner';
 import type { Todo } from '../types/todo';
 
 interface TodoListProps {
@@ -192,7 +193,7 @@ const TodoList: React.FC<TodoListProps> = ({
           return (
             <div
               key={todo.id}
-              className={`bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all duration-200 ${
+              className={`relative bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all duration-200 ${
                 isCompleted ? 'bg-gray-50' : ''
               } ${isPending ? 'ring-2 ring-blue-200 ring-opacity-50 opacity-60' : ''} ${
                 isRemoving ? 'opacity-0 pointer-events-none' : 
@@ -305,6 +306,9 @@ const TodoList: React.FC<TodoListProps> = ({
                   onToggleComplete={toggleTodo}
                 />
               </div>
+              
+              {/* Today Corner Indicator */}
+              <TodayCorner todo={todo} onUpdate={handleTodoUpdated} />
             </div>
           );
         })}

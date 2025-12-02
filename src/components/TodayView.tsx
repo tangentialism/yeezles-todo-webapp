@@ -3,6 +3,7 @@ import { useTodayViewStore } from '../hooks/useTodayViewStore';
 import { formatDate } from '../utils/date';
 import EditTodoModal from './EditTodoModal';
 import TodoActions from './TodoActions';
+import TodayCorner from './TodayCorner';
 import type { Todo } from '../types/todo';
 
 const TodayView: React.FC = () => {
@@ -66,7 +67,7 @@ const TodayView: React.FC = () => {
     const isPending = displayState.isPending;
     
     return (
-      <div className={`bg-white border-l-4 rounded-lg p-4 shadow-sm hover:shadow-md transition-all duration-200 ${
+      <div className={`relative bg-white border-l-4 rounded-lg p-4 shadow-sm hover:shadow-md transition-all duration-200 ${
         priority === 'overdue' ? 'border-red-500 bg-red-50' :
         priority === 'due-today' ? 'border-orange-500 bg-orange-50' :
         priority === 'today-tagged' ? 'border-blue-500 bg-blue-50' :
@@ -158,6 +159,9 @@ const TodayView: React.FC = () => {
             onToggleComplete={toggleTodo}
           />
         </div>
+        
+        {/* Today Corner Indicator */}
+        <TodayCorner todo={todo} onUpdate={handleTodoUpdated} />
       </div>
     );
   };

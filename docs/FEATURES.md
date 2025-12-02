@@ -882,3 +882,4 @@ This document describes the feature requirements and specifications for the Yeez
 - 🔄 Search (backend ready, frontend planned)
 - 🔄 Export/Import (backend ready, frontend planned)
 
+
