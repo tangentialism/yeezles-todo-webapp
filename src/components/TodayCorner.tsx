@@ -13,13 +13,13 @@ interface TodayCornerProps {
 
 const styles = {
   button: {
-    base: 'absolute bottom-0 right-0 w-6 h-6 transition-all duration-200 focus:outline-none group',
-    today: 'bg-blue-500 cursor-pointer',
-    idle: 'bg-gray-300 opacity-0 group-hover:opacity-100 cursor-pointer rounded-tl-lg',
+    base: 'absolute bottom-0 right-0 w-6 h-6 transition-all duration-200 focus:outline-none',
+    today: 'bg-blue-200 hover:bg-blue-300 cursor-pointer',
+    idle: 'bg-transparent hover:bg-gray-300 cursor-pointer rounded-tl-lg',
     loading: 'cursor-wait',
   },
   triangle: { clipPath: 'polygon(100% 0%, 100% 100%, 0% 100%)' } as React.CSSProperties,
-  spinner: 'absolute bottom-0.5 right-0.5 w-2.5 h-2.5 border-2 border-white border-t-transparent rounded-full animate-spin',
+  spinner: 'absolute bottom-0.5 right-0.5 w-2.5 h-2.5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin',
 };
 
 // =============================================================================
