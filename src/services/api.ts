@@ -261,6 +261,18 @@ class TokenAwareApiClient {
     return response.data;
   }
 
+  // Categorize todo (get AI-suggested area)
+  async categorizeTodo(title: string, description?: string): Promise<ApiResponse<{
+    area_id: number | null;
+    area_name: string | null;
+    confidence: 'high' | 'medium' | 'low';
+    reasoning?: string;
+    ai_available: boolean;
+  }>> {
+    const response = await this.api.post('/todos/categorize', { title, description });
+    return response.data;
+  }
+
   // Update todo
   async updateTodo(id: number, updates: UpdateTodoRequest, html: boolean = false): Promise<ApiResponse<Todo>> {
     const params = html ? '?html=true' : '';

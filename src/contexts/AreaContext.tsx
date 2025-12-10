@@ -13,8 +13,8 @@ interface AreaContextType {
   // Actions
   setCurrentArea: (area: Area | null) => void;
   refreshAreas: () => Promise<void>;
-  createArea: (name: string, color: string) => Promise<Area | null>;
-  updateArea: (id: number, name?: string, color?: string) => Promise<Area | null>;
+  createArea: (name: string, color: string, description?: string | null) => Promise<Area | null>;
+  updateArea: (id: number, name?: string, color?: string, description?: string | null) => Promise<Area | null>;
   deleteArea: (id: number) => Promise<boolean>;
   getAreaStats: (id: number) => Promise<AreaWithStats | null>;
   
@@ -77,9 +77,9 @@ export const AreaProvider: React.FC<AreaProviderProps> = ({ children }) => {
     }
   };
 
-  const createArea = async (name: string, color: string): Promise<Area | null> => {
+  const createArea = async (name: string, color: string, description?: string | null): Promise<Area | null> => {
     try {
-      const newArea = await storeCreateArea({ name, color });
+      const newArea = await storeCreateArea({ name, color, description });
       // Force refresh areas to ensure UI is updated
       await refreshAreas();
       return newArea;
@@ -89,11 +89,12 @@ export const AreaProvider: React.FC<AreaProviderProps> = ({ children }) => {
     }
   };
 
-  const updateArea = async (id: number, name?: string, color?: string): Promise<Area | null> => {
+  const updateArea = async (id: number, name?: string, color?: string, description?: string | null): Promise<Area | null> => {
     try {
-      const updates: { name?: string; color?: string } = {};
+      const updates: { name?: string; color?: string; description?: string | null } = {};
       if (name !== undefined) updates.name = name;
       if (color !== undefined) updates.color = color;
+      if (description !== undefined) updates.description = description;
 
       const updatedArea = await storeUpdateArea(id, updates);
 

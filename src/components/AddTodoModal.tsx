@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useTodoStore } from '../hooks/useTodoStore';
 import { useArea } from '../contexts/AreaContext';
+import { useApi } from '../hooks/useApi';
+import { useToast } from '../contexts/ToastContext';
 
 interface AddTodoModalProps {
   isOpen: boolean;
@@ -21,14 +23,18 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
   const [isToday, setIsToday] = useState(false);
   const [selectedAreaId, setSelectedAreaId] = useState<number | null>(null);
   const [referenceUrl, setReferenceUrl] = useState('');
+  const [isCategorizing, setIsCategorizing] = useState(false);
   const { createTodo, isCreating } = useTodoStore();
-  const { areas, currentArea } = useArea();
-  const isSubmitting = isCreating;
+  const { areas } = useArea();
+  const apiClient = useApi();
+  const { showToast } = useToast();
+  const isSubmitting = isCreating || isCategorizing;
 
-  // Initialize with current area and any initial data when modal opens
+  // Initialize form when modal opens - default to NO area selected for AI categorization
   React.useEffect(() => {
     if (isOpen) {
-      setSelectedAreaId(currentArea?.id || null);
+      // Default to null so AI can categorize (per Issue #4)
+      setSelectedAreaId(null);
       // Auto-enable "Add to Today List" when on Today tab
       setIsToday(currentView === 'today');
       if (initialData) {
@@ -37,19 +43,51 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
         if (initialData.referenceUrl) setReferenceUrl(initialData.referenceUrl);
       }
     }
-  }, [isOpen, currentArea, currentView, initialData]);
+  }, [isOpen, currentView, initialData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
 
     try {
+      let finalAreaId = selectedAreaId;
+      let assignedAreaName: string | null = null;
+
+      // If no area selected, use AI categorization
+      if (finalAreaId === null && apiClient) {
+        setIsCategorizing(true);
+        try {
+          const categorizationResult = await apiClient.categorizeTodo(
+            title.trim(),
+            description.trim() || undefined
+          );
+          
+          if (categorizationResult.success && categorizationResult.data.area_id) {
+            finalAreaId = categorizationResult.data.area_id;
+            assignedAreaName = categorizationResult.data.area_name;
+            console.log('AI categorized todo:', {
+              area: assignedAreaName,
+              confidence: categorizationResult.data.confidence,
+              reasoning: categorizationResult.data.reasoning
+            });
+          }
+        } catch (catError) {
+          console.warn('AI categorization failed, continuing without area:', catError);
+          // Continue with null area - will fall back to default on backend
+        } finally {
+          setIsCategorizing(false);
+        }
+      } else if (finalAreaId !== null) {
+        // User explicitly selected an area
+        assignedAreaName = areas.find(a => a.id === finalAreaId)?.name || null;
+      }
+
       const todoData = {
         title: title.trim(),
         description: description.trim() || undefined,
         due_date: dueDate ? new Date(dueDate).toISOString() : undefined,
         is_today: isToday,
-        area_id: selectedAreaId,
+        area_id: finalAreaId,
         reference_url: referenceUrl.trim() || undefined,
       };
 
@@ -60,9 +98,19 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
       setDescription('');
       setDueDate('');
       setIsToday(false);
-      setSelectedAreaId(currentArea?.id || null);
+      setSelectedAreaId(null);
       setReferenceUrl('');
+      
+      // Notify parent with the assigned area info
       onTodoAdded(newTodo.id);
+      
+      // Show toast notification with area assignment
+      if (assignedAreaName) {
+        showToast({ message: `Todo added to "${assignedAreaName}"`, type: 'success' });
+      } else {
+        showToast({ message: 'Todo created successfully', type: 'success' });
+      }
+      
       onClose();
     } catch (error) {
       console.error('Error creating todo:', error);
@@ -76,7 +124,7 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
       setDescription('');
       setDueDate('');
       setIsToday(false);
-      setSelectedAreaId(currentArea?.id || null);
+      setSelectedAreaId(null);
       setReferenceUrl('');
       onClose();
     }
@@ -166,7 +214,7 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 disabled={isSubmitting}
               >
-                <option value="">No area (shows in all views)</option>
+                <option value="">✨ Auto-categorize with AI</option>
                 {areas.map((area) => (
                   <option key={area.id} value={area.id}>
                     {area.name}
@@ -174,7 +222,7 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
                 ))}
               </select>
               <div className="flex items-center mt-2">
-                {selectedAreaId && (
+                {selectedAreaId ? (
                   <>
                     <div
                       className="w-3 h-3 rounded-full mr-2 border border-gray-300"
@@ -184,6 +232,13 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
                       {areas.find(a => a.id === selectedAreaId)?.name}
                     </span>
                   </>
+                ) : (
+                  <span className="text-xs text-indigo-600 flex items-center">
+                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+                    </svg>
+                    AI will suggest the best area based on your todo
+                  </span>
                 )}
               </div>
             </div>
@@ -244,7 +299,7 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Adding...
+                    {isCategorizing ? 'Categorizing...' : 'Adding...'}
                   </span>
                 ) : (
                   'Add Todo'
