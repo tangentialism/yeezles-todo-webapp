@@ -14,8 +14,9 @@ const AreaManagementModal: React.FC<AreaManagementModalProps> = ({
   editingArea = null 
 }) => {
   const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
   const [selectedColor, setSelectedColor] = useState('#1976D2'); // Default blue
-  const [errors, setErrors] = useState<{ name?: string; color?: string }>({});
+  const [errors, setErrors] = useState<{ name?: string; color?: string; description?: string }>({});
 
   const { createArea, updateArea, deleteArea, availableColors, areas, getAreaDisplayState } = useArea();
   
@@ -44,9 +45,11 @@ const AreaManagementModal: React.FC<AreaManagementModalProps> = ({
     if (isOpen) {
       if (editingArea) {
         setName(editingArea.name);
+        setDescription(editingArea.description || '');
         setSelectedColor(editingArea.color);
       } else {
         setName('');
+        setDescription('');
         setSelectedColor('#1976D2');
       }
       setErrors({});
@@ -54,7 +57,7 @@ const AreaManagementModal: React.FC<AreaManagementModalProps> = ({
   }, [isOpen, editingArea]);
 
   const validateForm = (): boolean => {
-    const newErrors: { name?: string; color?: string } = {};
+    const newErrors: { name?: string; color?: string; description?: string } = {};
 
     // Validate name
     if (!name.trim()) {
@@ -81,6 +84,11 @@ const AreaManagementModal: React.FC<AreaManagementModalProps> = ({
       newErrors.color = 'Please select a valid color';
     }
 
+    // Validate description (optional, max 500 chars)
+    if (description && description.length > 500) {
+      newErrors.description = 'Description must be 500 characters or less';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -93,13 +101,15 @@ const AreaManagementModal: React.FC<AreaManagementModalProps> = ({
     }
 
     try {
+      const trimmedDescription = description.trim() || null;
+      
       if (editingArea) {
         // Update existing area (store handles optimistic updates)
-        await updateArea(editingArea.id, name.trim(), selectedColor);
+        await updateArea(editingArea.id, name.trim(), selectedColor, trimmedDescription);
         onClose();
       } else {
         // Create new area (store handles optimistic updates)
-        await createArea(name.trim(), selectedColor);
+        await createArea(name.trim(), selectedColor, trimmedDescription);
         onClose();
       }
     } catch (error) {
@@ -164,6 +174,36 @@ const AreaManagementModal: React.FC<AreaManagementModalProps> = ({
             {errors.name && (
               <p className="mt-1 text-sm text-red-600">{errors.name}</p>
             )}
+          </div>
+
+          {/* Description for AI Categorization */}
+          <div className="mb-4">
+            <label htmlFor="area-description" className="block text-sm font-medium text-gray-700 mb-2">
+              Description
+              <span className="ml-1 text-xs text-gray-500 font-normal">(helps AI categorize todos)</span>
+            </label>
+            <textarea
+              id="area-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none ${
+                errors.description ? 'border-red-300' : 'border-gray-300'
+              }`}
+              placeholder="e.g., Work projects, professional tasks, and career-related items"
+              rows={2}
+              maxLength={500}
+              disabled={isSubmitting}
+            />
+            <div className="flex justify-between mt-1">
+              {errors.description ? (
+                <p className="text-sm text-red-600">{errors.description}</p>
+              ) : (
+                <p className="text-xs text-gray-500">
+                  Describe what types of todos belong in this area
+                </p>
+              )}
+              <span className="text-xs text-gray-400">{description.length}/500</span>
+            </div>
           </div>
 
           {/* Color Selection */}

@@ -126,6 +126,7 @@ export const useAreaStore = (options: UseAreaStoreOptions = {}) => {
         user_id: 'temp', // Will be set by server
         name: newArea.name,
         color: newArea.color,
+        description: newArea.description || null,
         reference_code: 'temp', // Will be set by server
         is_default: false,
         created_at: new Date().toISOString(),
