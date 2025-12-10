@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useArea } from '../contexts/AreaContext';
 import AreaManagementModal from './AreaManagementModal';
+import type { Area } from '../types/area';
 
 interface NavigationProps {
   currentView: string;
@@ -10,6 +11,7 @@ interface NavigationProps {
 const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) => {
   const [isAreaDropdownOpen, setIsAreaDropdownOpen] = useState(false);
   const [isAreaModalOpen, setIsAreaModalOpen] = useState(false);
+  const [editingArea, setEditingArea] = useState<Area | null>(null);
   const [newlyCreatedAreaId, setNewlyCreatedAreaId] = useState<number | null>(null);
   const [tabIndicatorStyle, setTabIndicatorStyle] = useState<{ left: string; width: string }>({ left: '0px', width: '0px' });
   const tabsContainerRef = useRef<HTMLDivElement>(null);
@@ -159,36 +161,58 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) =>
                   {Array.isArray(areas) && areas.map((area) => {
                     const isNewlyCreated = newlyCreatedAreaId === area.id;
                     return (
-                      <button
-                        key={area.id}
-                        onClick={() => handleAreaChange(area.id)}
-                        className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center transition-all duration-200 ${
-                          currentArea?.id === area.id ? 'bg-indigo-50 text-indigo-600' : 'text-gray-700'
-                        } ${isNewlyCreated ? 'animate-pulse bg-green-50 border-l-2 border-green-400' : ''}`}
-                    >
                       <div
-                        className="w-3 h-3 rounded-full mr-3 border border-gray-300"
-                        style={{ backgroundColor: area.color }}
-                      ></div>
-                      {area.name}
-                      {area.is_default && (
-                        <span className="ml-auto text-xs text-gray-400">default</span>
-                      )}
-                      {currentArea?.id === area.id && (
-                        <svg className="w-4 h-4 ml-auto text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                    </button>
-                  );
+                        key={area.id}
+                        className={`flex items-center px-4 py-2 text-sm hover:bg-gray-50 transition-all duration-200 ${
+                          currentArea?.id === area.id ? 'bg-indigo-50' : ''
+                        } ${isNewlyCreated ? 'animate-pulse bg-green-50 border-l-2 border-green-400' : ''}`}
+                      >
+                        <button
+                          onClick={() => handleAreaChange(area.id)}
+                          className={`flex-1 flex items-center text-left ${
+                            currentArea?.id === area.id ? 'text-indigo-600' : 'text-gray-700'
+                          }`}
+                        >
+                          <div
+                            className="w-3 h-3 rounded-full mr-3 border border-gray-300"
+                            style={{ backgroundColor: area.color }}
+                          ></div>
+                          <span className="flex-1">{area.name}</span>
+                          {area.is_default && (
+                            <span className="text-xs text-gray-400 mr-2">default</span>
+                          )}
+                          {currentArea?.id === area.id && (
+                            <svg className="w-4 h-4 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                        </button>
+                        {/* Edit button */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingArea(area);
+                            setIsAreaModalOpen(true);
+                            setIsAreaDropdownOpen(false);
+                          }}
+                          className="ml-2 p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                          title="Edit area"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                          </svg>
+                        </button>
+                      </div>
+                    );
                   })}
 
                   {/* Divider */}
                   <div className="border-t border-gray-100 my-1"></div>
 
-                  {/* Manage Areas Button */}
+                  {/* Create New Area Button */}
                   <button
                     onClick={() => {
+                      setEditingArea(null); // Ensure we're in create mode
                       setIsAreaModalOpen(true);
                       setIsAreaDropdownOpen(false);
                     }}
@@ -197,7 +221,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) =>
                     <svg className="w-3 h-3 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                     </svg>
-                    Manage Areas...
+                    Create New Area...
                   </button>
                 </div>
               </div>
@@ -209,7 +233,11 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) =>
       {/* Area Management Modal */}
       <AreaManagementModal
         isOpen={isAreaModalOpen}
-        onClose={() => setIsAreaModalOpen(false)}
+        onClose={() => {
+          setIsAreaModalOpen(false);
+          setEditingArea(null);
+        }}
+        editingArea={editingArea}
       />
     </nav>
   );
