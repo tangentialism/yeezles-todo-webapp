@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 import { useApi } from './useApi';
 import { useTodoStore } from './useTodoStore';
-import type { TodayView as TodayViewData, Todo } from '../types/todo';
+import type { TodayView as TodayViewData, Todo, UpdateTodoRequest } from '../types/todo';
 import { TODAY_VIEW_SYNC_INTERVAL_MS, TODAY_VIEW_STALE_TIME_MS, MUTATION_SETTLE_DELAY_MS } from '../constants';
 
 // Query keys for TanStack Query
@@ -137,7 +137,7 @@ export const useTodayViewStore = (options: UseTodayViewStoreOptions = {}) => {
     updateTodoInTodayView(id, updates);
     
     // Use the main todo store for the actual API call
-    const result = await updateTodo(id, updates);
+    const result = await updateTodo(id, updates as UpdateTodoRequest);
     
     // Invalidate today view to ensure consistency
     setTimeout(() => {
