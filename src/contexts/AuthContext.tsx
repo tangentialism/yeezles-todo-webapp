@@ -47,8 +47,17 @@ interface AuthContextType extends AuthState {
   checkSessionHealth: () => Promise<void>;     // Check session health and update state
 }
 
+/**
+ * React context providing authentication state and actions to the component tree.
+ * Supports two auth methods: Google OAuth (short-lived ID tokens) and persistent
+ * sessions (httpOnly cookie validated by the backend).
+ */
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+/**
+ * Access the authentication context. Must be called within an {@link AuthProvider}.
+ * @returns Auth state (user, loading, session health) and actions (login, logout, token refresh).
+ */
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -61,6 +70,16 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+/**
+ * Provides authentication state to the component tree.
+ *
+ * On mount, attempts to restore a session in this order:
+ * 1. Validate persistent session cookie via the backend.
+ * 2. Fall back to stored user info in localStorage (requires fresh sign-in).
+ *
+ * Also manages Google SDK initialization, token expiry checks, and periodic
+ * session health monitoring for persistent sessions.
+ */
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [authState, setAuthState] = useState<AuthState>({
     user: null,

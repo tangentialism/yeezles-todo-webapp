@@ -29,6 +29,14 @@ interface AreaProviderProps {
   children: ReactNode;
 }
 
+/**
+ * Provides area state and CRUD actions to the component tree.
+ *
+ * Wraps {@link useAreaStore} and adds current-area selection (persisted in
+ * localStorage). When the selected area is deleted, automatically switches
+ * to the default area. The `createArea` / `updateArea` / `deleteArea` methods
+ * delegate to the store's optimistic mutations and trigger a refetch afterward.
+ */
 export const AreaProvider: React.FC<AreaProviderProps> = ({ children }) => {
   const [currentArea, setCurrentAreaState] = useState<Area | null>(null);
   
@@ -172,7 +180,10 @@ export const AreaProvider: React.FC<AreaProviderProps> = ({ children }) => {
   );
 };
 
-// Custom hook to use the Area context
+/**
+ * Access the area context. Must be called within an {@link AreaProvider}.
+ * @returns Area list, current area, CRUD actions, and display-state helpers.
+ */
 export const useArea = (): AreaContextType => {
   const context = useContext(AreaContext);
   if (context === undefined) {

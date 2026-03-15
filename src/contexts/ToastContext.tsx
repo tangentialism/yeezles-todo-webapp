@@ -1,3 +1,10 @@
+/**
+ * Toast notification context.
+ *
+ * Manages a stack of toast messages rendered in a fixed container at the
+ * bottom-right of the viewport. Toasts auto-dismiss after their `duration`
+ * and can optionally include action buttons (e.g. "Undo").
+ */
 import React, { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
 import ToastComponent, { type Toast } from '../components/Toast';
@@ -11,6 +18,10 @@ interface ToastContextType {
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
+/**
+ * Access toast notification actions. Must be called within a {@link ToastProvider}.
+ * @returns `showToast` (returns toast ID), `hideToast`, and `clearAllToasts`.
+ */
 export const useToast = () => {
   const context = useContext(ToastContext);
   if (!context) {
@@ -23,6 +34,10 @@ interface ToastProviderProps {
   children: ReactNode;
 }
 
+/**
+ * Renders the toast container and provides `showToast`/`hideToast` to descendants.
+ * Each toast receives a unique ID and a default duration of {@link DEFAULT_TOAST_DURATION_MS}.
+ */
 export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
