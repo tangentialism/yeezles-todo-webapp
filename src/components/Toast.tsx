@@ -1,22 +1,31 @@
 import React, { useEffect, useState } from 'react';
 import { TOAST_ENTRANCE_DELAY_MS, TOAST_EXIT_ANIMATION_MS } from '../constants';
 
+/** Data model for a single toast notification. */
 export interface Toast {
   id: string;
   message: string;
   type?: 'success' | 'error' | 'info' | 'warning';
+  /** Auto-dismiss duration in ms. Set to 0 for sticky toasts. */
   duration?: number;
+  /** Optional action button (e.g. "Undo") displayed alongside the message. */
   action?: {
     label: string;
     onClick: () => void;
   };
 }
 
+/** Props for {@link ToastComponent}. */
 interface ToastProps {
   toast: Toast;
   onClose: (id: string) => void;
 }
 
+/**
+ * Individual toast notification with entrance/exit animations.
+ * Renders a type-colored card with an icon, message, optional action button,
+ * and a close button. Auto-dismisses after the configured duration.
+ */
 const ToastComponent: React.FC<ToastProps> = ({ toast, onClose }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [isExiting, setIsExiting] = useState(false);

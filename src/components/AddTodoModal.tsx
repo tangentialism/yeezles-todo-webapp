@@ -5,11 +5,15 @@ import { useApi } from '../hooks/useApi';
 import { useToast } from '../contexts/ToastContext';
 import { logger } from '../utils/logger';
 
+/** Props for {@link AddTodoModal}. */
 interface AddTodoModalProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Called after successful creation, receives the new todo's ID for entrance animation. */
   onTodoAdded: (newTodoId?: number) => void;
+  /** When set to "today", auto-enables the "Add to Today List" toggle. */
   currentView?: string;
+  /** Pre-populated form values (e.g. from external sources like Obsidian). */
   initialData?: {
     title?: string;
     description?: string;
@@ -17,6 +21,12 @@ interface AddTodoModalProps {
   };
 }
 
+/**
+ * Modal for creating a new todo with optional AI-powered area categorization.
+ *
+ * If the user does not select an area manually, the todo title/description
+ * are sent to `POST /todos/categorize` before creation to get an AI-suggested area.
+ */
 const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdded, currentView, initialData }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');

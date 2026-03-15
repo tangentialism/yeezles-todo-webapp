@@ -3,6 +3,11 @@ import { useTodoStore } from '../hooks/useTodoStore';
 import { groupTodosByCompletionDate, formatCompletionDateGroup, calculateCompletionStats } from '../utils/todoGrouping';
 import type { Todo } from '../types/todo';
 
+/**
+ * Displays completed todos grouped by completion date with summary statistics.
+ * Uses the "completed" view of {@link useTodoStore} and groups results via
+ * {@link groupTodosByCompletionDate}. Shows stats for today, this week, and total.
+ */
 const AccomplishmentsView: React.FC = () => {
   const { todos, isLoading, error } = useTodoStore({ view: 'completed' });
 
@@ -122,7 +127,7 @@ const AccomplishmentsView: React.FC = () => {
   );
 };
 
-// Individual Todo Item Component
+/** Renders a single completed todo with its completion time and tags. */
 const TodoItem: React.FC<{ todo: Todo }> = ({ todo }) => {
   const completedTime = todo.completed_at 
     ? new Date(todo.completed_at).toLocaleTimeString('en-US', { 

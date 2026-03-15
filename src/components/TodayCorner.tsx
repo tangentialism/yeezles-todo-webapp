@@ -3,7 +3,9 @@ import { useTodoStore } from '../hooks/useTodoStore';
 import type { Todo } from '../types/todo';
 import { logger } from '../utils/logger';
 
+/** Props for {@link TodayCorner}. */
 interface TodayCornerProps {
+  /** The todo whose today-status this corner controls. */
   todo: Todo;
   onUpdate?: () => void;
 }

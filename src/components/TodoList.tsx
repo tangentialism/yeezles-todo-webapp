@@ -9,14 +9,27 @@ import TodayCorner from './TodayCorner';
 import type { Todo } from '../types/todo';
 import { TODO_ENTRANCE_ANIMATION_MS } from '../constants';
 
+/** Props for {@link TodoList}. */
 interface TodoListProps {
+  /** Which view to display ("all" or "completed"). Passed to {@link useTodoStore}. */
   view: string;
-  refreshTrigger?: number; // Optional refresh trigger
-  newTodoId?: number | null; // ID of newly created todo to animate
-  onNewTodoAnimationComplete?: () => void; // Called when animation finishes
+  /** Legacy refresh trigger (unused with TanStack Query but kept for API compat). */
+  refreshTrigger?: number;
+  /** ID of a newly created todo; triggers a fade-in + highlight entrance animation. */
+  newTodoId?: number | null;
+  /** Called after the entrance animation completes so the parent can clear `newTodoId`. */
+  onNewTodoAnimationComplete?: () => void;
 }
 
-const TodoList: React.FC<TodoListProps> = ({ 
+/**
+ * Scrollable list of todo cards for the "All Todos" and similar views.
+ *
+ * Each todo shows a completion checkbox (with optimistic toggle and undo),
+ * tags, dates, a reference-URL link, and a {@link TodoActions} dropdown.
+ * Newly created todos play an entrance animation, and completed todos in
+ * the "all" view are animated out via a two-phase opacity+height transition.
+ */
+const TodoList: React.FC<TodoListProps> = ({
   view, 
   refreshTrigger: _, // Unused with new store but kept for API compatibility
   newTodoId, 

@@ -12,6 +12,13 @@ interface ParsedTodo {
   original_text?: string;
 }
 
+/**
+ * Batch todo creation page, typically reached via deep-link from Obsidian.
+ *
+ * Reads a JSON-encoded `todos` array from the URL query string and lets the
+ * user select which ones to import, assign an area, and optionally add to Today.
+ * After creation, navigates back to the dashboard.
+ */
 const CreateMultipleTodos: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();

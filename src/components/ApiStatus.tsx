@@ -2,6 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useApi } from '../hooks/useApi';
 import { logger } from '../utils/logger';
 
+/**
+ * Small status indicator that pings `GET /health` on mount and shows
+ * whether the backend API is reachable. Displayed at the bottom of the dashboard.
+ */
 const ApiStatus: React.FC = () => {
   const [status, setStatus] = useState<'loading' | 'connected' | 'error'>('loading');
   const apiClient = useApi();

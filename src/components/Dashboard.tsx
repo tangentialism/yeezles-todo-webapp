@@ -6,6 +6,11 @@ import ViewContainer from './ViewContainer';
 import AddTodoModal from './AddTodoModal';
 import { VIEW_TRANSITION_DURATION_MS } from '../constants';
 
+/**
+ * Main authenticated layout containing the header, navigation tabs, and the
+ * multi-view container. Manages view switching with a fade transition and
+ * coordinates the "Add Todo" modal with entrance animation for new todos.
+ */
 const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const [currentView, setCurrentView] = useState('all');

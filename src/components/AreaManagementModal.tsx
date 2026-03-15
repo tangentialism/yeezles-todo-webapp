@@ -3,13 +3,20 @@ import type { Area } from '../types/area';
 import { useArea } from '../contexts/AreaContext';
 import { logger } from '../utils/logger';
 
+/** Props for {@link AreaManagementModal}. */
 interface AreaManagementModalProps {
   isOpen: boolean;
   onClose: () => void;
-  editingArea?: Area | null; // If provided, modal opens in edit mode
+  /** When provided, the modal opens in edit mode for this area; otherwise it creates a new one. */
+  editingArea?: Area | null;
 }
 
-const AreaManagementModal: React.FC<AreaManagementModalProps> = ({ 
+/**
+ * Modal for creating or editing an area. Includes name, description (used by AI
+ * categorization), and a Material Design color picker. Validates for duplicates
+ * and length limits. Non-default areas can also be deleted from this modal.
+ */
+const AreaManagementModal: React.FC<AreaManagementModalProps> = ({
   isOpen, 
   onClose, 
   editingArea = null 

@@ -4,13 +4,20 @@ import { useTodoStore } from '../hooks/useTodoStore';
 import type { Todo } from '../types/todo';
 import { logger } from '../utils/logger';
 
+/** Props for {@link TodoActions}. */
 interface TodoActionsProps {
   todo: Todo;
   onEdit: (todo: Todo) => void;
   onUpdate: () => void;
-  onToggleComplete?: (todo: Todo) => void; // New prop for completion handling
+  /** Custom completion handler; when omitted, falls back to the store's toggle with undo. */
+  onToggleComplete?: (todo: Todo) => void;
 }
 
+/**
+ * Three-dot dropdown menu for a todo with actions: Edit, Toggle Complete,
+ * Move to/Remove from Today, and Delete. The dropdown is rendered via a
+ * React portal to avoid clipping by overflow containers.
+ */
 const TodoActions: React.FC<TodoActionsProps> = ({ todo, onEdit, onUpdate, onToggleComplete }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });

@@ -3,6 +3,14 @@ import { useAuth } from '../contexts/AuthContext';
 import { logger } from '../utils/logger';
 import type { GoogleCredentialResponse } from '../types/auth';
 
+/**
+ * Full-page login screen with a Google Sign-In button and "Remember me" checkbox.
+ *
+ * When "Remember me" is checked, the login flow creates a persistent server-side
+ * session (90-day cookie) in addition to the standard Google OAuth token.
+ * Re-initializes the Google button whenever `rememberMe` toggles so the
+ * credential callback captures the latest value.
+ */
 const LoginButton: React.FC = () => {
   const { isGoogleReady, login } = useAuth();
   const buttonRef = useRef<HTMLDivElement>(null);
