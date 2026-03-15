@@ -156,7 +156,7 @@ export const AreaProvider: React.FC<AreaProviderProps> = ({ children }) => {
     
     // Store utilities  
     getAreaDisplayState: (area: Area) => {
-      const state = getAreaDisplayState(area as any);
+      const state = getAreaDisplayState(area as Area & { _optimistic?: boolean; _pendingAction?: 'create' | 'update' | 'delete' });
       return {
         isPending: state.isPending || false,
         isDeleting: state.isDeleting || false,

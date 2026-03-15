@@ -55,7 +55,7 @@ const createTestQueryClient = () => new QueryClient({
 const MockAuthProvider: React.FC<{
   children: React.ReactNode;
   initialUser?: User | null;
-  initialAuthState?: any;
+  initialAuthState?: Partial<CustomRenderOptions['initialAuthState']> & Record<string, unknown>;
 }> = ({ children, initialUser = null, initialAuthState = {} }) => {
   const mockAuthValue = {
     user: initialUser,

@@ -36,7 +36,7 @@ const CreateMultipleTodos: React.FC = () => {
         const todos = JSON.parse(todosParam);
         setParsedTodos(todos);
         // Initially select all todos
-        setSelectedTodos(new Set(todos.map((_: any, index: number) => index)));
+        setSelectedTodos(new Set((todos as ParsedTodo[]).map((_: ParsedTodo, index: number) => index)));
       } catch (error) {
         logger.error('Failed to parse todos parameter:', error);
       }

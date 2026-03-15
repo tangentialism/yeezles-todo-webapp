@@ -22,7 +22,7 @@ export const setupFetchMock = () => {
 /**
  * Create a mock Response object
  */
-const createMockResponse = (data: any, options: { status?: number; ok?: boolean } = {}) => {
+const createMockResponse = (data: Record<string, unknown>, options: { status?: number; ok?: boolean } = {}) => {
   const { status = 200, ok = true } = options;
   
   return {

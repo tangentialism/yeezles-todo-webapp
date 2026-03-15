@@ -52,10 +52,10 @@ export const useAreaStore = (options: UseAreaStoreOptions = {}) => {
       }
       
       // Handle both array response and object response from API
-      const responseData = response.data as any;
-      const areasArray = Array.isArray(responseData) 
-        ? responseData 
-        : responseData?.areas;
+      const responseData = response.data as Area[] | { areas: Area[] };
+      const areasArray = Array.isArray(responseData)
+        ? responseData
+        : (responseData as { areas: Area[] })?.areas;
         
       if (!Array.isArray(areasArray)) {
         throw new Error('Invalid areas response format');
@@ -81,12 +81,12 @@ export const useAreaStore = (options: UseAreaStoreOptions = {}) => {
         throw new Error(response.message || 'Failed to load available colors');
       }
       
-      const responseData = response.data as any;
-      const colorsData = responseData?.colors;
-      
+      const responseData = response.data as string[] | { colors: Array<string | { color: string }> };
+      const colorsData = Array.isArray(responseData) ? responseData : (responseData as { colors: Array<string | { color: string }> })?.colors;
+
       if (Array.isArray(colorsData)) {
         // Extract hex colors from color objects
-        return colorsData.map((colorObj: any) => colorObj.color || colorObj);
+        return colorsData.map((colorObj: string | { color: string }) => typeof colorObj === 'string' ? colorObj : colorObj.color);
       }
       
       return [];
@@ -292,9 +292,9 @@ export const useAreaStore = (options: UseAreaStoreOptions = {}) => {
         throw new Error(response.message || 'Failed to load area statistics');
       }
       return response.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       showToast({
-        message: `Failed to load area statistics: ${error.message}`,
+        message: `Failed to load area statistics: ${error instanceof Error ? error.message : String(error)}`,
         type: 'error'
       });
       return null;

@@ -58,9 +58,9 @@ export const useSessionStore = (options: UseSessionStoreOptions = {}) => {
   // Optimistic update helper
   const updateSessionsOptimistically = useCallback(
     (updaterFn: (sessions: OptimisticSession[]) => OptimisticSession[]) => {
-      queryClient.setQueryData(QUERY_KEYS.sessions(), (old: SessionsResponse | undefined) => {
+      queryClient.setQueryData(QUERY_KEYS.sessions(), (old: SessionsResponse['data'] | undefined) => {
         if (!old) return old;
-        const updatedSessions = updaterFn((old as any).sessions as OptimisticSession[]);
+        const updatedSessions = updaterFn(old.sessions as OptimisticSession[]);
         return {
           ...old,
           sessions: updatedSessions,
@@ -85,7 +85,7 @@ export const useSessionStore = (options: UseSessionStoreOptions = {}) => {
       await queryClient.cancelQueries({ queryKey: QUERY_KEYS.sessions() });
 
       // Snapshot previous value
-      const previousData = queryClient.getQueryData<SessionsResponse>(QUERY_KEYS.sessions());
+      const previousData = queryClient.getQueryData<SessionsResponse['data']>(QUERY_KEYS.sessions());
 
       // Optimistically mark session for removal
       updateSessionsOptimistically((sessions) =>
@@ -137,7 +137,7 @@ export const useSessionStore = (options: UseSessionStoreOptions = {}) => {
       await queryClient.cancelQueries({ queryKey: QUERY_KEYS.sessions() });
 
       // Snapshot previous value
-      const previousData = queryClient.getQueryData<SessionsResponse>(QUERY_KEYS.sessions());
+      const previousData = queryClient.getQueryData<SessionsResponse['data']>(QUERY_KEYS.sessions());
 
       // Optimistically mark all non-current sessions for removal
       updateSessionsOptimistically((sessions) =>

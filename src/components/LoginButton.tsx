@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { logger } from '../utils/logger';
+import type { GoogleCredentialResponse } from '../types/auth';
 
 const LoginButton: React.FC = () => {
   const { isGoogleReady, login } = useAuth();
@@ -9,7 +10,7 @@ const LoginButton: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   // Custom login handler that includes remember me option
-  const handleGoogleLogin = async (credentialResponse: any) => {
+  const handleGoogleLogin = async (credentialResponse: GoogleCredentialResponse) => {
     setIsLoading(true);
     try {
       await login(credentialResponse, rememberMe);

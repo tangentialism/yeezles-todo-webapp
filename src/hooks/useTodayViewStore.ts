@@ -119,7 +119,7 @@ export const useTodayViewStore = (options: UseTodayViewStoreOptions = {}) => {
   }, [toggleTodoCompletion, updateTodoInTodayView, queryClient, includeDueToday, daysAhead]);
 
   // Update todo with today view optimistic updates
-  const updateTodoInTodayViewStore = useCallback(async (id: number, updates: any) => {
+  const updateTodoInTodayViewStore = useCallback(async (id: number, updates: Partial<Todo>) => {
     // Optimistically update in today view
     updateTodoInTodayView(id, updates);
     

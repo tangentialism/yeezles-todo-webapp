@@ -12,7 +12,7 @@ const ApiStatus: React.FC = () => {
         setStatus('loading');
         await apiClient.healthCheck();
         setStatus('connected');
-      } catch (err: any) {
+      } catch (err: unknown) {
         setStatus('error');
         logger.error('API Health Check Error:', err);
       }

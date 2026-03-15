@@ -146,7 +146,7 @@ class TokenAwareApiClient {
   }
 
   // Health check
-  async healthCheck(): Promise<any> {
+  async healthCheck(): Promise<{ status: string }> {
     const response = await this.api.get('/health');
     return response.data;
   }
@@ -310,7 +310,7 @@ class TokenAwareApiClient {
   async exportData(
     includeCompleted: boolean = true,
     includeTags: boolean = true
-  ): Promise<any> {
+  ): Promise<Record<string, unknown>> {
     const params = new URLSearchParams();
     params.append('include_completed', includeCompleted.toString());
     params.append('include_tags', includeTags.toString());
@@ -320,7 +320,7 @@ class TokenAwareApiClient {
   }
 
   // Import data
-  async importData(data: any, options: any = {}): Promise<any> {
+  async importData(data: Record<string, unknown>, options: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
     const response = await this.api.post('/import', { data, options });
     return response.data;
   }
