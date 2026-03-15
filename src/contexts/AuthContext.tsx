@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { createAuthenticatedApiClient } from '../services/api';
 import type { LoginRequest } from '../services/api';
+import { logger } from '../utils/logger';
 
 export interface User {
   id: string;
@@ -84,7 +85,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           // ✅ Set Google as ready but keep loading until auth check completes
           setAuthState(prev => ({ ...prev, isGoogleReady: true }));
         } catch (error) {
-          console.error('❌ Google OAuth initialization failed:', error);
+          logger.error('Google OAuth initialization failed:', error);
           // Still set as ready and stop loading so user sees the error instead of loading forever
           setAuthState(prev => ({ ...prev, isGoogleReady: true, isLoading: false }));
         }
@@ -145,7 +146,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               isLoading: false,
             }));
           } catch (error) {
-            console.error('Error parsing stored user:', error);
+            logger.error('Error parsing stored user:', error);
             localStorage.removeItem('user');
             setAuthState(prev => ({ ...prev, isLoading: false }));
           }
@@ -154,7 +155,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       }
     } catch (error) {
-      console.error('Error checking initial auth:', error);
+      logger.error('Error checking initial auth:', error);
       setAuthState(prev => ({ ...prev, isLoading: false }));
     }
   };
@@ -188,7 +189,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         authMethod: 'google-oauth',
       }));
     } catch (error) {
-      console.error('Error handling credential response:', error);
+      logger.error('Error handling credential response:', error);
       setAuthState(prev => ({
         ...prev,
         user: null,
@@ -204,44 +205,42 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (credentialResponse: GoogleCredentialResponse, rememberMe: boolean = false) => {
     try {
-      console.log('🔍 [Frontend] Login called with rememberMe:', rememberMe);
-      
+      logger.log('[Frontend] Login called with rememberMe:', rememberMe);
+
       // First handle the Google credential response
       await handleCredentialResponse(credentialResponse);
-      
+
       // If remember me is requested, create persistent session
       if (rememberMe) {
         try {
-          console.log('🔍 [Frontend] Creating persistent session...');
+          logger.log('[Frontend] Creating persistent session...');
           const apiClient = createAuthenticatedApiClient(getValidToken, () => {});
           const loginRequest: LoginRequest = {
             googleToken: credentialResponse.credential,
             rememberMe: true
           };
-          
-          console.log('🔍 [Frontend] Sending login request:', loginRequest);
+
           const loginResponse = await apiClient.login(loginRequest);
-          console.log('🔍 [Frontend] Login response:', loginResponse);
-          
+          logger.log('[Frontend] Login response received, sessionCreated:', loginResponse.data?.sessionCreated);
+
           if (loginResponse.success && loginResponse.data.sessionCreated) {
             setAuthState(prev => ({
               ...prev,
               hasPersistentSession: true,
             }));
-            console.log('✅ [Frontend] Persistent session created successfully');
-            console.log('🔍 [Frontend] Cookies after login:', document.cookie);
+            logger.log('[Frontend] Persistent session created successfully');
           } else {
-            console.log('❌ [Frontend] Session creation failed:', loginResponse);
+            logger.log('[Frontend] Session creation failed');
           }
         } catch (error) {
-          console.error('❌ [Frontend] Failed to create persistent session:', error);
+          logger.error('[Frontend] Failed to create persistent session:', error);
           // Don't fail the entire login process if persistent session creation fails
         }
       } else {
-        console.log('🔍 [Frontend] Remember me not requested, skipping persistent session');
+        logger.log('[Frontend] Remember me not requested, skipping persistent session');
       }
     } catch (error) {
-      console.error('Login failed:', error);
+      logger.error('Login failed:', error);
       throw error;
     }
   };
@@ -253,18 +252,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         try {
           const apiClient = createAuthenticatedApiClient(getValidToken, () => {});
           await apiClient.revokeAllSessions();
-          console.log('✅ All persistent sessions revoked (sign out everywhere)');
+          logger.log('All persistent sessions revoked (sign out everywhere)');
         } catch (error) {
-          console.error('Failed to revoke all persistent sessions:', error);
+          logger.error('Failed to revoke all persistent sessions:', error);
           // Continue with logout even if session revocation fails
         }
       } else if (authState.hasPersistentSession) {
-        console.log('🔍 [Frontend] Logging out current session only (other devices remain signed in)');
+        logger.log('[Frontend] Logging out current session only (other devices remain signed in)');
         // Note: We're only clearing local state, not revoking the server-side session
         // This allows the user to stay logged in on other devices
       }
     } catch (error) {
-      console.error('Error during logout cleanup:', error);
+      logger.error('Error during logout cleanup:', error);
     }
 
     localStorage.removeItem('user');
@@ -282,7 +281,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Revoke Google session
     if (window.google && authState.user) {
       window.google.accounts.id.revoke(authState.user.email, () => {
-        console.log('Google session revoked');
+        logger.log('Google session revoked');
       });
     }
   };
@@ -316,8 +315,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const checkPersistentSession = async (retryCount: number = 0): Promise<boolean> => {
     const maxRetries = 2;
     try {
-      console.log(`🔍 [Frontend] Checking for persistent session... (attempt ${retryCount + 1})`);
-      console.log('🔍 [Frontend] Current cookies:', document.cookie);
+      logger.log(`[Frontend] Checking for persistent session... (attempt ${retryCount + 1})`);
 
       const apiClient = createAuthenticatedApiClient(() => null, () => {}); // No token needed for this call
       const response = await apiClient.validatePersistentSession();
@@ -345,7 +343,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           hasPersistentSession: true,
         }));
 
-        console.log('✅ Persistent session validated successfully');
+        logger.log('Persistent session validated successfully');
         return true;
       }
       
@@ -353,7 +351,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setAuthState(prev => ({ ...prev, isLoading: false }));
       return false;
     } catch (error) {
-      console.log(`❌ [Frontend] Persistent session check failed (attempt ${retryCount + 1}):`, error instanceof Error ? error.message : 'Unknown error');
+      logger.log(`[Frontend] Persistent session check failed (attempt ${retryCount + 1}):`, error instanceof Error ? error.message : 'Unknown error');
 
       // Retry on network errors or temporary failures
       if (retryCount < maxRetries &&
@@ -361,7 +359,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
            (error.message.includes('Network Error') ||
             error.message.includes('timeout') ||
             error.message.includes('fetch')))) {
-        console.log(`🔄 [Frontend] Retrying persistent session check in ${(retryCount + 1) * 1000}ms...`);
+        logger.log(`[Frontend] Retrying persistent session check in ${(retryCount + 1) * 1000}ms...`);
         return new Promise(resolve => {
           setTimeout(async () => {
             resolve(await checkPersistentSession(retryCount + 1));
@@ -369,7 +367,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         });
       }
 
-      console.log('🔍 [Frontend] Error details:', error);
+      logger.log('[Frontend] Persistent session error details:', error);
       // Ensure loading state is updated on error
       setAuthState(prev => ({ ...prev, isLoading: false }));
       return false;
@@ -383,7 +381,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return;
       }
 
-      console.log('🔍 [Frontend] Checking session health...');
+      logger.log('[Frontend] Checking session health...');
       const apiClient = createAuthenticatedApiClient(() => null, () => {});
       const response = await apiClient.getSessionHealth();
 
@@ -399,11 +397,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }));
 
         if (healthData.needsRefreshWarning) {
-          console.log(`⚠️ [Frontend] Session expires in ${healthData.daysUntilExpiry} days - consider refreshing`);
+          logger.warn(`[Frontend] Session expires in ${healthData.daysUntilExpiry} days - consider refreshing`);
         }
       }
     } catch (error) {
-      console.error('❌ [Frontend] Session health check failed:', error);
+      logger.error('[Frontend] Session health check failed:', error);
     }
   };
 
