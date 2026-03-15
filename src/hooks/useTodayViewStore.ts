@@ -22,6 +22,17 @@ interface OptimisticTodayData extends TodayViewData {
   _lastUpdated?: string;
 }
 
+/**
+ * TanStack Query-based store for the Today focus view.
+ *
+ * Wraps the `GET /todos/today` endpoint and layers optimistic updates on top
+ * so that toggling completion, editing, or deleting a todo feels instantaneous.
+ * Mutations delegate to {@link useTodoStore} for the actual API calls, then
+ * mark the today-view query as stale after a short settle delay to reconcile.
+ *
+ * @param options - Controls due-date inclusion, look-ahead days, and sync interval.
+ * @returns Today view data, optimistic mutation wrappers, and loading/error states.
+ */
 export const useTodayViewStore = (options: UseTodayViewStoreOptions = {}) => {
   const { 
     includeDueToday = true,
@@ -72,7 +83,8 @@ export const useTodayViewStore = (options: UseTodayViewStoreOptions = {}) => {
     [queryClient, includeDueToday, daysAhead]
   );
 
-  // Optimistically update a todo within the today view structure
+  // Apply a partial update to a todo across all sections (focus + upcoming) of the today view.
+  // This keeps the UI responsive while the real API call is in flight via the main todo store.
   const updateTodoInTodayView = useCallback((todoId: number, updates: Partial<Todo>) => {
     updateTodayDataOptimistically((data) => {
       const updateTodos = (todos: Todo[]) => 

@@ -20,6 +20,16 @@ interface OptimisticSession extends UserSession {
   _pendingAction?: 'revoke';
 }
 
+/**
+ * TanStack Query-based store for managing the user's persistent login sessions.
+ *
+ * Supports revoking individual sessions or all sessions at once, with optimistic
+ * UI updates and rollback on failure. Sessions are polled at a configurable interval
+ * (default {@link SESSION_SYNC_INTERVAL_MS}).
+ *
+ * @param options - Controls background sync behavior and polling interval.
+ * @returns Session data, revocation actions, and loading/error states.
+ */
 export const useSessionStore = (options: UseSessionStoreOptions = {}) => {
   const { 
     enableBackgroundSync = true, 

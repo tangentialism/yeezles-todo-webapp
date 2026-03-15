@@ -25,6 +25,16 @@ interface OptimisticArea extends Area {
   _pendingAction?: 'create' | 'update' | 'delete';
 }
 
+/**
+ * TanStack Query-based store for CRUD operations on areas.
+ *
+ * Provides optimistic updates for create/update/delete mutations, background
+ * polling for freshness, and cross-tab sync via {@link useCrossTabSync}.
+ * On mutation error the cache is rolled back to the previous snapshot.
+ *
+ * @param options - Controls background sync interval and whether to include stats.
+ * @returns Area data, mutation actions, and loading/error states.
+ */
 export const useAreaStore = (options: UseAreaStoreOptions = {}) => {
   const { 
     includeStats = false,
@@ -95,7 +105,8 @@ export const useAreaStore = (options: UseAreaStoreOptions = {}) => {
     staleTime: 5 * 60 * 1000, // Colors change rarely, cache for 5 minutes
   });
 
-  // Optimistic update helper
+  // Optimistic update helper: applies an updater function to the cached areas array.
+  // Used by mutations to show immediate UI feedback before the server responds.
   const updateAreasOptimistically = useCallback(
     (updaterFn: (areas: OptimisticArea[]) => OptimisticArea[]) => {
       queryClient.setQueryData(QUERY_KEYS.areas(includeStats), (old: Area[] = []) => {

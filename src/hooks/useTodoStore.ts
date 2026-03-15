@@ -31,6 +31,21 @@ interface OptimisticTodo extends Todo {
   _pendingAction?: 'create' | 'update' | 'delete' | 'toggle';
 }
 
+/**
+ * Primary TanStack Query-based store for todo CRUD operations.
+ *
+ * Automatically builds query filters from the current view (all/completed) and
+ * the selected area from {@link AreaContext}. All mutations use optimistic updates
+ * with rollback on error. Completed todos in the "all" view are animated out
+ * with a two-phase removal: first marked for deletion animation, then removed
+ * from cache after {@link COMPLETION_ANIMATION_MS}.
+ *
+ * Cross-tab sync: every successful mutation broadcasts via {@link useCrossTabSync}
+ * so other open tabs invalidate their caches.
+ *
+ * @param options - Controls view filter, background sync, and polling interval.
+ * @returns Todo data, mutation actions, display state helpers, and loading/error states.
+ */
 export const useTodoStore = (options: UseTodoStoreOptions = {}) => {
   const {
     view = 'all',
@@ -313,7 +328,8 @@ export const useTodoStore = (options: UseTodoStoreOptions = {}) => {
     },
   });
 
-  // Toggle completion with optimistic updates and undo functionality
+  // Toggles completion via updateTodo mutation, then shows an undo toast for completions.
+  // The undo action reverts the mutation and restores the todo if it was already marked for removal.
   const toggleTodoCompletion = useCallback(
     async (todo: Todo): Promise<{ canUndo: boolean; undoId?: string }> => {
       const newCompleted = !todo.completed;

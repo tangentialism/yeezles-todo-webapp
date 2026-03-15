@@ -18,6 +18,19 @@ interface UseTodoCompletionOptions {
   optimisticUpdate?: (todoId: number, newCompleted: boolean) => void;
 }
 
+/**
+ * Manages todo completion toggling with a deferred-commit undo window.
+ *
+ * When a user toggles completion, the change is shown optimistically but not
+ * committed to the server until after {@link UNDO_TIMEOUT_MS}. During that
+ * window, toggling the same todo again cancels the pending change and reverts
+ * to the original state. A toast notification is shown with a countdown.
+ *
+ * @param options.onUpdate - Called after a completion is committed or reverted.
+ * @param options.undoTimeoutMs - Duration of the undo window (defaults to {@link UNDO_TIMEOUT_MS}).
+ * @param options.optimisticUpdate - Optional callback for immediate cache updates.
+ * @returns `toggleTodoCompletion`, `getTodoDisplayState`, `cleanup`, and `hasPendingCompletions`.
+ */
 export const useTodoCompletion = ({ onUpdate, undoTimeoutMs = UNDO_TIMEOUT_MS, optimisticUpdate }: UseTodoCompletionOptions) => {
   const [pendingCompletions, setPendingCompletions] = useState<Map<number, PendingCompletion>>(new Map());
   const { showToast, hideToast } = useToast();
@@ -27,6 +40,7 @@ export const useTodoCompletion = ({ onUpdate, undoTimeoutMs = UNDO_TIMEOUT_MS, o
   // Keep ref in sync for cleanup
   pendingRef.current = pendingCompletions;
 
+  // Sends the final completion state to the server after the undo window expires.
   const commitCompletion = useCallback(async (todoId: number, newCompleted: boolean) => {
     try {
       const response = await apiClient.updateTodo(todoId, { completed: newCompleted });
