@@ -1,11 +1,11 @@
 import axios from 'axios';
 import type { AxiosInstance } from 'axios';
-import type { 
-  Todo, 
-  ApiResponse, 
-  TodayView, 
-  TodoFilters, 
-  CreateTodoRequest, 
+import type {
+  Todo,
+  ApiResponse,
+  TodayView,
+  TodoFilters,
+  CreateTodoRequest,
   UpdateTodoRequest
 } from '../types/todo';
 import type {
@@ -14,6 +14,7 @@ import type {
   CreateAreaRequest,
   UpdateAreaRequest
 } from '../types/area';
+import { logger } from '../utils/logger';
 
 // Authentication types
 export interface LoginRequest {
@@ -125,21 +126,19 @@ class TokenAwareApiClient {
     this.api.interceptors.response.use(
       (response) => response,
       (error) => {
-        console.error('API Error:', error);
+        logger.error('API Error:', error);
         if (error.response) {
-          console.error('Response data:', error.response.data);
-          console.error('Response status:', error.response.status);
-          console.error('Response headers:', error.response.headers);
+          logger.error('Response status:', error.response.status);
 
           // Handle authentication errors
           if (error.response.status === 401) {
-            console.error('🔐 Authentication failed - triggering auth error handler');
+            logger.error('Authentication failed - triggering auth error handler');
             this.onAuthError();
           }
         } else if (error.request) {
-          console.error('Network error - no response received:', error.request);
+          logger.error('Network error - no response received');
         } else {
-          console.error('Request configuration error:', error.message);
+          logger.error('Request configuration error:', error.message);
         }
         throw error;
       }
@@ -158,16 +157,12 @@ class TokenAwareApiClient {
    * Login with Google token and optional remember me
    */
   async login(loginData: LoginRequest): Promise<LoginResponse> {
-    console.log('🔍 [Frontend API] Sending login request:', loginData);
-    console.log('🔍 [Frontend API] Cookies before login:', document.cookie);
-    
+    logger.log('[Frontend API] Sending login request');
+
     const response = await this.api.post('/auth/login', loginData);
-    
-    console.log('🔍 [Frontend API] Login response status:', response.status);
-    console.log('🔍 [Frontend API] Login response headers:', response.headers);
-    console.log('🔍 [Frontend API] Login response data:', response.data);
-    console.log('🔍 [Frontend API] Cookies after login:', document.cookie);
-    
+
+    logger.log('[Frontend API] Login response status:', response.status);
+
     return response.data;
   }
 
@@ -175,14 +170,12 @@ class TokenAwareApiClient {
    * Validate persistent session from cookie
    */
   async validatePersistentSession(): Promise<ValidatePersistentResponse> {
-    console.log('🔍 [Frontend API] About to validate persistent session');
-    console.log('🔍 [Frontend API] Current cookies before request:', document.cookie);
-    
+    logger.log('[Frontend API] Validating persistent session');
+
     const response = await this.api.post('/auth/validate-persistent');
-    
-    console.log('🔍 [Frontend API] Validation response status:', response.status);
-    console.log('🔍 [Frontend API] Validation response data:', response.data);
-    
+
+    logger.log('[Frontend API] Validation response status:', response.status);
+
     return response.data;
   }
 
@@ -214,13 +207,11 @@ class TokenAwareApiClient {
    * Check session health and expiration info
    */
   async getSessionHealth(): Promise<SessionHealthResponse> {
-    console.log('🔍 [Frontend API] Checking session health...');
-    console.log('🔍 [Frontend API] Cookies before health check:', document.cookie);
+    logger.log('[Frontend API] Checking session health...');
 
     const response = await this.api.get('/auth/session-health');
 
-    console.log('🔍 [Frontend API] Health check response status:', response.status);
-    console.log('🔍 [Frontend API] Health check response data:', response.data);
+    logger.log('[Frontend API] Health check response status:', response.status);
 
     return response.data;
   }
