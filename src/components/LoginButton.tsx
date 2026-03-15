@@ -1,6 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { logger } from '../utils/logger';
+import type { GoogleCredentialResponse } from '../types/auth';
 
+/**
+ * Full-page login screen with a Google Sign-In button and "Remember me" checkbox.
+ *
+ * When "Remember me" is checked, the login flow creates a persistent server-side
+ * session (90-day cookie) in addition to the standard Google OAuth token.
+ * Re-initializes the Google button whenever `rememberMe` toggles so the
+ * credential callback captures the latest value.
+ */
 const LoginButton: React.FC = () => {
   const { isGoogleReady, login } = useAuth();
   const buttonRef = useRef<HTMLDivElement>(null);
@@ -8,12 +18,12 @@ const LoginButton: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   // Custom login handler that includes remember me option
-  const handleGoogleLogin = async (credentialResponse: any) => {
+  const handleGoogleLogin = async (credentialResponse: GoogleCredentialResponse) => {
     setIsLoading(true);
     try {
       await login(credentialResponse, rememberMe);
     } catch (error) {
-      console.error('Login failed:', error);
+      logger.error('Login failed:', error);
       // Error handling is done in the AuthContext
     } finally {
       setIsLoading(false);
@@ -42,7 +52,7 @@ const LoginButton: React.FC = () => {
           width: '280px',
         });
       } catch (error) {
-        console.error('❌ Failed to render Google sign-in button:', error);
+        logger.error('Failed to render Google sign-in button:', error);
       }
     }
   }, [isGoogleReady, rememberMe]); // Re-run when Google becomes ready or remember me changes

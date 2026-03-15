@@ -2,6 +2,8 @@ import { useState, useCallback, useRef } from 'react';
 import { useApi } from './useApi';
 import { useToast } from '../contexts/ToastContext';
 import type { Todo } from '../types/todo';
+import { logger } from '../utils/logger';
+import { UNDO_TIMEOUT_MS, TOAST_APPEAR_DELAY_MS, TITLE_TRUNCATION_LENGTH } from '../constants';
 
 interface PendingCompletion {
   todoId: number;
@@ -16,7 +18,20 @@ interface UseTodoCompletionOptions {
   optimisticUpdate?: (todoId: number, newCompleted: boolean) => void;
 }
 
-export const useTodoCompletion = ({ onUpdate, undoTimeoutMs = 1500, optimisticUpdate }: UseTodoCompletionOptions) => {
+/**
+ * Manages todo completion toggling with a deferred-commit undo window.
+ *
+ * When a user toggles completion, the change is shown optimistically but not
+ * committed to the server until after {@link UNDO_TIMEOUT_MS}. During that
+ * window, toggling the same todo again cancels the pending change and reverts
+ * to the original state. A toast notification is shown with a countdown.
+ *
+ * @param options.onUpdate - Called after a completion is committed or reverted.
+ * @param options.undoTimeoutMs - Duration of the undo window (defaults to {@link UNDO_TIMEOUT_MS}).
+ * @param options.optimisticUpdate - Optional callback for immediate cache updates.
+ * @returns `toggleTodoCompletion`, `getTodoDisplayState`, `cleanup`, and `hasPendingCompletions`.
+ */
+export const useTodoCompletion = ({ onUpdate, undoTimeoutMs = UNDO_TIMEOUT_MS, optimisticUpdate }: UseTodoCompletionOptions) => {
   const [pendingCompletions, setPendingCompletions] = useState<Map<number, PendingCompletion>>(new Map());
   const { showToast, hideToast } = useToast();
   const apiClient = useApi();
@@ -25,6 +40,7 @@ export const useTodoCompletion = ({ onUpdate, undoTimeoutMs = 1500, optimisticUp
   // Keep ref in sync for cleanup
   pendingRef.current = pendingCompletions;
 
+  // Sends the final completion state to the server after the undo window expires.
   const commitCompletion = useCallback(async (todoId: number, newCompleted: boolean) => {
     try {
       const response = await apiClient.updateTodo(todoId, { completed: newCompleted });
@@ -32,7 +48,7 @@ export const useTodoCompletion = ({ onUpdate, undoTimeoutMs = 1500, optimisticUp
         onUpdate();
       }
     } catch (error) {
-      console.error('Error committing todo completion:', error);
+      logger.error('Error committing todo completion:', error);
       // If commit fails, we should revert the optimistic update
       onUpdate();
     }
@@ -65,7 +81,7 @@ export const useTodoCompletion = ({ onUpdate, undoTimeoutMs = 1500, optimisticUp
     const newCompleted = !todo.completed;
 
     // Create the undo toast with a brief delay for completions to avoid position clash
-    const todoTitle = todo.title.length > 30 ? `${todo.title.substring(0, 30)}...` : todo.title;
+    const todoTitle = todo.title.length > TITLE_TRUNCATION_LENGTH ? `${todo.title.substring(0, TITLE_TRUNCATION_LENGTH)}...` : todo.title;
     const message = newCompleted ? `Completed "${todoTitle}"` : `Marked "${todoTitle}" as incomplete`;
     
     // Create the undo toast with a brief delay to separate from immediate visual feedback
@@ -74,9 +90,9 @@ export const useTodoCompletion = ({ onUpdate, undoTimeoutMs = 1500, optimisticUp
       toastId = showToast({
         message: `${message} • Click checkbox again to cancel`,
         type: 'success',
-        duration: undoTimeoutMs - 200 // Adjust duration since it appears later
+        duration: undoTimeoutMs - TOAST_APPEAR_DELAY_MS // Adjust duration since it appears later
       });
-      
+
       // Update the pending completion with the actual toast ID
       setPendingCompletions(prev => {
         const existing = prev.get(todo.id);
@@ -85,7 +101,7 @@ export const useTodoCompletion = ({ onUpdate, undoTimeoutMs = 1500, optimisticUp
         }
         return prev;
       });
-    }, 200);
+    }, TOAST_APPEAR_DELAY_MS);
 
     // Set up the auto-commit timeout
     const timeoutId = setTimeout(() => {

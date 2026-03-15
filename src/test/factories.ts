@@ -71,7 +71,7 @@ export const createMockAreas = (count: number, overrides: Partial<Area> = {}): A
 /**
  * Google OAuth response factory
  */
-export const createMockGoogleCredentialResponse = (overrides: Partial<any> = {}) => ({
+export const createMockGoogleCredentialResponse = (overrides: Partial<{ credential: string; select_by: string }> = {}) => ({
   credential: 'eyJhbGciOiJSUzI1NiIsImtpZCI6IjdkYzBiMjJhYmZkMzAzNmI4NzdhOTk3N2Y0NzE5ZjRmMzYwYWI5ZjUiLCJ0eXAiOiJKV1QifQ.mock-jwt-token',
   select_by: 'btn',
   ...overrides,
@@ -80,7 +80,7 @@ export const createMockGoogleCredentialResponse = (overrides: Partial<any> = {})
 /**
  * API Response factories
  */
-export const createMockApiResponse = <T>(data: T, overrides: Partial<any> = {}) => ({
+export const createMockApiResponse = <T>(data: T, overrides: Partial<{ success: boolean; data: T; message: string }> = {}) => ({
   success: true,
   data,
   message: 'Success',

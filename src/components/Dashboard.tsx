@@ -4,7 +4,13 @@ import ApiStatus from './ApiStatus';
 import Navigation from './Navigation';
 import ViewContainer from './ViewContainer';
 import AddTodoModal from './AddTodoModal';
+import { VIEW_TRANSITION_DURATION_MS } from '../constants';
 
+/**
+ * Main authenticated layout containing the header, navigation tabs, and the
+ * multi-view container. Manages view switching with a fade transition and
+ * coordinates the "Add Todo" modal with entrance animation for new todos.
+ */
 const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const [currentView, setCurrentView] = useState('all');
@@ -23,7 +29,7 @@ const Dashboard: React.FC = () => {
       // End transition after animation completes
       setTimeout(() => {
         setIsViewTransitioning(false);
-      }, 200); // Match ViewContainer transition duration
+      }, VIEW_TRANSITION_DURATION_MS); // Match ViewContainer transition duration
     }
   };
 

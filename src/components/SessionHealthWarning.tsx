@@ -1,6 +1,13 @@
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { SESSION_EXPIRY_URGENT_DAYS } from '../constants';
 
+/**
+ * Fixed-position banner warning the user when their persistent session is
+ * approaching expiration. Only renders for authenticated persistent-session users
+ * when `sessionHealth.needsRefreshWarning` is true. Uses an amber style for
+ * normal warnings and red when under {@link SESSION_EXPIRY_URGENT_DAYS}.
+ */
 const SessionHealthWarning: React.FC = () => {
   const { sessionHealth, authMethod, isAuthenticated } = useAuth();
 
@@ -13,7 +20,7 @@ const SessionHealthWarning: React.FC = () => {
   }
 
   const daysLeft = sessionHealth.daysUntilExpiry;
-  const isUrgent = daysLeft <= 2;
+  const isUrgent = daysLeft <= SESSION_EXPIRY_URGENT_DAYS;
 
   return (
     <div className={`fixed top-4 right-4 z-50 max-w-sm p-4 rounded-lg shadow-lg border ${

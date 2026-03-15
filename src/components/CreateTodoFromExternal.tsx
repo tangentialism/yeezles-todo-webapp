@@ -2,7 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTodoStore } from '../hooks/useTodoStore';
 import { useArea } from '../contexts/AreaContext';
+import { logger } from '../utils/logger';
 
+/**
+ * Single-todo creation page for external sources (e.g. Obsidian deep-links).
+ *
+ * Pre-populates title, description, and reference URL from URL query params.
+ * After creation, navigates back to the dashboard.
+ */
 const CreateTodoFromExternal: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -50,7 +57,7 @@ const CreateTodoFromExternal: React.FC = () => {
       // Navigate back to main dashboard
       navigate('/');
     } catch (error) {
-      console.error('Failed to create todo:', error);
+      logger.error('Failed to create todo:', error);
     }
   };
 

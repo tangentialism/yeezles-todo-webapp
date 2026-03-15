@@ -9,22 +9,24 @@ import LoginButton from './components/LoginButton';
 import Dashboard from './components/Dashboard';
 import CreateTodoFromExternal from './components/CreateTodoFromExternal';
 import CreateMultipleTodos from './components/CreateMultipleTodos';
+import { QUERY_STALE_TIME_MS, MAX_QUERY_RETRIES, MAX_MUTATION_RETRIES } from './constants';
 
 // Create a client
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
-      retry: (failureCount, error: any) => {
+      staleTime: QUERY_STALE_TIME_MS,
+      retry: (failureCount, error: unknown) => {
         // Don't retry on 401/403 errors
-        if (error?.response?.status === 401 || error?.response?.status === 403) {
+        const status = (error as { response?: { status?: number } })?.response?.status;
+        if (status === 401 || status === 403) {
           return false;
         }
-        return failureCount < 3;
+        return failureCount < MAX_QUERY_RETRIES;
       },
     },
     mutations: {
-      retry: 1,
+      retry: MAX_MUTATION_RETRIES,
     },
   },
 });

@@ -3,14 +3,25 @@ import TodoList from './TodoList';
 import TodayView from './TodayView';
 import AccomplishmentsView from './AccomplishmentsView';
 
+/** Props for {@link ViewContainer}. */
 interface ViewContainerProps {
   currentView: string;
+  /** True during view-switch fade transition. */
   isTransitioning: boolean;
   refreshTrigger: number;
   newTodoId: number | null;
   onNewTodoAnimationComplete: () => void;
 }
 
+/**
+ * Stacked view container that keeps all three views (All Todos, Today,
+ * Accomplishments) mounted simultaneously for instant switching.
+ *
+ * Only the active view is visible; inactive views are hidden with
+ * `visibility: hidden` and `pointerEvents: none`. Scroll positions are
+ * preserved per-view using refs, saved before transitions and restored
+ * via `requestAnimationFrame` after the transition completes.
+ */
 const ViewContainer: React.FC<ViewContainerProps> = ({
   currentView,
   isTransitioning,

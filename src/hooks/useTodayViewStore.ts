@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import { useApi } from './useApi';
 import { useTodoStore } from './useTodoStore';
 import type { TodayView as TodayViewData, Todo } from '../types/todo';
+import { TODAY_VIEW_SYNC_INTERVAL_MS, TODAY_VIEW_STALE_TIME_MS, MUTATION_SETTLE_DELAY_MS } from '../constants';
 
 // Query keys for TanStack Query
 const QUERY_KEYS = {
@@ -21,12 +22,23 @@ interface OptimisticTodayData extends TodayViewData {
   _lastUpdated?: string;
 }
 
+/**
+ * TanStack Query-based store for the Today focus view.
+ *
+ * Wraps the `GET /todos/today` endpoint and layers optimistic updates on top
+ * so that toggling completion, editing, or deleting a todo feels instantaneous.
+ * Mutations delegate to {@link useTodoStore} for the actual API calls, then
+ * mark the today-view query as stale after a short settle delay to reconcile.
+ *
+ * @param options - Controls due-date inclusion, look-ahead days, and sync interval.
+ * @returns Today view data, optimistic mutation wrappers, and loading/error states.
+ */
 export const useTodayViewStore = (options: UseTodayViewStoreOptions = {}) => {
   const { 
     includeDueToday = true,
     daysAhead,
     enableBackgroundSync = true, 
-    syncInterval = 120000 // 2 minutes for today view
+    syncInterval = TODAY_VIEW_SYNC_INTERVAL_MS
   } = options;
   
   const apiClient = useApi();
@@ -54,7 +66,7 @@ export const useTodayViewStore = (options: UseTodayViewStoreOptions = {}) => {
         _lastUpdated: new Date().toISOString()
       } as OptimisticTodayData;
     },
-    staleTime: 60000, // Consider data stale after 1 minute for today view
+    staleTime: TODAY_VIEW_STALE_TIME_MS,
     refetchInterval: enableBackgroundSync ? syncInterval : false,
     refetchIntervalInBackground: true,
     refetchOnWindowFocus: true,
@@ -71,7 +83,8 @@ export const useTodayViewStore = (options: UseTodayViewStoreOptions = {}) => {
     [queryClient, includeDueToday, daysAhead]
   );
 
-  // Optimistically update a todo within the today view structure
+  // Apply a partial update to a todo across all sections (focus + upcoming) of the today view.
+  // This keeps the UI responsive while the real API call is in flight via the main todo store.
   const updateTodoInTodayView = useCallback((todoId: number, updates: Partial<Todo>) => {
     updateTodayDataOptimistically((data) => {
       const updateTodos = (todos: Todo[]) => 
@@ -113,13 +126,13 @@ export const useTodayViewStore = (options: UseTodayViewStoreOptions = {}) => {
         queryKey: QUERY_KEYS.todayView(includeDueToday, daysAhead),
         refetchType: 'none' // Don't refetch immediately, just mark as stale
       });
-    }, 100);
+    }, MUTATION_SETTLE_DELAY_MS);
     
     return result;
   }, [toggleTodoCompletion, updateTodoInTodayView, queryClient, includeDueToday, daysAhead]);
 
   // Update todo with today view optimistic updates
-  const updateTodoInTodayViewStore = useCallback(async (id: number, updates: any) => {
+  const updateTodoInTodayViewStore = useCallback(async (id: number, updates: Partial<Todo>) => {
     // Optimistically update in today view
     updateTodoInTodayView(id, updates);
     
@@ -132,7 +145,7 @@ export const useTodayViewStore = (options: UseTodayViewStoreOptions = {}) => {
         queryKey: QUERY_KEYS.todayView(includeDueToday, daysAhead),
         refetchType: 'none'
       });
-    }, 100);
+    }, MUTATION_SETTLE_DELAY_MS);
     
     return result;
   }, [updateTodo, updateTodoInTodayView, queryClient, includeDueToday, daysAhead]);
@@ -168,7 +181,7 @@ export const useTodayViewStore = (options: UseTodayViewStoreOptions = {}) => {
         queryKey: QUERY_KEYS.todayView(includeDueToday, daysAhead),
         refetchType: 'none'
       });
-    }, 100);
+    }, MUTATION_SETTLE_DELAY_MS);
     
     return result;
   }, [deleteTodo, updateTodayDataOptimistically, queryClient, includeDueToday, daysAhead]);
