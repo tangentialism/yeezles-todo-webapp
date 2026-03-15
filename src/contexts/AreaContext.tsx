@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { Area, AreaWithStats } from '../types/area';
 import { useAreaStore } from '../hooks/useAreaStore';
+import { logger } from '../utils/logger';
 
 interface AreaContextType {
   // State
@@ -84,7 +85,7 @@ export const AreaProvider: React.FC<AreaProviderProps> = ({ children }) => {
       await refreshAreas();
       return newArea;
     } catch (error) {
-      console.error('Error creating area:', error);
+      logger.error('Error creating area:', error);
       return null;
     }
   };
@@ -108,7 +109,7 @@ export const AreaProvider: React.FC<AreaProviderProps> = ({ children }) => {
 
       return updatedArea;
     } catch (error) {
-      console.error('Error updating area:', error);
+      logger.error('Error updating area:', error);
       return null;
     }
   };
@@ -129,7 +130,7 @@ export const AreaProvider: React.FC<AreaProviderProps> = ({ children }) => {
 
       return true;
     } catch (error) {
-      console.error('Error deleting area:', error);
+      logger.error('Error deleting area:', error);
       return false;
     }
   };

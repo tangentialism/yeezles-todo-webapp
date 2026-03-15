@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { logger } from '../utils/logger';
 
 const LoginButton: React.FC = () => {
   const { isGoogleReady, login } = useAuth();
@@ -13,7 +14,7 @@ const LoginButton: React.FC = () => {
     try {
       await login(credentialResponse, rememberMe);
     } catch (error) {
-      console.error('Login failed:', error);
+      logger.error('Login failed:', error);
       // Error handling is done in the AuthContext
     } finally {
       setIsLoading(false);
@@ -42,7 +43,7 @@ const LoginButton: React.FC = () => {
           width: '280px',
         });
       } catch (error) {
-        console.error('❌ Failed to render Google sign-in button:', error);
+        logger.error('Failed to render Google sign-in button:', error);
       }
     }
   }, [isGoogleReady, rememberMe]); // Re-run when Google becomes ready or remember me changes

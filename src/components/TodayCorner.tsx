@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTodoStore } from '../hooks/useTodoStore';
 import type { Todo } from '../types/todo';
+import { logger } from '../utils/logger';
 
 interface TodayCornerProps {
   todo: Todo;
@@ -43,7 +44,7 @@ const TodayCorner: React.FC<TodayCornerProps> = ({ todo, onUpdate }) => {
       await (isToday ? removeFromToday(todo.id) : moveToToday(todo.id));
       onUpdate?.();
     } catch (error) {
-      console.error('Error toggling today status:', error);
+      logger.error('Error toggling today status:', error);
     }
   };
 

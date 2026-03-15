@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApi } from '../hooks/useApi';
+import { logger } from '../utils/logger';
 
 const ApiStatus: React.FC = () => {
   const [status, setStatus] = useState<'loading' | 'connected' | 'error'>('loading');
@@ -13,7 +14,7 @@ const ApiStatus: React.FC = () => {
         setStatus('connected');
       } catch (err: any) {
         setStatus('error');
-        console.error('API Health Check Error:', err);
+        logger.error('API Health Check Error:', err);
       }
     };
 

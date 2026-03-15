@@ -3,6 +3,7 @@ import { useTodoStore } from '../hooks/useTodoStore';
 import { useArea } from '../contexts/AreaContext';
 import { useApi } from '../hooks/useApi';
 import { useToast } from '../contexts/ToastContext';
+import { logger } from '../utils/logger';
 
 interface AddTodoModalProps {
   isOpen: boolean;
@@ -65,14 +66,14 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
           if (categorizationResult.success && categorizationResult.data.area_id) {
             finalAreaId = categorizationResult.data.area_id;
             assignedAreaName = categorizationResult.data.area_name;
-            console.log('AI categorized todo:', {
+            logger.log('AI categorized todo:', {
               area: assignedAreaName,
               confidence: categorizationResult.data.confidence,
               reasoning: categorizationResult.data.reasoning
             });
           }
         } catch (catError) {
-          console.warn('AI categorization failed, continuing without area:', catError);
+          logger.warn('AI categorization failed, continuing without area:', catError);
           // Continue with null area - will fall back to default on backend
         } finally {
           setIsCategorizing(false);
@@ -113,7 +114,7 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
       
       onClose();
     } catch (error) {
-      console.error('Error creating todo:', error);
+      logger.error('Error creating todo:', error);
       // Error handling is done in the store with toast
     }
   };

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTodoStore } from '../hooks/useTodoStore';
 import { useArea } from '../contexts/AreaContext';
+import { logger } from '../utils/logger';
 
 const CreateTodoFromExternal: React.FC = () => {
   const location = useLocation();
@@ -50,7 +51,7 @@ const CreateTodoFromExternal: React.FC = () => {
       // Navigate back to main dashboard
       navigate('/');
     } catch (error) {
-      console.error('Failed to create todo:', error);
+      logger.error('Failed to create todo:', error);
     }
   };
 

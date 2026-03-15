@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useTodoStore } from '../hooks/useTodoStore';
 import { useArea } from '../contexts/AreaContext';
 import type { Todo } from '../types/todo';
+import { logger } from '../utils/logger';
 
 interface EditTodoModalProps {
   todo: Todo | null;
@@ -62,7 +63,7 @@ const EditTodoModal: React.FC<EditTodoModalProps> = ({ todo, isOpen, onClose, on
       onTodoUpdated();
       onClose();
     } catch (error) {
-      console.error('Error updating todo:', error);
+      logger.error('Error updating todo:', error);
       // Error handling is done in the store with toast
     }
   };

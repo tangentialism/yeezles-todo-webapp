@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { Area } from '../types/area';
 import { useArea } from '../contexts/AreaContext';
+import { logger } from '../utils/logger';
 
 interface AreaManagementModalProps {
   isOpen: boolean;
@@ -113,7 +114,7 @@ const AreaManagementModal: React.FC<AreaManagementModalProps> = ({
         onClose();
       }
     } catch (error) {
-      console.error('Error saving area:', error);
+      logger.error('Error saving area:', error);
       // Error handling is done in the store with toast notifications
     }
   };
@@ -126,7 +127,7 @@ const AreaManagementModal: React.FC<AreaManagementModalProps> = ({
         await deleteArea(editingArea.id);
         onClose();
       } catch (error) {
-        console.error('Error deleting area:', error);
+        logger.error('Error deleting area:', error);
         // Error handling is done in the store with toast notifications
       }
     }

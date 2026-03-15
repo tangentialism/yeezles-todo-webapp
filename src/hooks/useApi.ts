@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { createAuthenticatedApiClient } from '../services/api';
 import type TokenAwareApiClient from '../services/api';
+import { logger } from '../utils/logger';
 
 /**
  * Hook that provides an authenticated API client integrated with the auth context.
@@ -13,7 +14,7 @@ export const useApi = (): TokenAwareApiClient => {
   // Create API client with auth integration
   const apiClient = useMemo(() => {
     const handleAuthError = () => {
-      console.warn('Authentication error detected, logging out user');
+      logger.warn('Authentication error detected, logging out user');
       logout(); // Force logout on auth errors
     };
 

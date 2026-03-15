@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from 'react';
 import { useApi } from './useApi';
 import { useToast } from '../contexts/ToastContext';
 import type { Todo } from '../types/todo';
+import { logger } from '../utils/logger';
 
 interface PendingCompletion {
   todoId: number;
@@ -32,7 +33,7 @@ export const useTodoCompletion = ({ onUpdate, undoTimeoutMs = 1500, optimisticUp
         onUpdate();
       }
     } catch (error) {
-      console.error('Error committing todo completion:', error);
+      logger.error('Error committing todo completion:', error);
       // If commit fails, we should revert the optimistic update
       onUpdate();
     }

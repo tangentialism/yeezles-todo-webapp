@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useTodoStore } from '../hooks/useTodoStore';
 import type { Todo } from '../types/todo';
+import { logger } from '../utils/logger';
 
 interface TodoActionsProps {
   todo: Todo;
@@ -41,7 +42,7 @@ const TodoActions: React.FC<TodoActionsProps> = ({ todo, onEdit, onUpdate, onTog
       // Store handles optimistic updates and error messages
       onUpdate(); // Still call for any additional logic parent might need
     } catch (error) {
-      console.error('Error deleting todo:', error);
+      logger.error('Error deleting todo:', error);
       // Error handling is done in the store with toast
     } finally {
       setIsOpen(false);
@@ -70,7 +71,7 @@ const TodoActions: React.FC<TodoActionsProps> = ({ todo, onEdit, onUpdate, onTog
       await moveToToday(todo.id);
       onUpdate();
     } catch (error) {
-      console.error('Error moving todo to today:', error);
+      logger.error('Error moving todo to today:', error);
       // Error handling is done in the store with toast
     } finally {
       setIsOpen(false);
@@ -82,7 +83,7 @@ const TodoActions: React.FC<TodoActionsProps> = ({ todo, onEdit, onUpdate, onTog
       await removeFromToday(todo.id);
       onUpdate();
     } catch (error) {
-      console.error('Error removing todo from today:', error);
+      logger.error('Error removing todo from today:', error);
       // Error handling is done in the store with toast
     } finally {
       setIsOpen(false);

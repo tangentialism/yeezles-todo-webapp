@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTodoStore } from '../hooks/useTodoStore';
 import { useArea } from '../contexts/AreaContext';
+import { logger } from '../utils/logger';
 
 interface ParsedTodo {
   title: string;
@@ -37,7 +38,7 @@ const CreateMultipleTodos: React.FC = () => {
         // Initially select all todos
         setSelectedTodos(new Set(todos.map((_: any, index: number) => index)));
       } catch (error) {
-        console.error('Failed to parse todos parameter:', error);
+        logger.error('Failed to parse todos parameter:', error);
       }
     }
 
@@ -82,7 +83,7 @@ const CreateMultipleTodos: React.FC = () => {
       // Navigate back to main dashboard
       navigate('/');
     } catch (error) {
-      console.error('Failed to create todos:', error);
+      logger.error('Failed to create todos:', error);
     }
   };
 
