@@ -10,13 +10,6 @@ export interface User {
   picture?: string;
 }
 
-/** Snapshot of the current authentication state managed by {@link AuthContext}. */
-interface AuthState {
-  user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-}
-
 /**
  * Payload returned by Google's `credential` callback after the user signs in.
  */
