@@ -4,6 +4,7 @@ import { useApi } from './useApi';
 import { useCrossTabSync } from './useCrossTabSync';
 import { useToast } from '../contexts/ToastContext';
 import type { Area, AreaWithStats, CreateAreaRequest, UpdateAreaRequest } from '../types/area';
+import { BACKGROUND_SYNC_INTERVAL_MS, ANIMATION_DELAY_MS } from '../constants';
 
 // Query keys for TanStack Query
 const QUERY_KEYS = {
@@ -28,7 +29,7 @@ export const useAreaStore = (options: UseAreaStoreOptions = {}) => {
   const { 
     includeStats = false,
     enableBackgroundSync = true, 
-    syncInterval = 60000 
+    syncInterval = BACKGROUND_SYNC_INTERVAL_MS
   } = options;
   
   const apiClient = useApi();
@@ -272,7 +273,7 @@ export const useAreaStore = (options: UseAreaStoreOptions = {}) => {
 
         // Force a fresh fetch to ensure consistency
         queryClient.invalidateQueries({ queryKey: QUERY_KEYS.areas(includeStats) });
-      }, 300); // Small delay for any deletion animation
+      }, ANIMATION_DELAY_MS); // Small delay for any deletion animation
 
       // Broadcast to other tabs
       broadcast('AREA_DELETED', { id: deletedId, timestamp: Date.now() });

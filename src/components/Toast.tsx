@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { TOAST_ENTRANCE_DELAY_MS, TOAST_EXIT_ANIMATION_MS } from '../constants';
 
 export interface Toast {
   id: string;
@@ -22,7 +23,7 @@ const ToastComponent: React.FC<ToastProps> = ({ toast, onClose }) => {
 
   useEffect(() => {
     // Trigger entrance animation
-    const timer = setTimeout(() => setIsVisible(true), 10);
+    const timer = setTimeout(() => setIsVisible(true), TOAST_ENTRANCE_DELAY_MS);
     return () => clearTimeout(timer);
   }, []);
 
@@ -37,7 +38,7 @@ const ToastComponent: React.FC<ToastProps> = ({ toast, onClose }) => {
 
   const handleClose = () => {
     setIsExiting(true);
-    setTimeout(() => onClose(toast.id), 200); // Match exit animation duration
+    setTimeout(() => onClose(toast.id), TOAST_EXIT_ANIMATION_MS); // Match exit animation duration
   };
 
   const getToastStyles = () => {

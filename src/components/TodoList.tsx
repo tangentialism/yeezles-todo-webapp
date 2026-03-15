@@ -7,6 +7,7 @@ import EditTodoModal from './EditTodoModal';
 import TodoActions from './TodoActions';
 import TodayCorner from './TodayCorner';
 import type { Todo } from '../types/todo';
+import { TODO_ENTRANCE_ANIMATION_MS } from '../constants';
 
 interface TodoListProps {
   view: string;
@@ -61,7 +62,7 @@ const TodoList: React.FC<TodoListProps> = ({
           return next;
         });
         onNewTodoAnimationComplete?.();
-      }, 400); // Animation duration: 250ms entrance + 150ms highlight
+      }, TODO_ENTRANCE_ANIMATION_MS); // Animation duration: 250ms entrance + 150ms highlight
       
       return () => clearTimeout(timer);
     }

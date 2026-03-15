@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { SESSION_EXPIRY_URGENT_DAYS } from '../constants';
 
 const SessionHealthWarning: React.FC = () => {
   const { sessionHealth, authMethod, isAuthenticated } = useAuth();
@@ -13,7 +14,7 @@ const SessionHealthWarning: React.FC = () => {
   }
 
   const daysLeft = sessionHealth.daysUntilExpiry;
-  const isUrgent = daysLeft <= 2;
+  const isUrgent = daysLeft <= SESSION_EXPIRY_URGENT_DAYS;
 
   return (
     <div className={`fixed top-4 right-4 z-50 max-w-sm p-4 rounded-lg shadow-lg border ${

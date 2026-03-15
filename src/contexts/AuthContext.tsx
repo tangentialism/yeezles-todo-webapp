@@ -2,6 +2,13 @@ import React, { createContext, useContext, useEffect, useState, type ReactNode }
 import { createAuthenticatedApiClient } from '../services/api';
 import type { LoginRequest } from '../services/api';
 import { logger } from '../utils/logger';
+import {
+  GOOGLE_SDK_POLL_INTERVAL_MS,
+  GOOGLE_SDK_MAX_POLLS,
+  AUTH_INIT_DELAY_MS,
+  TOKEN_EXPIRY_BUFFER_SECONDS,
+  SESSION_HEALTH_CHECK_INTERVAL_MS,
+} from '../constants';
 
 export interface User {
   id: string;
@@ -93,7 +100,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
 
     let timeoutCount = 0;
-    const maxTimeouts = 50; // 5 seconds maximum wait
+    const maxTimeouts = GOOGLE_SDK_MAX_POLLS;
 
     // Wait for Google script to load
     const checkGoogleLoaded = () => {
@@ -102,7 +109,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } else {
         timeoutCount++;
         if (timeoutCount < maxTimeouts) {
-          setTimeout(checkGoogleLoaded, 100);
+          setTimeout(checkGoogleLoaded, GOOGLE_SDK_POLL_INTERVAL_MS);
         } else {
           // Set as ready but keep loading until auth check completes
           setAuthState(prev => ({ ...prev, isGoogleReady: true }));
@@ -116,7 +123,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Use a longer delay for more reliable network operations
     setTimeout(async () => {
       await checkInitialAuth();
-    }, 250);
+    }, AUTH_INIT_DELAY_MS);
     
   }, []);
 
@@ -290,7 +297,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const isTokenValid = (token: string | null, expiry: number | null): boolean => {
     if (!token || !expiry) return false;
     // Add 5-minute buffer for network delays
-    return Date.now() < (expiry - 300) * 1000;
+    return Date.now() < (expiry - TOKEN_EXPIRY_BUFFER_SECONDS) * 1000;
   };
 
   // Get valid token for API calls
@@ -412,7 +419,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       checkSessionHealth();
 
       // Then check every hour
-      const interval = setInterval(checkSessionHealth, 60 * 60 * 1000);
+      const interval = setInterval(checkSessionHealth, SESSION_HEALTH_CHECK_INTERVAL_MS);
       return () => clearInterval(interval);
     }
   }, [authState.isAuthenticated, authState.hasPersistentSession, authState.authMethod]);

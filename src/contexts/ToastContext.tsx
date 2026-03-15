@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
 import ToastComponent, { type Toast } from '../components/Toast';
+import { DEFAULT_TOAST_DURATION_MS } from '../constants';
 
 interface ToastContextType {
   showToast: (toast: Omit<Toast, 'id'>) => string;
@@ -29,7 +30,7 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
     const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const toast: Toast = {
       id,
-      duration: 5000, // Default 5 seconds
+      duration: DEFAULT_TOAST_DURATION_MS,
       ...toastData,
     };
 

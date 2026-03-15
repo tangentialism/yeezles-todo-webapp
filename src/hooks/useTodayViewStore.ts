@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import { useApi } from './useApi';
 import { useTodoStore } from './useTodoStore';
 import type { TodayView as TodayViewData, Todo } from '../types/todo';
+import { TODAY_VIEW_SYNC_INTERVAL_MS, TODAY_VIEW_STALE_TIME_MS, MUTATION_SETTLE_DELAY_MS } from '../constants';
 
 // Query keys for TanStack Query
 const QUERY_KEYS = {
@@ -26,7 +27,7 @@ export const useTodayViewStore = (options: UseTodayViewStoreOptions = {}) => {
     includeDueToday = true,
     daysAhead,
     enableBackgroundSync = true, 
-    syncInterval = 120000 // 2 minutes for today view
+    syncInterval = TODAY_VIEW_SYNC_INTERVAL_MS
   } = options;
   
   const apiClient = useApi();
@@ -54,7 +55,7 @@ export const useTodayViewStore = (options: UseTodayViewStoreOptions = {}) => {
         _lastUpdated: new Date().toISOString()
       } as OptimisticTodayData;
     },
-    staleTime: 60000, // Consider data stale after 1 minute for today view
+    staleTime: TODAY_VIEW_STALE_TIME_MS,
     refetchInterval: enableBackgroundSync ? syncInterval : false,
     refetchIntervalInBackground: true,
     refetchOnWindowFocus: true,
@@ -113,7 +114,7 @@ export const useTodayViewStore = (options: UseTodayViewStoreOptions = {}) => {
         queryKey: QUERY_KEYS.todayView(includeDueToday, daysAhead),
         refetchType: 'none' // Don't refetch immediately, just mark as stale
       });
-    }, 100);
+    }, MUTATION_SETTLE_DELAY_MS);
     
     return result;
   }, [toggleTodoCompletion, updateTodoInTodayView, queryClient, includeDueToday, daysAhead]);
@@ -132,7 +133,7 @@ export const useTodayViewStore = (options: UseTodayViewStoreOptions = {}) => {
         queryKey: QUERY_KEYS.todayView(includeDueToday, daysAhead),
         refetchType: 'none'
       });
-    }, 100);
+    }, MUTATION_SETTLE_DELAY_MS);
     
     return result;
   }, [updateTodo, updateTodoInTodayView, queryClient, includeDueToday, daysAhead]);
@@ -168,7 +169,7 @@ export const useTodayViewStore = (options: UseTodayViewStoreOptions = {}) => {
         queryKey: QUERY_KEYS.todayView(includeDueToday, daysAhead),
         refetchType: 'none'
       });
-    }, 100);
+    }, MUTATION_SETTLE_DELAY_MS);
     
     return result;
   }, [deleteTodo, updateTodayDataOptimistically, queryClient, includeDueToday, daysAhead]);

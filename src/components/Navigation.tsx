@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useArea } from '../contexts/AreaContext';
 import AreaManagementModal from './AreaManagementModal';
 import type { Area } from '../types/area';
+import { NEW_AREA_HIGHLIGHT_MS } from '../constants';
 
 interface NavigationProps {
   currentView: string;
@@ -34,7 +35,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) =>
       // Clear the animation after 2 seconds
       const timer = setTimeout(() => {
         setNewlyCreatedAreaId(null);
-      }, 2000);
+      }, NEW_AREA_HIGHLIGHT_MS);
       
       return () => clearTimeout(timer);
     }

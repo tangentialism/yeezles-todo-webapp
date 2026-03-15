@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import { useApi } from './useApi';
 import { useToast } from '../contexts/ToastContext';
 import type { UserSession, SessionsResponse } from '../services/api';
+import { SESSION_SYNC_INTERVAL_MS, SESSION_STALE_TIME_MS, ANIMATION_DELAY_MS } from '../constants';
 
 // Query keys for TanStack Query
 const QUERY_KEYS = {
@@ -22,7 +23,7 @@ interface OptimisticSession extends UserSession {
 export const useSessionStore = (options: UseSessionStoreOptions = {}) => {
   const { 
     enableBackgroundSync = true, 
-    syncInterval = 300000 // 5 minutes for sessions
+    syncInterval = SESSION_SYNC_INTERVAL_MS
   } = options;
   
   const apiClient = useApi();
@@ -45,7 +46,7 @@ export const useSessionStore = (options: UseSessionStoreOptions = {}) => {
       }
       return response.data;
     },
-    staleTime: 2 * 60 * 1000, // Consider data stale after 2 minutes
+    staleTime: SESSION_STALE_TIME_MS,
     refetchInterval: enableBackgroundSync ? syncInterval : false,
     refetchIntervalInBackground: true,
     refetchOnWindowFocus: true,
@@ -114,7 +115,7 @@ export const useSessionStore = (options: UseSessionStoreOptions = {}) => {
         updateSessionsOptimistically((sessions) =>
           sessions.filter(session => session.id !== revokedSessionId)
         );
-      }, 300); // Small delay for any deletion animation
+      }, ANIMATION_DELAY_MS); // Small delay for any deletion animation
 
       showToast({
         message: 'Session revoked successfully!',
@@ -166,7 +167,7 @@ export const useSessionStore = (options: UseSessionStoreOptions = {}) => {
         updateSessionsOptimistically((sessions) =>
           sessions.filter(session => session.isCurrent)
         );
-      }, 300);
+      }, ANIMATION_DELAY_MS);
 
       showToast({
         message: `${data.revokedCount} sessions revoked successfully!`,

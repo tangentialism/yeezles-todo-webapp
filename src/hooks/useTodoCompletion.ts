@@ -3,6 +3,7 @@ import { useApi } from './useApi';
 import { useToast } from '../contexts/ToastContext';
 import type { Todo } from '../types/todo';
 import { logger } from '../utils/logger';
+import { UNDO_TIMEOUT_MS, TOAST_APPEAR_DELAY_MS, TITLE_TRUNCATION_LENGTH } from '../constants';
 
 interface PendingCompletion {
   todoId: number;
@@ -17,7 +18,7 @@ interface UseTodoCompletionOptions {
   optimisticUpdate?: (todoId: number, newCompleted: boolean) => void;
 }
 
-export const useTodoCompletion = ({ onUpdate, undoTimeoutMs = 1500, optimisticUpdate }: UseTodoCompletionOptions) => {
+export const useTodoCompletion = ({ onUpdate, undoTimeoutMs = UNDO_TIMEOUT_MS, optimisticUpdate }: UseTodoCompletionOptions) => {
   const [pendingCompletions, setPendingCompletions] = useState<Map<number, PendingCompletion>>(new Map());
   const { showToast, hideToast } = useToast();
   const apiClient = useApi();
@@ -66,7 +67,7 @@ export const useTodoCompletion = ({ onUpdate, undoTimeoutMs = 1500, optimisticUp
     const newCompleted = !todo.completed;
 
     // Create the undo toast with a brief delay for completions to avoid position clash
-    const todoTitle = todo.title.length > 30 ? `${todo.title.substring(0, 30)}...` : todo.title;
+    const todoTitle = todo.title.length > TITLE_TRUNCATION_LENGTH ? `${todo.title.substring(0, TITLE_TRUNCATION_LENGTH)}...` : todo.title;
     const message = newCompleted ? `Completed "${todoTitle}"` : `Marked "${todoTitle}" as incomplete`;
     
     // Create the undo toast with a brief delay to separate from immediate visual feedback
@@ -75,9 +76,9 @@ export const useTodoCompletion = ({ onUpdate, undoTimeoutMs = 1500, optimisticUp
       toastId = showToast({
         message: `${message} • Click checkbox again to cancel`,
         type: 'success',
-        duration: undoTimeoutMs - 200 // Adjust duration since it appears later
+        duration: undoTimeoutMs - TOAST_APPEAR_DELAY_MS // Adjust duration since it appears later
       });
-      
+
       // Update the pending completion with the actual toast ID
       setPendingCompletions(prev => {
         const existing = prev.get(todo.id);
@@ -86,7 +87,7 @@ export const useTodoCompletion = ({ onUpdate, undoTimeoutMs = 1500, optimisticUp
         }
         return prev;
       });
-    }, 200);
+    }, TOAST_APPEAR_DELAY_MS);
 
     // Set up the auto-commit timeout
     const timeoutId = setTimeout(() => {

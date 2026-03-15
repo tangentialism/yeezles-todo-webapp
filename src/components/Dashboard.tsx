@@ -4,6 +4,7 @@ import ApiStatus from './ApiStatus';
 import Navigation from './Navigation';
 import ViewContainer from './ViewContainer';
 import AddTodoModal from './AddTodoModal';
+import { VIEW_TRANSITION_DURATION_MS } from '../constants';
 
 const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -23,7 +24,7 @@ const Dashboard: React.FC = () => {
       // End transition after animation completes
       setTimeout(() => {
         setIsViewTransitioning(false);
-      }, 200); // Match ViewContainer transition duration
+      }, VIEW_TRANSITION_DURATION_MS); // Match ViewContainer transition duration
     }
   };
 
