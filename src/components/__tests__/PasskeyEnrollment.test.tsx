@@ -127,7 +127,7 @@ describe('PasskeyEnrollment', () => {
     expect(passkeyApi.deletePasskey).not.toHaveBeenCalled();
   });
 
-  it('guards against a second concurrent delete on the same passkey', async () => {
+  it('guards against re-entrant invocation before React commits the disabled state (not reachable via a real click; defence-in-depth)', async () => {
     let resolveDelete!: () => void;
     vi.mocked(passkeyApi.listPasskeys).mockResolvedValue([mockPasskey({ id: 3 })]);
     vi.mocked(passkeyApi.deletePasskey).mockReturnValue(
@@ -139,16 +139,21 @@ describe('PasskeyEnrollment', () => {
 
     const removeButton = screen.getByRole('button', { name: /remove/i });
 
-    // Dispatch two raw click events inside a single `act(...)` batch. React
-    // does not flush the `disabled` state update to the real DOM node until
-    // the outermost `act()` call unwinds, so both events reach the button's
-    // onClick handler while the DOM attribute is still `disabled=false` --
-    // the same way two genuinely simultaneous activations (e.g. a
-    // double-click landing inside one input batch) would. This means the
-    // only thing standing between the two `handleRemove` invocations is the
-    // `removingIdsRef` guard itself, not the disabled attribute. Verified by
-    // deleting the guard line and watching this assertion fail (see the fix
-    // report addendum).
+    // This is a synthetic, testing-harness-only scenario, not a real-user
+    // path: a real double-click or held-Enter cannot reach `handleRemove`
+    // twice, because each native click is its own task and React commits
+    // the `disabled` attribute to the real DOM before the next click can
+    // arrive -- the disabled attribute is what actually protects real
+    // users. We can only construct re-entrancy here because React Testing
+    // Library's `act(...)` batches synchronous updates made inside its
+    // callback and defers the DOM commit until the callback unwinds, so
+    // dispatching two raw click events inside one `act(...)` call reaches
+    // the button's onClick handler twice while the DOM attribute is still
+    // `disabled=false`. With no real click able to land twice this way,
+    // this test exercises the `removingIdsRef` guard as belt-and-braces
+    // defence-in-depth, not as protection against a reachable real-world
+    // race. Verified by deleting the guard line and watching this assertion
+    // fail (see the fix report addendum).
     act(() => {
       removeButton.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
       removeButton.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
