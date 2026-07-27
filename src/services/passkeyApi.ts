@@ -29,10 +29,15 @@ interface ApiEnvelope<T> {
 
 async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
-    // Session lives in an httpOnly cookie, so every call must include it.
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
+    // Spread `init` FIRST, then re-assert `credentials` and merge `headers`
+    // on top. If this order is ever "tidied" back to spreading `init` last,
+    // a caller-supplied init.credentials or init.headers would silently
+    // override the cookie-auth guarantee this helper exists to enforce
+    // (session lives in an httpOnly cookie) and would replace the headers
+    // object wholesale instead of merging into it. Do not reorder.
     ...init,
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', ...init.headers },
   });
 
   const body = (await response.json()) as ApiEnvelope<T>;
