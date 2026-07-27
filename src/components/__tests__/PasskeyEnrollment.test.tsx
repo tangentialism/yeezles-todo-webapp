@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import PasskeyEnrollment from '../PasskeyEnrollment';
 import * as passkeyApi from '../../services/passkeyApi';
@@ -138,17 +138,23 @@ describe('PasskeyEnrollment', () => {
     await screen.findByText(/macbook touch id/i);
 
     const removeButton = screen.getByRole('button', { name: /remove/i });
-    await userEvent.click(removeButton);
 
-    expect(removeButton).toBeDisabled();
+    // Dispatch two raw click events inside a single `act(...)` batch. React
+    // does not flush the `disabled` state update to the real DOM node until
+    // the outermost `act()` call unwinds, so both events reach the button's
+    // onClick handler while the DOM attribute is still `disabled=false` --
+    // the same way two genuinely simultaneous activations (e.g. a
+    // double-click landing inside one input batch) would. This means the
+    // only thing standing between the two `handleRemove` invocations is the
+    // `removingIdsRef` guard itself, not the disabled attribute. Verified by
+    // deleting the guard line and watching this assertion fail (see the fix
+    // report addendum).
+    act(() => {
+      removeButton.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+      removeButton.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    });
 
-    // The button is now disabled, so a real user click would never reach
-    // the handler -- fireEvent bypasses that native guard so this proves
-    // the JS-level guard (removingIdsRef) independently blocks a second
-    // concurrent deletePasskey call for the same id, not just the disabled
-    // attribute.
-    fireEvent.click(removeButton);
-
+    expect(confirmSpy).toHaveBeenCalledTimes(1);
     expect(passkeyApi.deletePasskey).toHaveBeenCalledTimes(1);
 
     resolveDelete();
