@@ -10,16 +10,22 @@ as in the superproject.
 
 ## Right now
 
-- **Branch:** `feature/passkey-auth-phase1` (draft PR #11), merged up to date
-  with `master`.
+- **Passkey Phase 1 is merged** — PR #11 landed on `master` at `d1f53ba`
+  (2026-07-28). Not deployed, no passkey ever enrolled.
 - **The default branch is `master`, not `main`.** Scripts and habits that
   assume `main` will fail here — `git fetch origin main` errors outright.
-- **Was built on a badly stale base.** This branch was cut from `ab37b72`
-  (2025-12-10) while `master` was **25 commits** ahead, including a docs/test
-  cleanup and a build-error fix. Merged 2026-07-28; the only conflicts were
-  import blocks in `Dashboard.tsx` and `LoginButton.tsx`, resolved by keeping
-  both sides. **Check `git rev-list --left-right --count origin/master...HEAD`
-  before starting work here.**
+- **That work was built on a badly stale base, and this will recur.** The
+  branch was cut from `ab37b72` (2025-12-10) while `master` was **25 commits**
+  ahead, including a docs/test cleanup and a build-error fix. The only
+  conflicts on merging were import blocks in `Dashboard.tsx` and
+  `LoginButton.tsx`, resolved by keeping both sides.
+  **Run this before starting work here:**
+
+  ```bash
+  git fetch origin && git rev-list --left-right --count origin/master...HEAD
+  ```
+
+  A non-zero left number means you are behind `master`.
 - **Tests: 8 files failed / 14 passed of 22; 63 failed / 169 passed of 232.**
   Every one of those failures is **pre-existing and identical on `origin/master`**
   — verified 2026-07-28 by running master in a scratch worktree, not assumed.
