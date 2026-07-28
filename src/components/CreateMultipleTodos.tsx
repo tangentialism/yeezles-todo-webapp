@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTodoStore } from '../hooks/useTodoStore';
 import { useArea } from '../contexts/AreaContext';
+import { logger } from '../utils/logger';
 
 interface ParsedTodo {
   title: string;
@@ -11,6 +12,13 @@ interface ParsedTodo {
   original_text?: string;
 }
 
+/**
+ * Batch todo creation page, typically reached via deep-link from Obsidian.
+ *
+ * Reads a JSON-encoded `todos` array from the URL query string and lets the
+ * user select which ones to import, assign an area, and optionally add to Today.
+ * After creation, navigates back to the dashboard.
+ */
 const CreateMultipleTodos: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -35,9 +43,9 @@ const CreateMultipleTodos: React.FC = () => {
         const todos = JSON.parse(todosParam);
         setParsedTodos(todos);
         // Initially select all todos
-        setSelectedTodos(new Set(todos.map((_: any, index: number) => index)));
+        setSelectedTodos(new Set((todos as ParsedTodo[]).map((_: ParsedTodo, index: number) => index)));
       } catch (error) {
-        console.error('Failed to parse todos parameter:', error);
+        logger.error('Failed to parse todos parameter:', error);
       }
     }
 
@@ -82,7 +90,7 @@ const CreateMultipleTodos: React.FC = () => {
       // Navigate back to main dashboard
       navigate('/');
     } catch (error) {
-      console.error('Failed to create todos:', error);
+      logger.error('Failed to create todos:', error);
     }
   };
 

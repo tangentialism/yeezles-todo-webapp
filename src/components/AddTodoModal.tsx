@@ -3,12 +3,17 @@ import { useTodoStore } from '../hooks/useTodoStore';
 import { useArea } from '../contexts/AreaContext';
 import { useApi } from '../hooks/useApi';
 import { useToast } from '../contexts/ToastContext';
+import { logger } from '../utils/logger';
 
+/** Props for {@link AddTodoModal}. */
 interface AddTodoModalProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Called after successful creation, receives the new todo's ID for entrance animation. */
   onTodoAdded: (newTodoId?: number) => void;
+  /** When set to "today", auto-enables the "Add to Today List" toggle. */
   currentView?: string;
+  /** Pre-populated form values (e.g. from external sources like Obsidian). */
   initialData?: {
     title?: string;
     description?: string;
@@ -16,6 +21,12 @@ interface AddTodoModalProps {
   };
 }
 
+/**
+ * Modal for creating a new todo with optional AI-powered area categorization.
+ *
+ * If the user does not select an area manually, the todo title/description
+ * are sent to `POST /todos/categorize` before creation to get an AI-suggested area.
+ */
 const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdded, currentView, initialData }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -65,14 +76,14 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
           if (categorizationResult.success && categorizationResult.data.area_id) {
             finalAreaId = categorizationResult.data.area_id;
             assignedAreaName = categorizationResult.data.area_name;
-            console.log('AI categorized todo:', {
+            logger.log('AI categorized todo:', {
               area: assignedAreaName,
               confidence: categorizationResult.data.confidence,
               reasoning: categorizationResult.data.reasoning
             });
           }
         } catch (catError) {
-          console.warn('AI categorization failed, continuing without area:', catError);
+          logger.warn('AI categorization failed, continuing without area:', catError);
           // Continue with null area - will fall back to default on backend
         } finally {
           setIsCategorizing(false);
@@ -113,7 +124,7 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
       
       onClose();
     } catch (error) {
-      console.error('Error creating todo:', error);
+      logger.error('Error creating todo:', error);
       // Error handling is done in the store with toast
     }
   };

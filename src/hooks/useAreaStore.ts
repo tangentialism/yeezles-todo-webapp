@@ -4,6 +4,7 @@ import { useApi } from './useApi';
 import { useCrossTabSync } from './useCrossTabSync';
 import { useToast } from '../contexts/ToastContext';
 import type { Area, AreaWithStats, CreateAreaRequest, UpdateAreaRequest } from '../types/area';
+import { BACKGROUND_SYNC_INTERVAL_MS, ANIMATION_DELAY_MS } from '../constants';
 
 // Query keys for TanStack Query
 const QUERY_KEYS = {
@@ -24,11 +25,21 @@ interface OptimisticArea extends Area {
   _pendingAction?: 'create' | 'update' | 'delete';
 }
 
+/**
+ * TanStack Query-based store for CRUD operations on areas.
+ *
+ * Provides optimistic updates for create/update/delete mutations, background
+ * polling for freshness, and cross-tab sync via {@link useCrossTabSync}.
+ * On mutation error the cache is rolled back to the previous snapshot.
+ *
+ * @param options - Controls background sync interval and whether to include stats.
+ * @returns Area data, mutation actions, and loading/error states.
+ */
 export const useAreaStore = (options: UseAreaStoreOptions = {}) => {
   const { 
     includeStats = false,
     enableBackgroundSync = true, 
-    syncInterval = 60000 
+    syncInterval = BACKGROUND_SYNC_INTERVAL_MS
   } = options;
   
   const apiClient = useApi();
@@ -52,10 +63,10 @@ export const useAreaStore = (options: UseAreaStoreOptions = {}) => {
       }
       
       // Handle both array response and object response from API
-      const responseData = response.data as any;
-      const areasArray = Array.isArray(responseData) 
-        ? responseData 
-        : responseData?.areas;
+      const responseData = response.data as Area[] | { areas: Area[] };
+      const areasArray = Array.isArray(responseData)
+        ? responseData
+        : (responseData as { areas: Area[] })?.areas;
         
       if (!Array.isArray(areasArray)) {
         throw new Error('Invalid areas response format');
@@ -81,12 +92,12 @@ export const useAreaStore = (options: UseAreaStoreOptions = {}) => {
         throw new Error(response.message || 'Failed to load available colors');
       }
       
-      const responseData = response.data as any;
-      const colorsData = responseData?.colors;
-      
+      const responseData = response.data as string[] | { colors: Array<string | { color: string }> };
+      const colorsData = Array.isArray(responseData) ? responseData : (responseData as { colors: Array<string | { color: string }> })?.colors;
+
       if (Array.isArray(colorsData)) {
         // Extract hex colors from color objects
-        return colorsData.map((colorObj: any) => colorObj.color || colorObj);
+        return colorsData.map((colorObj: string | { color: string }) => typeof colorObj === 'string' ? colorObj : colorObj.color);
       }
       
       return [];
@@ -94,7 +105,8 @@ export const useAreaStore = (options: UseAreaStoreOptions = {}) => {
     staleTime: 5 * 60 * 1000, // Colors change rarely, cache for 5 minutes
   });
 
-  // Optimistic update helper
+  // Optimistic update helper: applies an updater function to the cached areas array.
+  // Used by mutations to show immediate UI feedback before the server responds.
   const updateAreasOptimistically = useCallback(
     (updaterFn: (areas: OptimisticArea[]) => OptimisticArea[]) => {
       queryClient.setQueryData(QUERY_KEYS.areas(includeStats), (old: Area[] = []) => {
@@ -272,7 +284,7 @@ export const useAreaStore = (options: UseAreaStoreOptions = {}) => {
 
         // Force a fresh fetch to ensure consistency
         queryClient.invalidateQueries({ queryKey: QUERY_KEYS.areas(includeStats) });
-      }, 300); // Small delay for any deletion animation
+      }, ANIMATION_DELAY_MS); // Small delay for any deletion animation
 
       // Broadcast to other tabs
       broadcast('AREA_DELETED', { id: deletedId, timestamp: Date.now() });
@@ -292,9 +304,9 @@ export const useAreaStore = (options: UseAreaStoreOptions = {}) => {
         throw new Error(response.message || 'Failed to load area statistics');
       }
       return response.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       showToast({
-        message: `Failed to load area statistics: ${error.message}`,
+        message: `Failed to load area statistics: ${error instanceof Error ? error.message : String(error)}`,
         type: 'error'
       });
       return null;

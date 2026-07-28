@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { Area, AreaWithStats } from '../types/area';
 import { useAreaStore } from '../hooks/useAreaStore';
+import { logger } from '../utils/logger';
 
 interface AreaContextType {
   // State
@@ -28,6 +29,14 @@ interface AreaProviderProps {
   children: ReactNode;
 }
 
+/**
+ * Provides area state and CRUD actions to the component tree.
+ *
+ * Wraps {@link useAreaStore} and adds current-area selection (persisted in
+ * localStorage). When the selected area is deleted, automatically switches
+ * to the default area. The `createArea` / `updateArea` / `deleteArea` methods
+ * delegate to the store's optimistic mutations and trigger a refetch afterward.
+ */
 export const AreaProvider: React.FC<AreaProviderProps> = ({ children }) => {
   const [currentArea, setCurrentAreaState] = useState<Area | null>(null);
   
@@ -84,7 +93,7 @@ export const AreaProvider: React.FC<AreaProviderProps> = ({ children }) => {
       await refreshAreas();
       return newArea;
     } catch (error) {
-      console.error('Error creating area:', error);
+      logger.error('Error creating area:', error);
       return null;
     }
   };
@@ -108,7 +117,7 @@ export const AreaProvider: React.FC<AreaProviderProps> = ({ children }) => {
 
       return updatedArea;
     } catch (error) {
-      console.error('Error updating area:', error);
+      logger.error('Error updating area:', error);
       return null;
     }
   };
@@ -129,7 +138,7 @@ export const AreaProvider: React.FC<AreaProviderProps> = ({ children }) => {
 
       return true;
     } catch (error) {
-      console.error('Error deleting area:', error);
+      logger.error('Error deleting area:', error);
       return false;
     }
   };
@@ -155,7 +164,7 @@ export const AreaProvider: React.FC<AreaProviderProps> = ({ children }) => {
     
     // Store utilities  
     getAreaDisplayState: (area: Area) => {
-      const state = getAreaDisplayState(area as any);
+      const state = getAreaDisplayState(area as Area & { _optimistic?: boolean; _pendingAction?: 'create' | 'update' | 'delete' });
       return {
         isPending: state.isPending || false,
         isDeleting: state.isDeleting || false,
@@ -171,7 +180,10 @@ export const AreaProvider: React.FC<AreaProviderProps> = ({ children }) => {
   );
 };
 
-// Custom hook to use the Area context
+/**
+ * Access the area context. Must be called within an {@link AreaProvider}.
+ * @returns Area list, current area, CRUD actions, and display-state helpers.
+ */
 export const useArea = (): AreaContextType => {
   const context = useContext(AreaContext);
   if (context === undefined) {

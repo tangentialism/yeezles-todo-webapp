@@ -1,5 +1,8 @@
-// Authentication types for Google OAuth
+/**
+ * Authentication types for Google OAuth and the Google Identity Services SDK.
+ */
 
+/** Authenticated user profile extracted from the Google ID token JWT. */
 export interface User {
   id: string;
   email: string;
@@ -7,14 +10,13 @@ export interface User {
   picture?: string;
 }
 
-export interface AuthState {
-  user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-}
-
+/**
+ * Payload returned by Google's `credential` callback after the user signs in.
+ */
 export interface GoogleCredentialResponse {
+  /** JWT ID token containing user identity claims. */
   credential: string;
+  /** How the credential was obtained (e.g. "btn", "auto", "user"). */
   select_by: string;
 }
 
@@ -35,6 +37,7 @@ declare global {
   }
 }
 
+/** Configuration passed to `google.accounts.id.initialize()`. */
 export interface GoogleIdConfiguration {
   client_id: string;
   callback: (response: GoogleCredentialResponse) => void;
@@ -42,6 +45,7 @@ export interface GoogleIdConfiguration {
   cancel_on_tap_outside?: boolean;
 }
 
+/** Configuration for rendering the Google Sign-In button. */
 export interface GoogleButtonConfiguration {
   type?: 'standard' | 'icon';
   theme?: 'outline' | 'filled_blue' | 'filled_black';

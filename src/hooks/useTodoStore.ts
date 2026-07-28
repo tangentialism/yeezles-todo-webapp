@@ -5,6 +5,13 @@ import { useCrossTabSync } from './useCrossTabSync';
 import { useToast } from '../contexts/ToastContext';
 import { useArea } from '../contexts/AreaContext';
 import type { Todo, TodoFilters, CreateTodoRequest, UpdateTodoRequest } from '../types/todo';
+import {
+  BACKGROUND_SYNC_INTERVAL_MS,
+  COMPLETION_ANIMATION_MS,
+  MUTATION_SETTLE_DELAY_MS,
+  UNDO_TOAST_DURATION_MS,
+  TITLE_TRUNCATION_LENGTH,
+} from '../constants';
 
 // Query keys for TanStack Query
 const QUERY_KEYS = {
@@ -24,11 +31,26 @@ interface OptimisticTodo extends Todo {
   _pendingAction?: 'create' | 'update' | 'delete' | 'toggle';
 }
 
+/**
+ * Primary TanStack Query-based store for todo CRUD operations.
+ *
+ * Automatically builds query filters from the current view (all/completed) and
+ * the selected area from {@link AreaContext}. All mutations use optimistic updates
+ * with rollback on error. Completed todos in the "all" view are animated out
+ * with a two-phase removal: first marked for deletion animation, then removed
+ * from cache after {@link COMPLETION_ANIMATION_MS}.
+ *
+ * Cross-tab sync: every successful mutation broadcasts via {@link useCrossTabSync}
+ * so other open tabs invalidate their caches.
+ *
+ * @param options - Controls view filter, background sync, and polling interval.
+ * @returns Todo data, mutation actions, display state helpers, and loading/error states.
+ */
 export const useTodoStore = (options: UseTodoStoreOptions = {}) => {
-  const { 
-    view = 'all', 
-    enableBackgroundSync = true, 
-    syncInterval = 60000 
+  const {
+    view = 'all',
+    enableBackgroundSync = true,
+    syncInterval = BACKGROUND_SYNC_INTERVAL_MS
   } = options;
   
   const apiClient = useApi();
@@ -244,8 +266,8 @@ export const useTodoStore = (options: UseTodoStoreOptions = {}) => {
             updateTodosOptimistically((todos) =>
               todos.filter(todo => todo.id !== data.id)
             );
-          }, 450); // Match animation duration
-        }, 100); // Small delay to let optimistic update settle
+          }, COMPLETION_ANIMATION_MS); // Match animation duration
+        }, MUTATION_SETTLE_DELAY_MS); // Small delay to let optimistic update settle
       }
     },
   });
@@ -306,7 +328,8 @@ export const useTodoStore = (options: UseTodoStoreOptions = {}) => {
     },
   });
 
-  // Toggle completion with optimistic updates and undo functionality
+  // Toggles completion via updateTodo mutation, then shows an undo toast for completions.
+  // The undo action reverts the mutation and restores the todo if it was already marked for removal.
   const toggleTodoCompletion = useCallback(
     async (todo: Todo): Promise<{ canUndo: boolean; undoId?: string }> => {
       const newCompleted = !todo.completed;
@@ -322,11 +345,11 @@ export const useTodoStore = (options: UseTodoStoreOptions = {}) => {
       // Show undo toast for completions
       let undoToastId: string | undefined;
       if (newCompleted) {
-        const todoTitle = todo.title.length > 30 ? `${todo.title.substring(0, 30)}...` : todo.title;
+        const todoTitle = todo.title.length > TITLE_TRUNCATION_LENGTH ? `${todo.title.substring(0, TITLE_TRUNCATION_LENGTH)}...` : todo.title;
         undoToastId = showToast({
           message: `Completed "${todoTitle}" • Click to undo`,
           type: 'success',
-          duration: 2000,
+          duration: UNDO_TOAST_DURATION_MS,
           action: {
             label: 'Undo',
             onClick: () => {

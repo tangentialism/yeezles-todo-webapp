@@ -6,6 +6,13 @@ import TodoActions from './TodoActions';
 import TodayCorner from './TodayCorner';
 import type { Todo } from '../types/todo';
 
+/**
+ * Renders the Today focus view with summary cards, attention banners, and
+ * categorized todo sections (For Today, Overdue, Due Today, Coming Soon).
+ *
+ * Backed by {@link useTodayViewStore} for data fetching and optimistic updates.
+ * Each todo card is color-coded by priority and supports inline completion toggling.
+ */
 const TodayView: React.FC = () => {
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);

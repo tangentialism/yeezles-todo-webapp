@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import { useApi } from './useApi';
 import { useToast } from '../contexts/ToastContext';
 import type { UserSession, SessionsResponse } from '../services/api';
+import { SESSION_SYNC_INTERVAL_MS, SESSION_STALE_TIME_MS, ANIMATION_DELAY_MS } from '../constants';
 
 // Query keys for TanStack Query
 const QUERY_KEYS = {
@@ -19,10 +20,20 @@ interface OptimisticSession extends UserSession {
   _pendingAction?: 'revoke';
 }
 
+/**
+ * TanStack Query-based store for managing the user's persistent login sessions.
+ *
+ * Supports revoking individual sessions or all sessions at once, with optimistic
+ * UI updates and rollback on failure. Sessions are polled at a configurable interval
+ * (default {@link SESSION_SYNC_INTERVAL_MS}).
+ *
+ * @param options - Controls background sync behavior and polling interval.
+ * @returns Session data, revocation actions, and loading/error states.
+ */
 export const useSessionStore = (options: UseSessionStoreOptions = {}) => {
   const { 
     enableBackgroundSync = true, 
-    syncInterval = 300000 // 5 minutes for sessions
+    syncInterval = SESSION_SYNC_INTERVAL_MS
   } = options;
   
   const apiClient = useApi();
@@ -45,7 +56,7 @@ export const useSessionStore = (options: UseSessionStoreOptions = {}) => {
       }
       return response.data;
     },
-    staleTime: 2 * 60 * 1000, // Consider data stale after 2 minutes
+    staleTime: SESSION_STALE_TIME_MS,
     refetchInterval: enableBackgroundSync ? syncInterval : false,
     refetchIntervalInBackground: true,
     refetchOnWindowFocus: true,
@@ -58,9 +69,9 @@ export const useSessionStore = (options: UseSessionStoreOptions = {}) => {
   // Optimistic update helper
   const updateSessionsOptimistically = useCallback(
     (updaterFn: (sessions: OptimisticSession[]) => OptimisticSession[]) => {
-      queryClient.setQueryData(QUERY_KEYS.sessions(), (old: SessionsResponse | undefined) => {
+      queryClient.setQueryData(QUERY_KEYS.sessions(), (old: SessionsResponse['data'] | undefined) => {
         if (!old) return old;
-        const updatedSessions = updaterFn((old as any).sessions as OptimisticSession[]);
+        const updatedSessions = updaterFn(old.sessions as OptimisticSession[]);
         return {
           ...old,
           sessions: updatedSessions,
@@ -85,7 +96,7 @@ export const useSessionStore = (options: UseSessionStoreOptions = {}) => {
       await queryClient.cancelQueries({ queryKey: QUERY_KEYS.sessions() });
 
       // Snapshot previous value
-      const previousData = queryClient.getQueryData<SessionsResponse>(QUERY_KEYS.sessions());
+      const previousData = queryClient.getQueryData<SessionsResponse['data']>(QUERY_KEYS.sessions());
 
       // Optimistically mark session for removal
       updateSessionsOptimistically((sessions) =>
@@ -114,7 +125,7 @@ export const useSessionStore = (options: UseSessionStoreOptions = {}) => {
         updateSessionsOptimistically((sessions) =>
           sessions.filter(session => session.id !== revokedSessionId)
         );
-      }, 300); // Small delay for any deletion animation
+      }, ANIMATION_DELAY_MS); // Small delay for any deletion animation
 
       showToast({
         message: 'Session revoked successfully!',
@@ -137,7 +148,7 @@ export const useSessionStore = (options: UseSessionStoreOptions = {}) => {
       await queryClient.cancelQueries({ queryKey: QUERY_KEYS.sessions() });
 
       // Snapshot previous value
-      const previousData = queryClient.getQueryData<SessionsResponse>(QUERY_KEYS.sessions());
+      const previousData = queryClient.getQueryData<SessionsResponse['data']>(QUERY_KEYS.sessions());
 
       // Optimistically mark all non-current sessions for removal
       updateSessionsOptimistically((sessions) =>
@@ -166,7 +177,7 @@ export const useSessionStore = (options: UseSessionStoreOptions = {}) => {
         updateSessionsOptimistically((sessions) =>
           sessions.filter(session => session.isCurrent)
         );
-      }, 300);
+      }, ANIMATION_DELAY_MS);
 
       showToast({
         message: `${data.revokedCount} sessions revoked successfully!`,

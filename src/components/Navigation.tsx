@@ -2,12 +2,19 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useArea } from '../contexts/AreaContext';
 import AreaManagementModal from './AreaManagementModal';
 import type { Area } from '../types/area';
+import { NEW_AREA_HIGHLIGHT_MS } from '../constants';
 
+/** Props for {@link Navigation}. */
 interface NavigationProps {
   currentView: string;
   onViewChange: (view: string) => void;
 }
 
+/**
+ * Top navigation bar with view tabs (All Todos, Today, Accomplishments) and
+ * an area switcher dropdown. Features a sliding underline indicator that
+ * animates between tabs, and highlights newly created areas in the dropdown.
+ */
 const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) => {
   const [isAreaDropdownOpen, setIsAreaDropdownOpen] = useState(false);
   const [isAreaModalOpen, setIsAreaModalOpen] = useState(false);
@@ -34,7 +41,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) =>
       // Clear the animation after 2 seconds
       const timer = setTimeout(() => {
         setNewlyCreatedAreaId(null);
-      }, 2000);
+      }, NEW_AREA_HIGHLIGHT_MS);
       
       return () => clearTimeout(timer);
     }

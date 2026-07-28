@@ -1,11 +1,18 @@
+/**
+ * Authenticated API client for the Yeezles Todo backend.
+ *
+ * Wraps axios with automatic token injection (via request interceptor) and
+ * centralized 401 handling (via response interceptor). All methods correspond
+ * to REST endpoints on the backend.
+ */
 import axios from 'axios';
 import type { AxiosInstance } from 'axios';
-import type { 
-  Todo, 
-  ApiResponse, 
-  TodayView, 
-  TodoFilters, 
-  CreateTodoRequest, 
+import type {
+  Todo,
+  ApiResponse,
+  TodayView,
+  TodoFilters,
+  CreateTodoRequest,
   UpdateTodoRequest
 } from '../types/todo';
 import type {
@@ -14,13 +21,15 @@ import type {
   CreateAreaRequest,
   UpdateAreaRequest
 } from '../types/area';
+import { logger } from '../utils/logger';
 
-// Authentication types
+/** Request body for `POST /auth/login`. */
 export interface LoginRequest {
   googleToken: string;
   rememberMe?: boolean;
 }
 
+/** Response from `POST /auth/login`. */
 export interface LoginResponse {
   success: boolean;
   data: {
@@ -34,6 +43,7 @@ export interface LoginResponse {
   };
 }
 
+/** Response from `POST /auth/validate-persistent`. */
 export interface ValidatePersistentResponse {
   success: boolean;
   data: {
@@ -52,6 +62,7 @@ export interface ValidatePersistentResponse {
   };
 }
 
+/** A single persistent login session as returned by `GET /auth/sessions`. */
 export interface UserSession {
   id: number;
   platform: string;
@@ -62,6 +73,7 @@ export interface UserSession {
   isCurrent: boolean;
 }
 
+/** Response from `GET /auth/sessions`. */
 export interface SessionsResponse {
   success: boolean;
   data: {
@@ -70,6 +82,7 @@ export interface SessionsResponse {
   };
 }
 
+/** Response from `GET /auth/session-health`. */
 export interface SessionHealthResponse {
   success: boolean;
   data: {
@@ -86,12 +99,23 @@ export interface SessionHealthResponse {
   };
 }
 
+/**
+ * HTTP client that automatically attaches the user's auth token to every
+ * request and triggers a logout callback on 401 responses.
+ *
+ * Not instantiated directly -- use {@link createAuthenticatedApiClient}.
+ */
 class TokenAwareApiClient {
   private api: AxiosInstance;
   private baseURL: string;
   private getToken: () => string | null;
   private onAuthError: () => void;
 
+  /**
+   * @param baseURL - Backend API root (e.g. `https://api.yeezlestodo.com`)
+   * @param getToken - Returns the current Google ID token, or null if expired
+   * @param onAuthError - Invoked on 401 responses to force a re-login
+   */
   constructor(
     baseURL: string,
     getToken: () => string | null,
@@ -100,7 +124,7 @@ class TokenAwareApiClient {
     this.baseURL = baseURL;
     this.getToken = getToken;
     this.onAuthError = onAuthError;
-    
+
     this.api = axios.create({
       baseURL: this.baseURL,
       headers: {
@@ -125,69 +149,68 @@ class TokenAwareApiClient {
     this.api.interceptors.response.use(
       (response) => response,
       (error) => {
-        console.error('API Error:', error);
+        logger.error('API Error:', error);
         if (error.response) {
-          console.error('Response data:', error.response.data);
-          console.error('Response status:', error.response.status);
-          console.error('Response headers:', error.response.headers);
+          logger.error('Response status:', error.response.status);
 
           // Handle authentication errors
           if (error.response.status === 401) {
-            console.error('🔐 Authentication failed - triggering auth error handler');
+            logger.error('Authentication failed - triggering auth error handler');
             this.onAuthError();
           }
         } else if (error.request) {
-          console.error('Network error - no response received:', error.request);
+          logger.error('Network error - no response received');
         } else {
-          console.error('Request configuration error:', error.message);
+          logger.error('Request configuration error:', error.message);
         }
         throw error;
       }
     );
   }
 
-  // Health check
-  async healthCheck(): Promise<any> {
+  /**
+   * `GET /health` -- verify backend connectivity.
+   * @returns Object with a `status` string (e.g. "ok").
+   */
+  async healthCheck(): Promise<{ status: string }> {
     const response = await this.api.get('/health');
     return response.data;
   }
 
-  // Authentication Methods
+  // ── Authentication Methods ──────────────────────────────────────────
 
   /**
-   * Login with Google token and optional remember me
+   * `POST /auth/login` -- exchange a Google token for an authenticated session.
+   * @param loginData - Google token and optional remember-me flag.
+   * @returns Login result including whether a persistent session was created.
    */
   async login(loginData: LoginRequest): Promise<LoginResponse> {
-    console.log('🔍 [Frontend API] Sending login request:', loginData);
-    console.log('🔍 [Frontend API] Cookies before login:', document.cookie);
-    
+    logger.log('[Frontend API] Sending login request');
+
     const response = await this.api.post('/auth/login', loginData);
-    
-    console.log('🔍 [Frontend API] Login response status:', response.status);
-    console.log('🔍 [Frontend API] Login response headers:', response.headers);
-    console.log('🔍 [Frontend API] Login response data:', response.data);
-    console.log('🔍 [Frontend API] Cookies after login:', document.cookie);
-    
+
+    logger.log('[Frontend API] Login response status:', response.status);
+
     return response.data;
   }
 
   /**
-   * Validate persistent session from cookie
+   * `POST /auth/validate-persistent` -- validate the persistent session cookie.
+   * No auth token needed; the httpOnly cookie is sent automatically.
    */
   async validatePersistentSession(): Promise<ValidatePersistentResponse> {
-    console.log('🔍 [Frontend API] About to validate persistent session');
-    console.log('🔍 [Frontend API] Current cookies before request:', document.cookie);
-    
+    logger.log('[Frontend API] Validating persistent session');
+
     const response = await this.api.post('/auth/validate-persistent');
-    
-    console.log('🔍 [Frontend API] Validation response status:', response.status);
-    console.log('🔍 [Frontend API] Validation response data:', response.data);
-    
+
+    logger.log('[Frontend API] Validation response status:', response.status);
+
     return response.data;
   }
 
   /**
-   * Get user's active sessions
+   * `GET /auth/sessions` -- list the user's active persistent sessions.
+   * Requires authentication.
    */
   async getUserSessions(): Promise<SessionsResponse> {
     const response = await this.api.get('/auth/sessions');
@@ -195,7 +218,8 @@ class TokenAwareApiClient {
   }
 
   /**
-   * Revoke specific session
+   * `DELETE /auth/sessions/:id` -- revoke a specific session.
+   * @param sessionId - ID of the session to revoke.
    */
   async revokeSession(sessionId: number): Promise<ApiResponse<{ sessionId: number; revoked: boolean }>> {
     const response = await this.api.delete(`/auth/sessions/${sessionId}`);
@@ -203,7 +227,7 @@ class TokenAwareApiClient {
   }
 
   /**
-   * Revoke all sessions (sign out everywhere)
+   * `DELETE /auth/sessions` -- revoke all persistent sessions (sign out everywhere).
    */
   async revokeAllSessions(): Promise<ApiResponse<{ revokedCount: number; message: string }>> {
     const response = await this.api.delete('/auth/sessions');
@@ -211,24 +235,28 @@ class TokenAwareApiClient {
   }
 
   /**
-   * Check session health and expiration info
+   * `GET /auth/session-health` -- check session validity and expiration info.
+   * Used to show refresh warnings before the session expires.
    */
   async getSessionHealth(): Promise<SessionHealthResponse> {
-    console.log('🔍 [Frontend API] Checking session health...');
-    console.log('🔍 [Frontend API] Cookies before health check:', document.cookie);
+    logger.log('[Frontend API] Checking session health...');
 
     const response = await this.api.get('/auth/session-health');
 
-    console.log('🔍 [Frontend API] Health check response status:', response.status);
-    console.log('🔍 [Frontend API] Health check response data:', response.data);
+    logger.log('[Frontend API] Health check response status:', response.status);
 
     return response.data;
   }
 
-  // Get all todos with filtering
+  // ── Todo Methods ────────────────────────────────────────────────────
+
+  /**
+   * `GET /todos` -- fetch todos with optional filtering, sorting, and area scoping.
+   * @param filters - Query parameters for filtering/sorting.
+   */
   async getTodos(filters: TodoFilters = {}): Promise<ApiResponse<Todo[]>> {
     const params = new URLSearchParams();
-    
+
     if (filters.completed !== undefined) params.append('completed', filters.completed.toString());
     if (filters.tags && filters.tags.length > 0) params.append('tags', filters.tags.join(','));
     if (filters.tag_mode) params.append('tag_mode', filters.tag_mode);
@@ -247,21 +275,33 @@ class TokenAwareApiClient {
     return response.data;
   }
 
-  // Get single todo
+  /**
+   * `GET /todos/:id` -- fetch a single todo by ID.
+   * @param id - Todo ID.
+   * @param html - When true, includes server-rendered HTML fields.
+   */
   async getTodo(id: number, html: boolean = false): Promise<ApiResponse<Todo>> {
     const params = html ? '?html=true' : '';
     const response = await this.api.get(`/todos/${id}${params}`);
     return response.data;
   }
 
-  // Create new todo
+  /**
+   * `POST /todos` -- create a new todo.
+   * @param todo - Todo data to create.
+   * @param html - When true, the response includes HTML-rendered fields.
+   */
   async createTodo(todo: CreateTodoRequest, html: boolean = false): Promise<ApiResponse<Todo>> {
     const params = html ? '?html=true' : '';
     const response = await this.api.post(`/todos${params}`, todo);
     return response.data;
   }
 
-  // Categorize todo (get AI-suggested area)
+  /**
+   * `POST /todos/categorize` -- get an AI-suggested area for a todo.
+   * @param title - Todo title to categorize.
+   * @param description - Optional description for better categorization.
+   */
   async categorizeTodo(title: string, description?: string): Promise<ApiResponse<{
     area_id: number | null;
     area_name: string | null;
@@ -273,34 +313,55 @@ class TokenAwareApiClient {
     return response.data;
   }
 
-  // Update todo
+  /**
+   * `PUT /todos/:id` -- partially update a todo.
+   * @param id - Todo ID.
+   * @param updates - Fields to update.
+   * @param html - When true, the response includes HTML-rendered fields.
+   */
   async updateTodo(id: number, updates: UpdateTodoRequest, html: boolean = false): Promise<ApiResponse<Todo>> {
     const params = html ? '?html=true' : '';
     const response = await this.api.put(`/todos/${id}${params}`, updates);
     return response.data;
   }
 
-  // Delete todo
+  /**
+   * `DELETE /todos/:id` -- permanently delete a todo.
+   * @param id - Todo ID.
+   */
   async deleteTodo(id: number): Promise<ApiResponse<void>> {
     const response = await this.api.delete(`/todos/${id}`);
     return response.data;
   }
 
-  // Move todo to today list
+  /**
+   * `POST /todos/:id/move-to-today` -- pin a todo to the Today focus list.
+   * @param id - Todo ID.
+   * @param html - When true, the response includes HTML-rendered fields.
+   */
   async moveToToday(id: number, html: boolean = false): Promise<ApiResponse<Todo>> {
     const params = html ? '?html=true' : '';
     const response = await this.api.post(`/todos/${id}/move-to-today${params}`);
     return response.data;
   }
 
-  // Remove todo from today list
+  /**
+   * `POST /todos/:id/remove-from-today` -- unpin a todo from the Today focus list.
+   * @param id - Todo ID.
+   * @param html - When true, the response includes HTML-rendered fields.
+   */
   async removeFromToday(id: number, html: boolean = false): Promise<ApiResponse<Todo>> {
     const params = html ? '?html=true' : '';
     const response = await this.api.post(`/todos/${id}/remove-from-today${params}`);
     return response.data;
   }
 
-  // Get today view
+  /**
+   * `GET /todos/today` -- fetch the structured Today view with focus/upcoming sections.
+   * @param includeDueToday - Include todos with today's due date.
+   * @param daysAhead - Number of days to look ahead for upcoming todos.
+   * @param html - When true, includes HTML-rendered fields.
+   */
   async getTodayView(
     includeDueToday: boolean = true,
     daysAhead?: number,
@@ -315,11 +376,15 @@ class TokenAwareApiClient {
     return response.data;
   }
 
-  // Export data
+  /**
+   * `GET /export` -- export all user data as JSON.
+   * @param includeCompleted - Whether to include completed todos.
+   * @param includeTags - Whether to include tag data.
+   */
   async exportData(
     includeCompleted: boolean = true,
     includeTags: boolean = true
-  ): Promise<any> {
+  ): Promise<Record<string, unknown>> {
     const params = new URLSearchParams();
     params.append('include_completed', includeCompleted.toString());
     params.append('include_tags', includeTags.toString());
@@ -328,59 +393,92 @@ class TokenAwareApiClient {
     return response.data;
   }
 
-  // Import data
-  async importData(data: any, options: any = {}): Promise<any> {
+  /**
+   * `POST /import` -- import data from a JSON export.
+   * @param data - The exported data payload.
+   * @param options - Import options (e.g. merge strategy).
+   */
+  async importData(data: Record<string, unknown>, options: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
     const response = await this.api.post('/import', { data, options });
     return response.data;
   }
 
-  // === AREA METHODS ===
+  // ── Area Methods ────────────────────────────────────────────────────
 
-  // Get all areas (with optional statistics)
+  /**
+   * `GET /areas` -- fetch all areas, optionally with todo statistics.
+   * @param includeStats - When true, each area includes aggregated todo counts.
+   */
   async getAreas(includeStats: boolean = false): Promise<ApiResponse<Area[] | AreaWithStats[]>> {
     const params = includeStats ? '?include_stats=true' : '';
     const response = await this.api.get(`/areas${params}`);
     return response.data;
   }
 
-  // Get single area by ID
+  /**
+   * `GET /areas/:id` -- fetch a single area by ID.
+   * @param id - Area ID.
+   */
   async getArea(id: number): Promise<ApiResponse<Area>> {
     const response = await this.api.get(`/areas/${id}`);
     return response.data;
   }
 
-  // Get area statistics
+  /**
+   * `GET /areas/:id/stats` -- fetch an area with its todo statistics.
+   * @param id - Area ID.
+   */
   async getAreaStats(id: number): Promise<ApiResponse<AreaWithStats>> {
     const response = await this.api.get(`/areas/${id}/stats`);
     return response.data;
   }
 
-  // Create new area
+  /**
+   * `POST /areas` -- create a new area.
+   * @param area - Area name, color, and optional description.
+   */
   async createArea(area: CreateAreaRequest): Promise<ApiResponse<Area>> {
     const response = await this.api.post('/areas', area);
     return response.data;
   }
 
-  // Update area
+  /**
+   * `PUT /areas/:id` -- update an existing area.
+   * @param id - Area ID.
+   * @param updates - Fields to update.
+   */
   async updateArea(id: number, updates: UpdateAreaRequest): Promise<ApiResponse<Area>> {
     const response = await this.api.put(`/areas/${id}`, updates);
     return response.data;
   }
 
-  // Delete area
+  /**
+   * `DELETE /areas/:id` -- permanently delete an area.
+   * Todos in the deleted area are reassigned to the default area.
+   * @param id - Area ID.
+   */
   async deleteArea(id: number): Promise<ApiResponse<void>> {
     const response = await this.api.delete(`/areas/${id}`);
     return response.data;
   }
 
-  // Get available Material Design colors
+  /**
+   * `GET /areas/colors` -- fetch available Material Design colors for area creation.
+   * @returns Array of hex color strings.
+   */
   async getAvailableColors(): Promise<ApiResponse<string[]>> {
     const response = await this.api.get('/areas/colors');
     return response.data;
   }
 }
 
-// Factory function to create authenticated API client
+/**
+ * Factory function to create an authenticated API client.
+ *
+ * @param getToken - Returns the user's current Google ID token or null.
+ * @param onAuthError - Called when the backend returns a 401, typically triggers logout.
+ * @returns A configured {@link TokenAwareApiClient} instance.
+ */
 export const createAuthenticatedApiClient = (
   getToken: () => string | null,
   onAuthError: () => void

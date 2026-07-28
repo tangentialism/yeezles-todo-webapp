@@ -2,14 +2,22 @@ import React, { useState } from 'react';
 import { useTodoStore } from '../hooks/useTodoStore';
 import { useArea } from '../contexts/AreaContext';
 import type { Todo } from '../types/todo';
+import { logger } from '../utils/logger';
 
+/** Props for {@link EditTodoModal}. */
 interface EditTodoModalProps {
+  /** The todo to edit; modal renders nothing when null. */
   todo: Todo | null;
   isOpen: boolean;
   onClose: () => void;
   onTodoUpdated: () => void;
 }
 
+/**
+ * Modal for editing all fields of an existing todo (title, description, area,
+ * due date, today status, completion, and reference URL). The form initializes
+ * from the provided `todo` prop whenever it changes.
+ */
 const EditTodoModal: React.FC<EditTodoModalProps> = ({ todo, isOpen, onClose, onTodoUpdated }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -62,7 +70,7 @@ const EditTodoModal: React.FC<EditTodoModalProps> = ({ todo, isOpen, onClose, on
       onTodoUpdated();
       onClose();
     } catch (error) {
-      console.error('Error updating todo:', error);
+      logger.error('Error updating todo:', error);
       // Error handling is done in the store with toast
     }
   };

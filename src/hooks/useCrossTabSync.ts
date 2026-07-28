@@ -2,6 +2,7 @@ import { useEffect, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { SyncMessage, SyncMessageType, SyncMessageData } from '../types/sync';
 import { SYNC_CHANNEL_NAME, generateTabId } from '../types/sync';
+import { logger } from '../utils/logger';
 
 /**
  * Cross-tab synchronization hook using Broadcast Channel API
@@ -25,7 +26,7 @@ export const useCrossTabSync = () => {
   useEffect(() => {
     // Check if BroadcastChannel is supported
     if (typeof BroadcastChannel === 'undefined') {
-      console.warn('BroadcastChannel API not supported in this browser. Cross-tab sync disabled.');
+      logger.warn('BroadcastChannel API not supported in this browser. Cross-tab sync disabled.');
       return;
     }
 
@@ -74,7 +75,7 @@ export const useCrossTabSync = () => {
           break;
 
         default:
-          console.warn('Unknown sync message type:', message.type);
+          logger.warn('Unknown sync message type:', message.type);
       }
     };
 
@@ -94,7 +95,7 @@ export const useCrossTabSync = () => {
   const broadcast = useCallback((type: SyncMessageType, data: SyncMessageData) => {
     // Check if channel is available
     if (!channelRef.current) {
-      console.warn('BroadcastChannel not initialized. Message not sent:', type);
+      logger.warn('BroadcastChannel not initialized. Message not sent:', type);
       return;
     }
 
@@ -107,7 +108,7 @@ export const useCrossTabSync = () => {
     try {
       channelRef.current.postMessage(message);
     } catch (error) {
-      console.error('Failed to broadcast message:', error);
+      logger.error('Failed to broadcast message:', error);
     }
   }, []);
 
