@@ -4,6 +4,7 @@ import ApiStatus from './ApiStatus';
 import Navigation from './Navigation';
 import ViewContainer from './ViewContainer';
 import AddTodoModal from './AddTodoModal';
+import PasskeyManagementModal from './PasskeyManagementModal';
 import { VIEW_TRANSITION_DURATION_MS } from '../constants';
 
 /**
@@ -15,6 +16,7 @@ const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const [currentView, setCurrentView] = useState('all');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isPasskeyModalOpen, setIsPasskeyModalOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [newTodoId, setNewTodoId] = useState<number | null>(null);
   const [isViewTransitioning, setIsViewTransitioning] = useState(false);
@@ -67,7 +69,15 @@ const Dashboard: React.FC = () => {
                   <div className="text-xs text-gray-500">{user?.email}</div>
                 </div>
               </div>
-              
+
+              <button
+                onClick={() => setIsPasskeyModalOpen(true)}
+                className="inline-flex items-center px-2 sm:px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                <span className="hidden sm:inline">Manage passkeys</span>
+                <span className="sm:hidden">🔑</span>
+              </button>
+
               <button
                 onClick={() => logout()}
                 className="inline-flex items-center px-2 sm:px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
@@ -113,6 +123,12 @@ const Dashboard: React.FC = () => {
           setRefreshTrigger(prev => prev + 1);
         }}
         currentView={currentView}
+      />
+
+      {/* Passkey Management Modal */}
+      <PasskeyManagementModal
+        isOpen={isPasskeyModalOpen}
+        onClose={() => setIsPasskeyModalOpen(false)}
       />
     </div>
   );

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import PasskeyLoginButton from './PasskeyLoginButton';
 import { logger } from '../utils/logger';
 import type { GoogleCredentialResponse } from '../types/auth';
 
@@ -70,6 +71,11 @@ const LoginButton: React.FC = () => {
           </p>
         </div>
         
+        <div className="mb-4">
+          <PasskeyLoginButton onSuccess={() => window.location.reload()} />
+        </div>
+        <div className="text-center text-xs text-gray-400 mb-4">or</div>
+
         <div className="flex justify-center">
           {isGoogleReady && !isLoading ? (
             <div ref={buttonRef}></div>
