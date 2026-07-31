@@ -235,6 +235,19 @@ class TokenAwareApiClient {
   }
 
   /**
+   * `POST /auth/logout` -- end THIS browser's session and clear its cookie.
+   *
+   * Distinct from revokeAllSessions(): ordinary sign-out must not sign the
+   * user's other devices out. Before this existed, signing out cleared only
+   * local state while the httpOnly cookie and its server-side session
+   * survived, so the next page load silently signed the user back in.
+   */
+  async logout(): Promise<ApiResponse<{ loggedOut: boolean }>> {
+    const response = await this.api.post('/auth/logout');
+    return response.data;
+  }
+
+  /**
    * `GET /auth/session-health` -- check session validity and expiration info.
    * Used to show refresh warnings before the session expires.
    */
