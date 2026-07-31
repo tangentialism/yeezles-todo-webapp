@@ -27,6 +27,34 @@ interface ApiEnvelope<T> {
   error?: { code: string; message: string };
 }
 
+/**
+ * Supplies the current Google ID token, or null when there isn't a valid one.
+ *
+ * Registered once by AuthContext, mirroring how api.ts receives `getValidToken`.
+ * Kept as a module-level provider rather than a per-call argument so the four
+ * exported functions keep their existing signatures and no call site changes.
+ */
+type TokenProvider = () => string | null;
+
+let tokenProvider: TokenProvider | null = null;
+
+export function setPasskeyTokenProvider(provider: TokenProvider): void {
+  tokenProvider = provider;
+}
+
+/**
+ * Bearer header, or nothing at all.
+ *
+ * Nothing — not `Bearer null` — when there is no token: the backend branches on
+ * the mere presence of an `Authorization` header, so a bogus one would send it
+ * down the Bearer path to fail there instead of falling through to the session
+ * cookie.
+ */
+function authHeader(): Record<string, string> {
+  const token = tokenProvider?.() ?? null;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     // Spread `init` FIRST, then re-assert `credentials` and merge `headers`
@@ -35,9 +63,20 @@ async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
     // override the cookie-auth guarantee this helper exists to enforce
     // (session lives in an httpOnly cookie) and would replace the headers
     // object wholesale instead of merging into it. Do not reorder.
+    //
+    // `authHeader()` goes LAST, after init.headers, for the same reason
+    // `credentials` is re-asserted: it is an auth guarantee, not a default, and
+    // must not be overridable by a caller-supplied header. Both auth paths are
+    // sent together — the Bearer token is what enrollment requires
+    // (requireFreshAuth accepts only authMethod 'google-id-token'), while the
+    // cookie is what keeps the session working once Google is gone.
     ...init,
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...init.headers },
+    headers: {
+      'Content-Type': 'application/json',
+      ...init.headers,
+      ...authHeader(),
+    },
   });
 
   const body = (await response.json()) as ApiEnvelope<T>;

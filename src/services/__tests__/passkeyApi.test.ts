@@ -5,6 +5,7 @@ import {
   loginWithPasskey,
   listPasskeys,
   deletePasskey,
+  setPasskeyTokenProvider,
 } from '../passkeyApi';
 
 vi.mock('@simplewebauthn/browser', () => ({
@@ -188,5 +189,86 @@ describe('passkeyApi', () => {
     vi.mocked(startAuthentication).mockResolvedValue({ id: 'assertion-x' } as never);
 
     await expect(loginWithPasskey()).rejects.toThrow('No matching passkey found');
+  });
+
+  // --- Bearer token forwarding -------------------------------------------
+  //
+  // These cover the Phase 2 defect: passkeyApi was a cookie-ONLY client, so
+  // every request reached the backend with no Authorization header. Enrollment
+  // is guarded by requireFreshAuth, which accepts only authMethod
+  // 'google-id-token' — a value the backend sets solely on the Bearer path.
+  // Cookie auth yields 'persistent-session' and is refused. So without these
+  // headers there is no state in which enrollment can succeed: 401 with no
+  // cookie, 403 with one.
+
+  it('sends the Google ID token as a Bearer header when a provider is registered', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ success: true, data: [] }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    setPasskeyTokenProvider(() => 'google-id-token-abc');
+
+    await listPasskeys();
+
+    expect(fetchMock.mock.calls[0][1].headers).toMatchObject({
+      Authorization: 'Bearer google-id-token-abc',
+    });
+  });
+
+  it('sends the Bearer header on enrollment, the endpoint that requires it', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true, data: { challenge: 'chal-enroll' } }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true, data: { verified: true, credentialId: 'cred-1' } }),
+      });
+    vi.stubGlobal('fetch', fetchMock);
+    vi.mocked(startRegistration).mockResolvedValue({ id: 'attestation-x' } as never);
+    setPasskeyTokenProvider(() => 'google-id-token-enroll');
+
+    await enrollPasskey('MacBook Touch ID');
+
+    // Both legs of the ceremony must carry it, not just the first.
+    expect(fetchMock.mock.calls[0][1].headers).toMatchObject({
+      Authorization: 'Bearer google-id-token-enroll',
+    });
+    expect(fetchMock.mock.calls[1][1].headers).toMatchObject({
+      Authorization: 'Bearer google-id-token-enroll',
+    });
+  });
+
+  it('omits the Authorization header entirely when no token is available', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ success: true, data: [] }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    // Expired or absent Google token: getValidToken() returns null. Sending
+    // "Bearer null" would be worse than sending nothing — it would take the
+    // backend down the Bearer branch and fail there instead of falling
+    // through to the session cookie.
+    setPasskeyTokenProvider(() => null);
+
+    await listPasskeys();
+
+    expect(fetchMock.mock.calls[0][1].headers).not.toHaveProperty('Authorization');
+  });
+
+  it('still sends cookies alongside the Bearer header', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ success: true, data: [] }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    setPasskeyTokenProvider(() => 'google-id-token-abc');
+
+    await listPasskeys();
+
+    // Login/verify establishes the session cookie, so credentials must survive.
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({ credentials: 'include' });
   });
 });

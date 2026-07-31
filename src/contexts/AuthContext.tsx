@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { createAuthenticatedApiClient } from '../services/api';
 import type { LoginRequest } from '../services/api';
+import { setPasskeyTokenProvider } from '../services/passkeyApi';
 import { logger } from '../utils/logger';
 import {
   GOOGLE_SDK_POLL_INTERVAL_MS,
@@ -326,6 +327,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
     return null;
   };
+
+  // Hand the current Google ID token to the passkey client, the same way
+  // createAuthenticatedApiClient receives it for the todos client.
+  //
+  // Without this, passkeyApi authenticates by cookie only — and passkey
+  // ENROLLMENT is guarded by requireFreshAuth, which accepts solely authMethod
+  // 'google-id-token'. The backend sets that value only on the Bearer path, so
+  // a cookie yields 'persistent-session' and is refused. The result was that
+  // enrollment could not succeed in any state: 401 without a session cookie,
+  // 403 with one. Found during Phase 2 device testing.
+  //
+  // No dependency array, deliberately: getValidToken closes over authState, so
+  // a provider registered once at mount would keep returning that first
+  // render's token — null, permanently. Re-registering each render keeps it
+  // current, and setPasskeyTokenProvider is a cheap assignment.
+  useEffect(() => {
+    setPasskeyTokenProvider(getValidToken);
+  });
 
   // Refresh token if needed
   const refreshTokenIfNeeded = async (): Promise<void> => {
