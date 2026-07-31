@@ -284,10 +284,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           logger.error('Failed to revoke all persistent sessions:', error);
           // Continue with logout even if session revocation fails
         }
-      } else if (authState.hasPersistentSession) {
-        logger.log('[Frontend] Logging out current session only (other devices remain signed in)');
-        // Note: We're only clearing local state, not revoking the server-side session
-        // This allows the user to stay logged in on other devices
+      } else {
+        // End THIS session server-side and clear its cookie. Other devices stay
+        // signed in — that distinction is why /auth/logout exists alongside
+        // DELETE /auth/sessions.
+        //
+        // This used to clear local state ONLY. The httpOnly
+        // `__Host-remember_token` cookie and its server-side session survived,
+        // so the next page load silently signed the user back in: a 90-day
+        // session left behind on a shared machine, and passkey enrollment made
+        // unreachable, since a cookie-restored user never holds the Google ID
+        // token enrollment requires and had no way to obtain one. Confirmed
+        // against production during Phase 2 testing.
+        //
+        // Called unconditionally rather than only when hasPersistentSession is
+        // true: that flag reflects what this tab believes, and the cookie can
+        // outlive the belief. The endpoint is a no-op without a cookie.
+        try {
+          logger.log('[Frontend] Ending current session (other devices remain signed in)');
+          const apiClient = createAuthenticatedApiClient(getValidToken, () => {});
+          await apiClient.logout();
+        } catch (error) {
+          logger.error('Failed to end current session:', error);
+          // Fall through: local state is cleared below regardless. A failed
+          // round trip must not strand the user in a signed-in browser.
+        }
       }
     } catch (error) {
       logger.error('Error during logout cleanup:', error);
