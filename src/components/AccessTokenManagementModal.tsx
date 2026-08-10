@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useState } from 'react';
 import {
   listTokens,
   createToken,
@@ -65,12 +65,31 @@ const AccessTokenManagementModal: React.FC<AccessTokenManagementModalProps> = ({
   // Done) would still be sitting in `revealedToken` and would reappear the
   // next time the modal opens. Resetting on open rather than only on close
   // covers every dismissal path, including ones nobody has added yet.
-  useEffect(() => {
+  //
+  // This MUST be useLayoutEffect, not useEffect, for `revealedToken`
+  // specifically. A plain (passive) effect runs after the browser paints, so
+  // on the render that flips `isOpen` back to true, React would commit and
+  // paint the reveal box with the *stale* plaintext still in state, then
+  // clear it and re-render a frame later. For most state a one-frame flash
+  // is invisible; for the one value in this entire system that is a live
+  // credential, it is a real exposure (shoulder-surf, screen share). A
+  // layout effect runs synchronously after DOM mutation but before paint, so
+  // the clear lands in the same frame the reopen does and the stale value is
+  // never drawn to the screen. Do not "simplify" this back to useEffect.
+  useLayoutEffect(() => {
     if (isOpen) {
       setRevealedToken(null);
       setError(null);
       setName('');
       setSelectedScopes(new Set());
+    }
+  }, [isOpen]);
+
+  // Kept as a separate, ordinary (passive) effect: refresh() is an async
+  // network fetch and has no business blocking paint the way the state
+  // resets above do.
+  useEffect(() => {
+    if (isOpen) {
       void refresh();
     }
   }, [isOpen]);
