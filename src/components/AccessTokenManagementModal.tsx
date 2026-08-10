@@ -47,7 +47,7 @@ const AccessTokenManagementModal: React.FC<AccessTokenManagementModalProps> = ({
   const [revokingIds, setRevokingIds] = useState<Set<number>>(new Set());
   // The plaintext token lives here, and only here -- no localStorage, no
   // sessionStorage, no toast that outlives this component. `handleDone`
-  // clears it.
+  // clears it, and so does every reopen (see the isOpen effect below).
   const [revealedToken, setRevealedToken] = useState<CreatedAccessToken | null>(null);
 
   const refresh = async () => {
@@ -58,8 +58,19 @@ const AccessTokenManagementModal: React.FC<AccessTokenManagementModalProps> = ({
     }
   };
 
+  // Dashboard mounts this modal unconditionally and toggles `isOpen`, so the
+  // component instance -- and all its state -- survives a close. Closing via
+  // the X button only flips `isOpen`; it does not run `handleDone`. Without
+  // resetting here, a token revealed via Create then dismissed with X (not
+  // Done) would still be sitting in `revealedToken` and would reappear the
+  // next time the modal opens. Resetting on open rather than only on close
+  // covers every dismissal path, including ones nobody has added yet.
   useEffect(() => {
     if (isOpen) {
+      setRevealedToken(null);
+      setError(null);
+      setName('');
+      setSelectedScopes(new Set());
       void refresh();
     }
   }, [isOpen]);

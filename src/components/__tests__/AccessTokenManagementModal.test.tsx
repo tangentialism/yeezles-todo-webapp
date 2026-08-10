@@ -60,6 +60,39 @@ describe('AccessTokenManagementModal', () => {
     });
   });
 
+  it('discards the plaintext when dismissed via the X button and reopened', async () => {
+    vi.mocked(api.createToken).mockResolvedValue({
+      token: 'yzt_' + 'a'.repeat(64) + ':' + 'b'.repeat(64),
+      id: 2, name: 'new', scopes: ['todos:create'],
+      createdAt: '2026-08-07T00:00:00Z', expiresAt: null,
+    });
+
+    const onClose = vi.fn();
+    const { rerender, container } = render(
+      <AccessTokenManagementModal isOpen onClose={onClose} />
+    );
+    await userEvent.type(await screen.findByLabelText(/name/i), 'new');
+    await userEvent.click(screen.getByLabelText('todos:create'));
+    await userEvent.click(screen.getByRole('button', { name: /create token/i }));
+
+    expect(await screen.findByText(/yzt_a{10}/)).toBeInTheDocument();
+
+    // Dismiss via the X button (no accessible name -- same chrome as
+    // PasskeyManagementModal), not Done. The component is never unmounted:
+    // Dashboard mounts this modal unconditionally and only toggles `isOpen`.
+    const closeButton = container.querySelector('svg')?.closest('button');
+    expect(closeButton).not.toBeNull();
+    await userEvent.click(closeButton!);
+    expect(onClose).toHaveBeenCalled();
+
+    rerender(<AccessTokenManagementModal isOpen={false} onClose={onClose} />);
+    rerender(<AccessTokenManagementModal isOpen onClose={onClose} />);
+
+    await waitFor(() => {
+      expect(screen.queryByText(/yzt_a{10}/)).not.toBeInTheDocument();
+    });
+  });
+
   it('revokes a token', async () => {
     vi.mocked(api.revokeToken).mockResolvedValue();
     render(<AccessTokenManagementModal isOpen onClose={() => {}} />);
