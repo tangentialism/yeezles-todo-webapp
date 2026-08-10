@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, type ReactNode }
 import { createAuthenticatedApiClient } from '../services/api';
 import type { LoginRequest } from '../services/api';
 import { setPasskeyTokenProvider } from '../services/passkeyApi';
+import { setAccessTokenApiTokenProvider } from '../services/accessTokenApi';
 import { logger } from '../utils/logger';
 import {
   GOOGLE_SDK_POLL_INTERVAL_MS,
@@ -363,8 +364,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // a provider registered once at mount would keep returning that first
   // render's token — null, permanently. Re-registering each render keeps it
   // current, and setPasskeyTokenProvider is a cheap assignment.
+  //
+  // Access token creation (POST /auth/tokens) is guarded by the same
+  // requireFreshAuth middleware as passkey enrollment, so it has the exact
+  // same requirement: without a Bearer google-id-token, a session cookie
+  // alone resolves to authMethod 'persistent-session' and is refused with
+  // STEP_UP_REQUIRED unconditionally. Wired here for the same reason.
   useEffect(() => {
     setPasskeyTokenProvider(getValidToken);
+    setAccessTokenApiTokenProvider(getValidToken);
   });
 
   // Refresh token if needed
