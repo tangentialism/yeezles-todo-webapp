@@ -5,6 +5,7 @@ import Navigation from './Navigation';
 import ViewContainer from './ViewContainer';
 import AddTodoModal from './AddTodoModal';
 import PasskeyManagementModal from './PasskeyManagementModal';
+import AccessTokenManagementModal from './AccessTokenManagementModal';
 import { VIEW_TRANSITION_DURATION_MS } from '../constants';
 
 /**
@@ -17,6 +18,7 @@ const Dashboard: React.FC = () => {
   const [currentView, setCurrentView] = useState('all');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isPasskeyModalOpen, setIsPasskeyModalOpen] = useState(false);
+  const [isTokenModalOpen, setIsTokenModalOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [newTodoId, setNewTodoId] = useState<number | null>(null);
   const [isViewTransitioning, setIsViewTransitioning] = useState(false);
@@ -79,6 +81,14 @@ const Dashboard: React.FC = () => {
               </button>
 
               <button
+                onClick={() => setIsTokenModalOpen(true)}
+                className="inline-flex items-center px-2 sm:px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                <span className="hidden sm:inline">Access Tokens</span>
+                <span className="sm:hidden">🔐</span>
+              </button>
+
+              <button
                 onClick={() => logout()}
                 className="inline-flex items-center px-2 sm:px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
@@ -129,6 +139,12 @@ const Dashboard: React.FC = () => {
       <PasskeyManagementModal
         isOpen={isPasskeyModalOpen}
         onClose={() => setIsPasskeyModalOpen(false)}
+      />
+
+      {/* Access Token Management Modal */}
+      <AccessTokenManagementModal
+        isOpen={isTokenModalOpen}
+        onClose={() => setIsTokenModalOpen(false)}
       />
     </div>
   );
