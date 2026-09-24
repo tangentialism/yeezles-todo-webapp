@@ -65,6 +65,10 @@ src/
 - [x] API service layer with TypeScript types
 - [x] Authentication context and protected routes
 - [x] Basic dashboard layout
+- [x] Passkey sign-in and passkey management
+- [x] Access tokens: create, list, revoke
+- [x] OAuth consent page at `/oauth/consent`: approve a Claude connection with a passkey, or deny it
+- [x] Connected apps: list OAuth connections (client, scopes, created, last used, expiry) and disconnect them
 
 ## 🚧 Upcoming Features
 

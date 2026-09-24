@@ -1,3 +1,5 @@
+<!-- verified-at: HEAD -->
+
 # feature/oauth-consent — state
 
 Webapp half of the backend-as-OAuth-AS spec
@@ -6,7 +8,7 @@ Plan: workspace repo `docs/superpowers/plans/2026-09-23-backend-oauth-mcp-webapp
 
 ## Next action
 
-Task 6: docs, then stop for David before push/PR.
+Ask David: push feature/oauth-consent and open PR against master? Webapp PR lands after the backend PR (spec §9 step 3).
 
 ## Verified
 
@@ -29,22 +31,29 @@ Task 6: docs, then stop for David before push/PR.
 - Task 5: Connected apps, 7 tests; check at 63 failed / 247 passed (310 total,
   23 passed files of 31) -- the brief's 243 plus the 4 extra tests earlier
   rulings (R1/R2) added.
+- Task 6 (docs only, no new code): final check unchanged --
+  build exit 0; lint `✖ 57 problems (52 errors, 5 warnings)`;
+  tests `8 failed | 23 passed (31)` files, `63 failed | 247 passed (310)` tests.
 - Backend facts (consent HTTP contract, error codes, RATE_LIMITED behavior, etc.) are
   confirmed by the backend's landing record (yeezles-todo `docs/state/feature/oauth-mcp.md`, PR #29).
 - Each `GET /oauth/requests/:id` returns currently valid `passkeyOptions`, and a failed
-  approval does not consume the request (plan discrepancy 6) — confirmed by backend
-  tests, not yet run end-to-end against this webapp.
+  approval does not consume the request (plan discrepancy 6) — confirmed by the backend's
+  own tests (yeezles-todo PR #29 landing record), not yet end-to-end against this webapp.
 
 ## Assumed
 
-- The backend implements the §6.2 "Consent HTTP contract" exactly (backend built as
-  yeezles-todo PR #29, not merged; not yet exercised against this webapp).
-- R1: empty allowCredentials shows 'no passkey yet' (Task 3).
-- R2: RATE_LIMITED recognised as retryable (Task 1).
+- The backend implements the §6.2 "Consent HTTP contract" exactly, as
+  implemented by yeezles-todo PR #29 (not merged, not deployed, never
+  exercised against this webapp).
+- Discrepancy 3: cookie-only authentication is acceptable to the backend —
+  the backend's landing record says it reads the `__Host-remember_token`
+  cookie only, but this has not been confirmed end-to-end against this webapp.
+- Consent page and Connected apps not yet exercised against a real backend;
+  unit-tested against mocked contract only.
+- R1: empty `allowCredentials` renders "no passkey yet" and offers only Deny
+  (Task 3).
+- R2: `RATE_LIMITED` recognised as retryable (Task 1).
 
 ## Resume
 
-Continue `docs/superpowers/plans/2026-09-23-backend-oauth-mcp-webapp.md` (workspace repo)
-at the task named in "Next action". Worktree `/Users/davidyee/Code/yeezles-todo-webapp-wt/oauth-consent`,
-branch `feature/oauth-consent`, default branch `master`. Every git command uses `-C`.
-Check = build exit 0, lint count unchanged at 57, touched files lint-clean, tests 63 failed exactly.
+Branch complete pending review. If David approved: push, open PR (commands in plan Task 6 Step 8).

@@ -1205,6 +1205,55 @@ await apiClient.importData(exportedData, {
 
 ---
 
+## OAuth Consent API (`src/services/oauthConsentApi.ts`)
+
+Client for the backend's consent endpoints (workspace spec
+`2026-09-23-backend-oauth-mcp-design.md` §6.2, "Consent HTTP contract").
+It uses `fetch` with `credentials: 'include'` and sends **no**
+`Authorization` header: consent is authenticated by the session cookie alone.
+
+| Function | Request | Resolves to |
+|---|---|---|
+| `getConsentRequest(requestId)` | `GET /oauth/requests/:id` (id path-encoded) | `ConsentRequestDetails` |
+| `approveConsent(details, scopes)` | `startAuthentication({ optionsJSON: details.passkeyOptions })`, then `POST /oauth/consent` `{ requestId, decision: 'approve', scopes, assertion }` | checked `redirectTo` |
+| `denyConsent(details)` | `POST /oauth/consent` `{ requestId, decision: 'deny' }` | checked `redirectTo` |
+| `checkRedirect(redirectTo, { redirectHost, isLoopback })` | none | `redirectTo`, or throws |
+
+`checkRedirect` accepts only `https:`, or `http:` when `isLoopback`, to the
+**hostname** in `redirectHost`. The caller passes the result straight to
+`window.location.assign`. It is never rendered.
+
+Every failure rejects with `OAuthConsentError { code, status }`:
+
+| `code` | Source | Consent page behaviour |
+|---|---|---|
+| `REQUEST_NOT_FOUND` | 404 | Terminal: "expired or already used, start again from Claude" |
+| `UNAUTHENTICATED` | 401 | Terminal, with "Sign in with a passkey" in place |
+| `ORIGIN_MISMATCH` | 403 | Terminal |
+| `PASSKEY_INVALID` | 403 | Retry. The page re-fetches the request for fresh passkey options first |
+| `INVALID_SCOPES` | 400 | Retry |
+| `RATE_LIMITED` | 429 (backend rate limiter) | Retry (re-fetches first on Approve) |
+| `PASSKEY_CANCELLED` | ceremony threw; nothing sent | Retry (re-fetches first) |
+| `UNEXPECTED_REDIRECT` | `checkRedirect` refused | Terminal; no navigation |
+| `NETWORK` | `fetch` rejected | Retry |
+| `UNKNOWN` | any other failure, including non-JSON bodies | Retry |
+
+When `passkeyOptions.allowCredentials` is empty, the account has no passkey.
+The page says so and offers only Deny. If the re-fetch after a failed
+Approve itself fails, the form is withdrawn: a terminal code ends the page,
+and any other shows "Try again", so Approve never runs on a spent challenge.
+
+### Access tokens: Connected apps
+
+`GET /auth/tokens` items (`AccessTokenSummary` in `src/services/accessTokenApi.ts`)
+carry `source: 'pat' | 'oauth'`, `clientId` and `clientName`. The access-token
+modal shows `source === 'oauth'` rows under **Connected apps**, labelled
+`clientName ?? name`, and every other row, including one with no `source`,
+under **Existing tokens**. Disconnect calls the same `revokeToken(id)`
+(`DELETE /auth/tokens/:id`) as a PAT revoke.
+
+---
+
 ## Error Handling
 
 ### Error Response Format
@@ -1376,6 +1425,11 @@ interface ApiResponse<T> {
 ---
 
 ## Change Log
+
+### 2026-09-23: OAuth consent and Connected apps
+- ✅ `oauthConsentApi.ts`: consent client, typed errors, redirect guard
+- ✅ `/oauth/consent` page
+- ✅ `AccessTokenSummary.source` / `clientId` / `clientName`; Connected apps section
 
 ### Version 1.0.0 (November 20, 2025)
 - ✅ Initial documentation

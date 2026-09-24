@@ -940,8 +940,22 @@ if (
       <LoginButton />
     )
   } />
+  
+  {/* OAuth consent (spec 2026-09-23 §6.2) */}
+  <Route path="/oauth/consent" element={
+    isAuthenticated ? <OAuthConsentPage /> : <LoginButton />
+  } />
 </Routes>
 ```
+
+**Sign-in keeps the URL.** No protected route redirects to a login path. When
+signed out, each renders `LoginButton` *at the requested URL*. Google sign-in
+flips auth state in place, and passkey sign-in reloads the current URL. So
+`/oauth/consent?request=<id>` comes back to itself after sign-in with no
+return-to parameter, and there is no redirect parameter to abuse. Pinned by
+`src/__tests__/AppRoutes.test.tsx` and
+`src/components/__tests__/LoginButton.returnTo.test.tsx`. Changing
+`LoginButton`'s passkey `onSuccess` to navigate anywhere breaks OAuth consent.
 
 **Protected Routes Pattern:**
 
