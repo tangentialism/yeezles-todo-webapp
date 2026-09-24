@@ -6,7 +6,7 @@ Plan: workspace repo `docs/superpowers/plans/2026-09-23-backend-oauth-mcp-webapp
 
 ## Next action
 
-Task 3: consent page error states and retry, test first.
+Task 4: /oauth/consent route, test first.
 
 ## Verified
 
@@ -16,6 +16,9 @@ Task 3: consent page error states and retry, test first.
 - Task 1: `oauthConsentApi`, 26 tests (includes R2's `RATE_LIMITED` row); check at
   63 failed / 211 passed.
 - Task 2: consent page happy path, 11 tests; check at 63 failed / 222 passed.
+- Task 3: consent error states + refetch-before-retry + R1's no-passkey-yet
+  state, 11 tests (10 from the brief's error matrix plus the R1 no-passkey
+  test); check at 63 failed / 233 passed (296 total, 21 passed files of 29).
 - Backend facts (consent HTTP contract, error codes, RATE_LIMITED behavior, etc.) are
   confirmed by the backend's landing record (yeezles-todo `docs/state/feature/oauth-mcp.md`, PR #29).
 - Each `GET /oauth/requests/:id` returns currently valid `passkeyOptions`, and a failed

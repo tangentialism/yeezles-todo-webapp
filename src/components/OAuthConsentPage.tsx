@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import PasskeyLoginButton from './PasskeyLoginButton';
 import {
   getConsentRequest,
   approveConsent,
@@ -9,19 +10,55 @@ import {
   type OAuthConsentErrorCode,
 } from '../services/oauthConsentApi';
 
-const ERROR_COPY: Record<OAuthConsentErrorCode, string> = {
-  REQUEST_NOT_FOUND: 'This request expired or was already used. Start again from Claude.',
-  UNAUTHENTICATED: 'Your session has ended. Sign in with a passkey to continue.',
-  ORIGIN_MISMATCH:
-    'The server did not accept this page as coming from Yeezles Todo, so it cannot approve requests. Start again from Claude.',
-  UNEXPECTED_REDIRECT:
-    'The server returned an unexpected destination, so this page did not follow it. Start again from Claude.',
-  PASSKEY_INVALID: 'That passkey could not be verified. Try again.',
-  PASSKEY_CANCELLED: 'The passkey check was cancelled or did not finish. Try again.',
-  INVALID_SCOPES: 'Choose at least one permission, then approve again.',
-  RATE_LIMITED: 'Too many attempts. Wait a minute, then try again.',
-  NETWORK: 'Could not reach the server. Check your connection and try again.',
-  UNKNOWN: 'Something went wrong. Try again.',
+/** How a failure is shown. `retry: false` ends the page: no buttons remain. */
+interface ErrorPresentation {
+  message: string;
+  retry: boolean;
+}
+
+const ERROR_COPY: Record<OAuthConsentErrorCode, ErrorPresentation> = {
+  REQUEST_NOT_FOUND: {
+    message: 'This request expired or was already used. Start again from Claude.',
+    retry: false,
+  },
+  UNAUTHENTICATED: {
+    message: 'Your session has ended. Sign in with a passkey to continue.',
+    retry: false,
+  },
+  ORIGIN_MISMATCH: {
+    message:
+      'The server did not accept this page as coming from Yeezles Todo, so it cannot approve requests. Start again from Claude.',
+    retry: false,
+  },
+  UNEXPECTED_REDIRECT: {
+    message:
+      'The server returned an unexpected destination, so this page did not follow it. Start again from Claude.',
+    retry: false,
+  },
+  PASSKEY_INVALID: {
+    message: 'That passkey could not be verified. Try again.',
+    retry: true,
+  },
+  PASSKEY_CANCELLED: {
+    message: 'The passkey check was cancelled or did not finish. Try again.',
+    retry: true,
+  },
+  INVALID_SCOPES: {
+    message: 'Choose at least one permission, then approve again.',
+    retry: true,
+  },
+  RATE_LIMITED: {
+    message: 'Too many attempts. Wait a minute, then try again.',
+    retry: true,
+  },
+  NETWORK: {
+    message: 'Could not reach the server. Check your connection and try again.',
+    retry: true,
+  },
+  UNKNOWN: {
+    message: 'Something went wrong. Try again.',
+    retry: true,
+  },
 };
 
 const toCode = (err: unknown): OAuthConsentErrorCode =>
@@ -54,30 +91,37 @@ const OAuthConsentPage: React.FC = () => {
   const [errorCode, setErrorCode] = useState<OAuthConsentErrorCode | null>(null);
 
   // Only the newest GET may write state. StrictMode runs the mount effect
-  // twice; each GET may carry a different challenge, and only the newest is
-  // live.
+  // twice, and a retry refetch can overlap a slow earlier one; each GET may
+  // carry a different challenge, and only the newest is live.
   const loadSeq = useRef(0);
 
   const invalidateLoads = useCallback(() => {
     loadSeq.current += 1;
   }, []);
 
-  const fetchDetails = useCallback(async (): Promise<void> => {
-    const seq = ++loadSeq.current;
-    try {
-      const fresh = await getConsentRequest(requestId);
-      if (seq !== loadSeq.current) return;
-      setDetails(fresh);
-      setSelected(new Set(fresh.requestedScopes));
-    } catch (err) {
-      if (seq !== loadSeq.current) return;
-      setErrorCode(toCode(err));
-    }
-  }, [requestId]);
+  const fetchDetails = useCallback(
+    async (keepSelection: boolean): Promise<void> => {
+      const seq = ++loadSeq.current;
+      try {
+        const fresh = await getConsentRequest(requestId);
+        if (seq !== loadSeq.current) return;
+        setDetails(fresh);
+        setSelected(prev =>
+          keepSelection
+            ? new Set(fresh.requestedScopes.filter(s => prev.has(s)))
+            : new Set(fresh.requestedScopes)
+        );
+      } catch (err) {
+        if (seq !== loadSeq.current) return;
+        setErrorCode(toCode(err));
+      }
+    },
+    [requestId]
+  );
 
   useEffect(() => {
     if (!requestId) return;
-    void fetchDetails();
+    void fetchDetails(false);
     return invalidateLoads;
   }, [requestId, fetchDetails, invalidateLoads]);
 
@@ -103,7 +147,13 @@ const OAuthConsentPage: React.FC = () => {
       setPhase('leaving');
       window.location.assign(redirectTo);
     } catch (err) {
-      setErrorCode(toCode(err));
+      const code = toCode(err);
+      setErrorCode(code);
+      if (ERROR_COPY[code].retry) {
+        // The failed attempt may have spent the request-bound challenge.
+        // Fetch fresh options, keeping the user's ticks, before re-enabling.
+        await fetchDetails(true);
+      }
       setPhase('idle');
     }
   };
@@ -122,6 +172,11 @@ const OAuthConsentPage: React.FC = () => {
     }
   };
 
+  const handleRetryLoad = () => {
+    setErrorCode(null);
+    void fetchDetails(false);
+  };
+
   if (!requestId) {
     return (
       <Shell>
@@ -132,11 +187,35 @@ const OAuthConsentPage: React.FC = () => {
     );
   }
 
+  if (errorCode && !ERROR_COPY[errorCode].retry) {
+    return (
+      <Shell>
+        <p role="alert" className="text-sm text-red-600">
+          {ERROR_COPY[errorCode].message}
+        </p>
+        {errorCode === 'UNAUTHENTICATED' && (
+          <PasskeyLoginButton onSuccess={() => window.location.reload()} />
+        )}
+      </Shell>
+    );
+  }
+
   if (!details) {
     return (
       <Shell>
         {errorCode ? (
-          <p role="alert" className="text-sm text-red-600">{ERROR_COPY[errorCode]}</p>
+          <>
+            <p role="alert" className="text-sm text-red-600">
+              {ERROR_COPY[errorCode].message}
+            </p>
+            <button
+              type="button"
+              onClick={handleRetryLoad}
+              className="py-2 px-4 rounded-md border border-gray-300 text-sm text-gray-700 hover:bg-gray-50"
+            >
+              Try again
+            </button>
+          </>
         ) : (
           <div className="flex items-center space-x-3 text-gray-600">
             <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-600"></div>
@@ -148,6 +227,7 @@ const OAuthConsentPage: React.FC = () => {
   }
 
   const busy = phase !== 'idle';
+  const hasPasskey = (details.passkeyOptions.allowCredentials?.length ?? 0) > 0;
 
   return (
     <Shell>
@@ -173,27 +253,36 @@ const OAuthConsentPage: React.FC = () => {
         </div>
       )}
 
-      <fieldset className="space-y-2">
-        <legend className="text-sm font-semibold text-gray-900 mb-1">Permissions</legend>
-        {details.requestedScopes.map(scope => (
-          <label key={scope} className="flex items-start space-x-2 text-sm cursor-pointer">
-            <input
-              type="checkbox"
-              checked={selected.has(scope)}
-              onChange={() => toggle(scope)}
-              disabled={busy}
-              className="mt-1 rounded border-gray-300 text-indigo-600"
-            />
-            <span>
-              <span className="text-gray-900">{details.scopeDescriptions[scope] ?? scope}</span>
-              <span className="block font-mono text-xs text-gray-500">{scope}</span>
-            </span>
-          </label>
-        ))}
-      </fieldset>
+      {hasPasskey ? (
+        <fieldset className="space-y-2">
+          <legend className="text-sm font-semibold text-gray-900 mb-1">Permissions</legend>
+          {details.requestedScopes.map(scope => (
+            <label key={scope} className="flex items-start space-x-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={selected.has(scope)}
+                onChange={() => toggle(scope)}
+                disabled={busy}
+                className="mt-1 rounded border-gray-300 text-indigo-600"
+              />
+              <span>
+                <span className="text-gray-900">{details.scopeDescriptions[scope] ?? scope}</span>
+                <span className="block font-mono text-xs text-gray-500">{scope}</span>
+              </span>
+            </label>
+          ))}
+        </fieldset>
+      ) : (
+        <p role="alert" className="text-sm text-red-600">
+          You have no passkey on this account yet. Add one under Passkeys in the app, then start
+          again from Claude.
+        </p>
+      )}
 
       {errorCode && (
-        <p role="alert" className="text-sm text-red-600">{ERROR_COPY[errorCode]}</p>
+        <p role="alert" className="text-sm text-red-600">
+          {ERROR_COPY[errorCode].message}
+        </p>
       )}
 
       {phase === 'leaving' ? (
@@ -208,14 +297,16 @@ const OAuthConsentPage: React.FC = () => {
           >
             {phase === 'denying' ? 'Denying...' : 'Deny'}
           </button>
-          <button
-            type="button"
-            onClick={handleApprove}
-            disabled={busy || selected.size === 0}
-            className="py-2 px-4 rounded-md bg-indigo-600 text-white text-sm hover:bg-indigo-700 disabled:opacity-60"
-          >
-            {phase === 'approving' ? 'Waiting for passkey...' : 'Approve with passkey'}
-          </button>
+          {hasPasskey && (
+            <button
+              type="button"
+              onClick={handleApprove}
+              disabled={busy || selected.size === 0}
+              className="py-2 px-4 rounded-md bg-indigo-600 text-white text-sm hover:bg-indigo-700 disabled:opacity-60"
+            >
+              {phase === 'approving' ? 'Waiting for passkey...' : 'Approve with passkey'}
+            </button>
+          )}
         </div>
       )}
     </Shell>
