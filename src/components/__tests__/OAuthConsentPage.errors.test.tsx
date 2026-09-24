@@ -201,4 +201,42 @@ describe('OAuthConsentPage error states', () => {
     expect(screen.getByRole('button', { name: /deny/i })).toBeEnabled();
     expect(api.approveConsent).not.toHaveBeenCalled();
   });
+
+  it('retry refetch fails REQUEST_NOT_FOUND: ends the page', async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.getConsentRequest)
+      .mockResolvedValueOnce(DETAILS)
+      .mockRejectedValueOnce(fail('REQUEST_NOT_FOUND'));
+    vi.mocked(api.approveConsent).mockRejectedValue(fail('PASSKEY_INVALID'));
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: /approve/i }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'This request expired or was already used. Start again from Claude.'
+    );
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  it('retry refetch fails NETWORK: no Approve on the stale challenge, offers Try again', async () => {
+    const user = userEvent.setup();
+    const fresh = { ...DETAILS, passkeyOptions: { ...DETAILS.passkeyOptions, challenge: 'chal-3' } };
+    vi.mocked(api.getConsentRequest)
+      .mockResolvedValueOnce(DETAILS)
+      .mockRejectedValueOnce(fail('NETWORK'))
+      .mockResolvedValueOnce(fresh);
+    vi.mocked(api.approveConsent).mockRejectedValue(fail('PASSKEY_INVALID'));
+    renderPage();
+
+    await user.click(await screen.findByRole('button', { name: /approve/i }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/could not reach the server/i);
+    expect(screen.queryByRole('button', { name: /approve/i })).not.toBeInTheDocument();
+    const tryAgain = screen.getByRole('button', { name: /try again/i });
+
+    await user.click(tryAgain);
+
+    expect(await screen.findByRole('button', { name: /approve/i })).toBeEnabled();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
 });

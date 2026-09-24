@@ -114,6 +114,10 @@ const OAuthConsentPage: React.FC = () => {
       } catch (err) {
         if (seq !== loadSeq.current) return;
         setErrorCode(toCode(err));
+        // A failed GET (initial or retry) leaves no live challenge, so the
+        // form must not come back on stale details -- fall to the terminal
+        // or load-failure view instead.
+        setDetails(null);
       }
     },
     [requestId]

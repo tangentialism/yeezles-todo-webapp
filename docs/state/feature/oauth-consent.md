@@ -17,8 +17,13 @@ Task 4: /oauth/consent route, test first.
   63 failed / 211 passed.
 - Task 2: consent page happy path, 11 tests; check at 63 failed / 222 passed.
 - Task 3: consent error states + refetch-before-retry + R1's no-passkey-yet
-  state, 11 tests (10 from the brief's error matrix plus the R1 no-passkey
-  test); check at 63 failed / 233 passed (296 total, 21 passed files of 29).
+  state, 13 tests (10 from the brief's error matrix, the R1 no-passkey test,
+  and two fix-round-1 tests covering a failed retry refetch); check at
+  63 failed / 235 passed (298 total, 21 passed files of 29).
+- Task 3 fix round 1: a failed retryable refetch (`fetchDetails`'s catch)
+  now also clears `details`, so Approve never re-enables against a stale or
+  spent challenge -- the page falls to the terminal or load-failure view
+  instead.
 - Backend facts (consent HTTP contract, error codes, RATE_LIMITED behavior, etc.) are
   confirmed by the backend's landing record (yeezles-todo `docs/state/feature/oauth-mcp.md`, PR #29).
 - Each `GET /oauth/requests/:id` returns currently valid `passkeyOptions`, and a failed
