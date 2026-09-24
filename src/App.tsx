@@ -9,6 +9,7 @@ import LoginButton from './components/LoginButton';
 import Dashboard from './components/Dashboard';
 import CreateTodoFromExternal from './components/CreateTodoFromExternal';
 import CreateMultipleTodos from './components/CreateMultipleTodos';
+import OAuthConsentPage from './components/OAuthConsentPage';
 import { QUERY_STALE_TIME_MS, MAX_QUERY_RETRIES, MAX_MUTATION_RETRIES } from './constants';
 
 // Create a client
@@ -31,7 +32,11 @@ const queryClient = new QueryClient({
   },
 });
 
-const AppContent: React.FC = () => {
+/**
+ * Route table. Exported for routing tests, which render it inside a
+ * MemoryRouter with a mocked useAuth.
+ */
+export const AppContent: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
@@ -64,6 +69,15 @@ const AppContent: React.FC = () => {
         ) : (
           <LoginButton />
         )
+      } />
+      {/*
+        OAuth consent (spec §6.2). Signed out, LoginButton renders at THIS
+        URL, so ?request=<id> survives sign-in without a return-to parameter:
+        Google sign-in flips auth state in place and passkey sign-in reloads
+        the current URL. No AreaProvider -- the page never touches areas.
+      */}
+      <Route path="/oauth/consent" element={
+        isAuthenticated ? <OAuthConsentPage /> : <LoginButton />
       } />
       <Route path="/*" element={
         isAuthenticated ? (

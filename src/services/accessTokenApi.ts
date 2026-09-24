@@ -10,6 +10,9 @@
 const API_BASE =
   import.meta.env.VITE_API_BASE_URL || 'https://api.yeezlestodo.com';
 
+/** 'pat' = a token created here; 'oauth' = a Connected app (spec §6.2, §7). */
+export type AccessTokenSource = 'pat' | 'oauth';
+
 export interface AccessTokenSummary {
   id: number;
   name: string;
@@ -18,9 +21,22 @@ export interface AccessTokenSummary {
   lastUsedAt: string | null;
   expiresAt: string | null;
   isRevoked: boolean;
+  /**
+   * Required by the contract, but a backend older than the OAuth PR omits
+   * it. Callers must test `source === 'oauth'`, never `source === 'pat'`,
+   * so that such rows stay in the PAT list.
+   */
+  source: AccessTokenSource;
+  clientId: string | null;
+  clientName: string | null;
 }
 
-export interface CreatedAccessToken extends Omit<AccessTokenSummary, 'lastUsedAt' | 'isRevoked'> {
+/**
+ * POST /auth/tokens only ever creates a PAT, and the contract adds the
+ * source/client fields to list items only.
+ */
+export interface CreatedAccessToken
+  extends Omit<AccessTokenSummary, 'lastUsedAt' | 'isRevoked' | 'source' | 'clientId' | 'clientName'> {
   token: string;
 }
 

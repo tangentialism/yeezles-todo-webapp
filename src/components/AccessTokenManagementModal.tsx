@@ -7,6 +7,7 @@ import {
   type AccessTokenSummary,
   type CreatedAccessToken,
 } from '../services/accessTokenApi';
+import ConnectedAppsSection from './ConnectedAppsSection';
 
 interface AccessTokenManagementModalProps {
   isOpen: boolean;
@@ -157,6 +158,11 @@ const AccessTokenManagementModal: React.FC<AccessTokenManagementModalProps> = ({
 
   if (!isOpen) return null;
 
+  // `!== 'oauth'`, not `=== 'pat'`: a row from a backend that predates the
+  // source field must stay visible as a token, not vanish from both lists.
+  const connections = tokens.filter(t => t.source === 'oauth');
+  const pats = tokens.filter(t => t.source !== 'oauth');
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
@@ -202,15 +208,21 @@ const AccessTokenManagementModal: React.FC<AccessTokenManagementModalProps> = ({
             </div>
           ) : (
             <div className="space-y-6">
-              <section className="space-y-3">
-                <h3 className="text-sm font-semibold text-gray-900">Existing tokens</h3>
+              <ConnectedAppsSection
+                connections={connections}
+                revokingIds={revokingIds}
+                onRevoke={id => void handleRevoke(id)}
+              />
 
-                {tokens.length === 0 && (
+              <section className="space-y-3 border-t border-gray-200 pt-4" aria-labelledby="existing-tokens-heading">
+                <h3 id="existing-tokens-heading" className="text-sm font-semibold text-gray-900">Existing tokens</h3>
+
+                {pats.length === 0 && (
                   <p className="text-sm text-gray-600">No access tokens yet.</p>
                 )}
 
                 <ul className="space-y-3">
-                  {tokens.map(t => (
+                  {pats.map(t => (
                     <li key={t.id} className={`text-sm ${t.isRevoked ? 'line-through text-gray-400' : ''}`}>
                       <div className="flex items-center justify-between">
                         <span>{t.name}</span>
