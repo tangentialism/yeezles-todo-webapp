@@ -6,7 +6,7 @@ Plan: workspace repo `docs/superpowers/plans/2026-09-23-backend-oauth-mcp-webapp
 
 ## Next action
 
-Task 4: /oauth/consent route, test first.
+Task 5: Connected apps, test first.
 
 ## Verified
 
@@ -24,6 +24,8 @@ Task 4: /oauth/consent route, test first.
   now also clears `details`, so Approve never re-enables against a stale or
   spent challenge -- the page falls to the terminal or load-failure view
   instead.
+- Task 4: /oauth/consent route + return-to characterization, 5 tests; check at
+  63 failed / 240 passed.
 - Backend facts (consent HTTP contract, error codes, RATE_LIMITED behavior, etc.) are
   confirmed by the backend's landing record (yeezles-todo `docs/state/feature/oauth-mcp.md`, PR #29).
 - Each `GET /oauth/requests/:id` returns currently valid `passkeyOptions`, and a failed
