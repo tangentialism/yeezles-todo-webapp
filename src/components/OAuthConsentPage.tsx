@@ -22,7 +22,8 @@ const ERROR_COPY: Record<OAuthConsentErrorCode, ErrorPresentation> = {
     retry: false,
   },
   UNAUTHENTICATED: {
-    message: 'Your session has ended. Sign in with a passkey to continue.',
+    message:
+      'Approving a connection needs a passkey sign-in on this device. Sign in with a passkey to continue.',
     retry: false,
   },
   ORIGIN_MISMATCH: {
@@ -36,7 +37,7 @@ const ERROR_COPY: Record<OAuthConsentErrorCode, ErrorPresentation> = {
     retry: false,
   },
   PASSKEY_INVALID: {
-    message: 'That passkey could not be verified. Try again.',
+    message: "The passkey check didn't go through (it may have timed out). Try again.",
     retry: true,
   },
   PASSKEY_CANCELLED: {
@@ -178,7 +179,11 @@ const OAuthConsentPage: React.FC = () => {
 
   const handleRetryLoad = () => {
     setErrorCode(null);
-    void fetchDetails(false);
+    // `selected` survives a `setDetails(null)`, so a retry after a failed
+    // refetch must not re-tick everything -- that would silently widen
+    // consent past what the user chose. Empty only on a genuine first-load
+    // failure, where everything still defaults to ticked.
+    void fetchDetails(selected.size > 0);
   };
 
   if (!requestId) {

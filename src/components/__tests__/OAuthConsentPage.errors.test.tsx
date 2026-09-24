@@ -86,7 +86,7 @@ describe('OAuthConsentPage error states', () => {
     vi.mocked(api.getConsentRequest).mockRejectedValue(fail('UNAUTHENTICATED'));
     renderPage();
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(/session has ended/i);
+    expect(await screen.findByRole('alert')).toHaveTextContent(/needs a passkey sign-in/i);
     expect(screen.getByRole('button', { name: /sign in with a passkey/i })).toBeInTheDocument();
   });
 
@@ -116,7 +116,9 @@ describe('OAuthConsentPage error states', () => {
     await user.click(await screen.findByRole('checkbox', { name: /create todos/i }));
     await user.click(screen.getByRole('button', { name: /approve/i }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('That passkey could not be verified. Try again.');
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      "The passkey check didn't go through (it may have timed out). Try again."
+    );
     await waitFor(() => expect(api.getConsentRequest).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(screen.getByRole('button', { name: /approve/i })).toBeEnabled());
     expect(screen.getByRole('checkbox', { name: /create todos/i })).not.toBeChecked();
@@ -238,5 +240,24 @@ describe('OAuthConsentPage error states', () => {
 
     expect(await screen.findByRole('button', { name: /approve/i })).toBeEnabled();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('Try again after a failed retry refetch keeps the user\'s unticked scopes, does not re-tick them', async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.getConsentRequest)
+      .mockResolvedValueOnce(DETAILS) // initial load
+      .mockRejectedValueOnce(fail('NETWORK')) // refetch after the failed approve
+      .mockResolvedValueOnce(DETAILS); // "Try again"
+    vi.mocked(api.approveConsent).mockRejectedValue(fail('PASSKEY_INVALID'));
+    renderPage();
+
+    await user.click(await screen.findByRole('checkbox', { name: /create todos/i }));
+    await user.click(screen.getByRole('button', { name: /approve/i }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/could not reach the server/i);
+    await user.click(screen.getByRole('button', { name: /try again/i }));
+
+    expect(await screen.findByRole('checkbox', { name: /see your todos/i })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: /create todos/i })).not.toBeChecked();
   });
 });

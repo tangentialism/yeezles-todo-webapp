@@ -50,10 +50,10 @@ export type ContractErrorCode =
   | 'INVALID_SCOPES';
 
 /**
- * Contract codes, plus `RATE_LIMITED` (a backend code the webapp recognises
- * but that is not one of the contract's five), plus four the webapp raises
- * itself:
- * - RATE_LIMITED: the backend's rate limiter rejected the call (429).
+ * Contract codes, plus one more backend code the webapp recognises beyond
+ * the contract's five, plus four the webapp raises itself:
+ * - RATE_LIMITED: a backend code (429) beyond the contract's five, recognised
+ *   here because the backend's rate limiter can reject a consent call.
  * - PASSKEY_CANCELLED: startAuthentication threw (user cancelled, timed out,
  *   no matching credential); nothing was sent to the backend.
  * - UNEXPECTED_REDIRECT: the backend's redirectTo failed checkRedirect.

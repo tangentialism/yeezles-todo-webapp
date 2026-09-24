@@ -34,11 +34,15 @@ Ask David: push feature/oauth-consent and open PR against master? Webapp PR land
 - Task 6 (docs only, no new code): final check unchanged --
   build exit 0; lint `✖ 57 problems (52 errors, 5 warnings)`;
   tests `8 failed | 23 passed (31)` files, `63 failed | 247 passed (310)` tests.
-- Backend facts (consent HTTP contract, error codes, RATE_LIMITED behavior, etc.) are
-  confirmed by the backend's landing record (yeezles-todo `docs/state/feature/oauth-mcp.md`, PR #29).
-- Each `GET /oauth/requests/:id` returns currently valid `passkeyOptions`, and a failed
-  approval does not consume the request (plan discrepancy 6) — confirmed by the backend's
-  own tests (yeezles-todo PR #29 landing record), not yet end-to-end against this webapp.
+- Final review fix wave: UNAUTHENTICATED and PASSKEY_INVALID copy, Try again keeps ticks
+  (1 test), doc comment; final check: build exit 0; lint `✖ 57 problems (52 errors, 5 warnings)`;
+  tests `8 failed | 23 passed (31)` files, `63 failed | 248 passed (311)` tests.
+- Backend facts (404 REQUEST_NOT_FOUND, cookie-only session, port-less redirectHost,
+  failed approval does not consume the request, each GET supersedes the challenge,
+  RATE_LIMITED 429 envelope) documented in the backend landing record and spot-checked
+  in backend code at yeezles-todo `feature/oauth-mcp` 22307b2 (`src/routes/oauthConsent.ts`,
+  `src/middleware/oauthHttp.ts`, `src/models/WebAuthnChallenge.ts`, `src/middleware/oauthSession.ts`)
+  by the final review; not exercised end-to-end.
 
 ## Assumed
 
@@ -50,9 +54,15 @@ Ask David: push feature/oauth-consent and open PR against master? Webapp PR land
   cookie only, but this has not been confirmed end-to-end against this webapp.
 - Consent page and Connected apps not yet exercised against a real backend;
   unit-tested against mocked contract only.
-- R1: empty `allowCredentials` renders "no passkey yet" and offers only Deny
-  (Task 3).
-- R2: `RATE_LIMITED` recognised as retryable (Task 1).
+- An empty `allowCredentials` means the account has no passkey (backend
+  semantics; the R1 "no passkey yet" view is unit-tested).
+- The backend's 429 body on the consent paths stays `RATE_LIMITED` (R2
+  mapping is unit-tested).
+- In dev, React StrictMode fires the consent GET twice; if the two complete
+  out of order on the server, the first Approve can fail PASSKEY_INVALID and
+  the retry succeeds. Production builds do not double-invoke. During the
+  smoke, also test a Google sign-in without "Remember me" (expects the
+  passkey sign-in prompt).
 
 ## Resume
 
