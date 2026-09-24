@@ -6,7 +6,7 @@ Plan: workspace repo `docs/superpowers/plans/2026-09-23-backend-oauth-mcp-webapp
 
 ## Next action
 
-Task 5: Connected apps, test first.
+Task 6: docs, then stop for David before push/PR.
 
 ## Verified
 
@@ -26,6 +26,9 @@ Task 5: Connected apps, test first.
   instead.
 - Task 4: /oauth/consent route + return-to characterization, 5 tests; check at
   63 failed / 240 passed.
+- Task 5: Connected apps, 7 tests; check at 63 failed / 247 passed (310 total,
+  23 passed files of 31) -- the brief's 243 plus the 4 extra tests earlier
+  rulings (R1/R2) added.
 - Backend facts (consent HTTP contract, error codes, RATE_LIMITED behavior, etc.) are
   confirmed by the backend's landing record (yeezles-todo `docs/state/feature/oauth-mcp.md`, PR #29).
 - Each `GET /oauth/requests/:id` returns currently valid `passkeyOptions`, and a failed
