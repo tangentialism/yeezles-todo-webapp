@@ -8,7 +8,7 @@ Phase 3a of the topics feature: the webapp topics UI. Spec: workspace
 
 ## Next action
 
-Task 1: ApiError and the topic client methods.
+Task 2: topic store, sync and todo-store invalidation.
 
 ## Verified
 
@@ -18,6 +18,9 @@ Task 1: ApiError and the topic client methods.
   vitest baseline 338 tests, 338 passed, 0 failing names
   (`/Users/davidyee/Code/yeezles-todo-webapp-wt/topics-ui-baseline-tests.txt`,
   not committed).
+- Task 1: apiError 7/7, api.topics 8/8 green (RED first for apiError: unresolved
+  import; api.topics RED step not run separately). Full check: `TSC_OK`, tests
+  353 total / 353 passed, lint 5 (baseline 5), new failing names empty.
 
 ## Assumed
 
@@ -34,6 +37,9 @@ Task 1: ApiError and the topic client methods.
 - The full check is `/Users/davidyee/Code/yeezles-todo-webapp-wt/topics-ui-check.sh`:
   the plan's Task 0 Step 4 commands with the jq path prefix adapted to the
   nested checkout.
+- `deleteArea` doc comment keeps its existing sentence "Todos in the deleted
+  area are reassigned to the default area" (controller ruling) alongside the
+  new AREA_HAS_TOPICS line.
 
 ## Resume
 

@@ -6,7 +6,7 @@
  * to REST endpoints on the backend.
  */
 import axios from 'axios';
-import type { AxiosInstance } from 'axios';
+import type { AxiosInstance, AxiosResponse } from 'axios';
 import type {
   Todo,
   ApiResponse,
@@ -21,6 +21,13 @@ import type {
   CreateAreaRequest,
   UpdateAreaRequest
 } from '../types/area';
+import type {
+  Topic,
+  TopicWithCounts,
+  CreateTopicRequest,
+  UpdateTopicRequest
+} from '../types/topic';
+import { toApiError } from './apiError';
 import { logger } from '../utils/logger';
 
 /** Request body for `POST /auth/login`. */
@@ -283,6 +290,7 @@ class TokenAwareApiClient {
     if (filters.area_id !== undefined) params.append('area_id', filters.area_id.toString());
     if (filters.area_name) params.append('area_name', filters.area_name);
     if (filters.include_all_areas) params.append('include_all_areas', filters.include_all_areas.toString());
+    if (filters.topic_id !== undefined) params.append('topic_id', filters.topic_id.toString());
 
     const response = await this.api.get(`/todos?${params.toString()}`);
     return response.data;
@@ -303,11 +311,16 @@ class TokenAwareApiClient {
    * `POST /todos` -- create a new todo.
    * @param todo - Todo data to create.
    * @param html - When true, the response includes HTML-rendered fields.
+   * @throws {ApiError} on any failure, carrying the backend code and message.
    */
   async createTodo(todo: CreateTodoRequest, html: boolean = false): Promise<ApiResponse<Todo>> {
     const params = html ? '?html=true' : '';
-    const response = await this.api.post(`/todos${params}`, todo);
-    return response.data;
+    try {
+      const response = await this.api.post(`/todos${params}`, todo);
+      return response.data;
+    } catch (error) {
+      throw toApiError(error);
+    }
   }
 
   /**
@@ -331,11 +344,16 @@ class TokenAwareApiClient {
    * @param id - Todo ID.
    * @param updates - Fields to update.
    * @param html - When true, the response includes HTML-rendered fields.
+   * @throws {ApiError} on any failure, carrying the backend code and message.
    */
   async updateTodo(id: number, updates: UpdateTodoRequest, html: boolean = false): Promise<ApiResponse<Todo>> {
     const params = html ? '?html=true' : '';
-    const response = await this.api.put(`/todos/${id}${params}`, updates);
-    return response.data;
+    try {
+      const response = await this.api.put(`/todos/${id}${params}`, updates);
+      return response.data;
+    } catch (error) {
+      throw toApiError(error);
+    }
   }
 
   /**
@@ -468,11 +486,17 @@ class TokenAwareApiClient {
   /**
    * `DELETE /areas/:id` -- permanently delete an area.
    * Todos in the deleted area are reassigned to the default area.
+   * Refused with 409 `AREA_HAS_TOPICS` while the area has topics.
    * @param id - Area ID.
+   * @throws {ApiError} on any failure, so callers can read the backend code.
    */
   async deleteArea(id: number): Promise<ApiResponse<void>> {
-    const response = await this.api.delete(`/areas/${id}`);
-    return response.data;
+    try {
+      const response = await this.api.delete(`/areas/${id}`);
+      return response.data;
+    } catch (error) {
+      throw toApiError(error);
+    }
   }
 
   /**
@@ -482,6 +506,66 @@ class TokenAwareApiClient {
   async getAvailableColors(): Promise<ApiResponse<string[]>> {
     const response = await this.api.get('/areas/colors');
     return response.data;
+  }
+
+  // ── Topic Methods ───────────────────────────────────────────────────
+
+  /**
+   * Awaits a request, returns the envelope's `data`, and turns any failure
+   * into an {@link ApiError}. Every topic and proposal method goes through it.
+   */
+  protected async unwrap<T>(request: Promise<AxiosResponse<{ success: boolean; data: T }>>): Promise<T> {
+    try {
+      const response = await request;
+      return response.data.data;
+    } catch (error) {
+      throw toApiError(error);
+    }
+  }
+
+  /**
+   * `GET /topics` -- topics with open/done counts, sorted by name.
+   * @param options.areaId - Only this area's topics; omit or null for every area.
+   * @param options.includeArchived - Include archived topics.
+   */
+  async getTopics(options: { areaId?: number | null; includeArchived?: boolean } = {}): Promise<TopicWithCounts[]> {
+    const params = new URLSearchParams();
+    if (options.areaId !== undefined && options.areaId !== null) params.append('area_id', options.areaId.toString());
+    if (options.includeArchived) params.append('include_archived', 'true');
+    const query = params.toString();
+    const data = await this.unwrap<{ topics: TopicWithCounts[]; count: number }>(
+      this.api.get(`/topics${query ? `?${query}` : ''}`)
+    );
+    return data.topics;
+  }
+
+  /** `GET /topics/:id` -- one topic with its counts. */
+  async getTopic(id: number): Promise<TopicWithCounts> {
+    const data = await this.unwrap<{ topic: TopicWithCounts }>(this.api.get(`/topics/${id}`));
+    return data.topic;
+  }
+
+  /** `POST /topics` -- 409 `TOPIC_NAME_TAKEN` when the name exists in any area (ignoring case). */
+  async createTopic(input: CreateTopicRequest): Promise<Topic> {
+    const data = await this.unwrap<{ topic: Topic }>(this.api.post('/topics', input));
+    return data.topic;
+  }
+
+  /** `PUT /topics/:id` -- name, description, area or archived; never the note. */
+  async updateTopic(id: number, updates: UpdateTopicRequest): Promise<Topic> {
+    const data = await this.unwrap<{ topic: Topic }>(this.api.put(`/topics/${id}`, updates));
+    return data.topic;
+  }
+
+  /** `PUT /topics/:id/note` -- replaces the note and stamps `status_note_updated_at`; null clears it. */
+  async setTopicNote(id: number, statusNote: string | null): Promise<Topic> {
+    const data = await this.unwrap<{ topic: Topic }>(this.api.put(`/topics/${id}/note`, { status_note: statusNote }));
+    return data.topic;
+  }
+
+  /** `DELETE /topics/:id` -- its todos survive with no topic. */
+  async deleteTopic(id: number): Promise<void> {
+    await this.unwrap<{ message: string; topic_id: number }>(this.api.delete(`/topics/${id}`));
   }
 }
 
