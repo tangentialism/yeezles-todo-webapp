@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { useState } from 'react';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import TopicsView from '../TopicsView';
@@ -8,7 +9,16 @@ import { areaContextValue, makeArea, makeTopic } from '../../../test/topicFactor
 
 vi.mock('../../../contexts/AreaContext');
 vi.mock('../../../hooks/useTopicStore');
-vi.mock('../TopicDetail', () => ({ default: ({ topicId }: { topicId: number }) => <div>detail-{topicId}</div> }));
+vi.mock('../TopicDetail', () => ({
+  default: ({ topicId, onBack }: { topicId: number; onBack: () => void }) => (
+    <div>
+      detail-{topicId}
+      <button type="button" onClick={onBack}>
+        ← Topics
+      </button>
+    </div>
+  ),
+}));
 vi.mock('../NewTopicDialog', () => ({
   default: ({ defaultAreaId }: { defaultAreaId: number | null }) => <div>new-topic-dialog area={String(defaultAreaId)}</div>,
 }));
@@ -99,6 +109,22 @@ describe('TopicsView', () => {
     vi.spyOn(AreaContextModule, 'useArea').mockReturnValue(areaContextValue({ areas: [home, work], currentArea: null }));
     render(<TopicsView {...props} openTopicId={2} />);
     expect(screen.getByText('detail-2')).toBeInTheDocument();
+  });
+
+  it('returns from detail to the per-area sections through the back control', async () => {
+    vi.spyOn(AreaContextModule, 'useArea').mockReturnValue(areaContextValue({ areas: [home, work], currentArea: null }));
+    const Harness = () => {
+      const [openTopicId, setOpenTopicId] = useState<number | null>(null);
+      return <TopicsView openTopicId={openTopicId} onOpenTopic={setOpenTopicId} onCloseTopic={() => setOpenTopicId(null)} />;
+    };
+    render(<Harness />);
+    await userEvent.click(screen.getByRole('button', { name: /Website/ }));
+    expect(screen.getByText('detail-3')).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Home' })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: '← Topics' }));
+    expect(screen.queryByText('detail-3')).not.toBeInTheDocument();
+    expect(within(screen.getByRole('region', { name: 'Home' })).getByRole('button', { name: /Garden/ })).toBeInTheDocument();
+    expect(within(screen.getByRole('region', { name: 'Work' })).getByRole('button', { name: /Website/ })).toBeInTheDocument();
   });
 
   it('New topic passes the selected area, or none on All areas', async () => {

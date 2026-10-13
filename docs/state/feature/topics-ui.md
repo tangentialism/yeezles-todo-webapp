@@ -8,7 +8,7 @@ Phase 3a of the topics feature: the webapp topics UI. Spec: workspace
 
 ## Next action
 
-Task 6: topic detail.
+Task 7: TopicPicker, useTopicSelection, nested dialogs.
 
 ## Verified
 
@@ -35,6 +35,14 @@ Task 6: topic detail.
 - Task 5: TopicsView 8/8, NewTopicDialog 5/5 (incl. portal-bubbling test), each RED
   first (unresolved import / no cards). Full check: `TSC_OK`, tests 399 total /
   399 passed, lint 5 (baseline 5), new failing names empty.
+- Task 6: TopicNoteEditor 5/5, TopicDetail 11/11, TopicDetail.completion 1/1
+  (real stores over a fake API: completing moves the todo to Done (2) and the
+  counts to "0 open · 2 done"), TopicsView back-to-sections 1 new; each RED
+  first (unresolved import / placeholder; the TopicsView test RED by breaking
+  the onBack wiring). The M5 and M6 tests were also shown to fail against the
+  brief's TodoRow-for-done and `void updateTopic` versions. Full check:
+  `TSC_OK`, tests 417 total / 417 passed, lint 5 (baseline 5), new failing
+  names empty.
 
 ## Assumed
 
@@ -71,6 +79,16 @@ Task 6: topic detail.
   propagation of submit and Cmd/Ctrl+Enter keydown so it cannot reach an
   enclosing todo form. The query error message is read with an `instanceof
   Error` guard because `error` is typed `{}` here.
+- Task 6 (ruling M5): done todos in topic detail render through `DoneItem`, not
+  `TodoRow` (which shows a completed todo as "Completing…" with Undo).
+  `DoneItem` moved from `AccomplishmentsView.tsx` to `src/components/DoneItem.tsx`
+  and gained `showTopic` (default true). Done todos in detail therefore have no
+  "mark incomplete" control. (M6) Archive/Unarchive is awaited; a failure shows
+  an error toast via `useToast`. (L10) Only `TOPIC_NOT_FOUND` shows "Topic not
+  found"; any other load error shows "Could not load this topic" with Try
+  Again. (L1/L2) The no-chip assertion runs inside a `TopicNavigationContext`
+  provider and checks the topic name is absent from the list; "archives and
+  unarchives" is split into an Archive and an Unarchive test.
 
 ## Resume
 
