@@ -10,9 +10,14 @@ hand-back. Spec: workspace
 
 ## Next action
 
-Task 5: review components.
+Task 6: review page and route.
 
 ## Verified
+
+- Task 5: `ProposalSections.test.tsx` written first and RED (unresolved import
+  `../ProposalTopicSection`), then GREEN: 9 passed (brief's 8 plus 1 for
+  Ruling L25). Full check: `TSC_OK`; 514 tests, 514 passed, 0 failing names;
+  lint now 5, baseline 5; new failing names empty.
 
 - Task 4: `proposalDraft.serialize.test.ts` written first and RED (8 failed,
   `serialize`/`summarizeAccepted` not functions), then GREEN: serialize 8 +
@@ -68,6 +73,11 @@ Task 5: review components.
   for a taken new topic). `renameTopic` keeps `taken` (and Use existing) while
   `normName(name) === normName(takenName)`, else plain validation; round-trip
   test added. No brief test changed behaviour.
+- Rulings H3, L25, L26, L24, L6, L14 (UI) applied to Task 5: test imports no
+  `vi`; open count only when `openCount !== null` (test added); topic headings
+  are h2, in `ReadOnlyProposal` too; no Enter-to-add or form on the inline
+  new-topic field; duplicate "Topic name" names accepted; Use existing shown
+  while `taken`. No brief test changed behaviour.
 - Ruling L12: an existing topic section with no rows left is hidden; spec §6.2
   says one section per topic.
 - Ruling L19: `draftTopicFromArea` is the single exported function, no local
