@@ -41,15 +41,20 @@ const AccountMenu: React.FC<AccountMenuProps> = ({ onManagePasskeys, onManageTok
         aria-label="Account menu"
         aria-haspopup="menu"
         aria-expanded={isOpen}
-        className={`w-10 h-10 rounded-full bg-hover text-sm font-semibold text-ink overflow-hidden flex items-center justify-center transition-shadow ${
-          isOpen ? 'ring-[3px] ring-accent/20' : ''
-        }`}
+        className="w-11 h-11 sm:w-10 sm:h-10 rounded-full flex items-center justify-center"
       >
-        {user?.picture ? (
-          <img src={user.picture} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-        ) : (
-          initial
-        )}
+        {/* 44px target on phones around a 32px avatar; 40px avatar from sm up */}
+        <span
+          className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-hover text-[13px] sm:text-sm font-semibold text-ink overflow-hidden flex items-center justify-center transition-shadow ${
+            isOpen ? 'ring-[3px] ring-accent/20' : ''
+          }`}
+        >
+          {user?.picture ? (
+            <img src={user.picture} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+          ) : (
+            initial
+          )}
+        </span>
       </button>
 
       {isOpen && (

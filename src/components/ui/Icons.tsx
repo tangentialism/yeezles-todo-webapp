@@ -32,6 +32,21 @@ export const SunIcon: React.FC<IconProps> = (p) => (
   </Stroke>
 );
 
+/** Three ruled lines: the "All" list. */
+export const ListIcon: React.FC<IconProps> = (p) => (
+  <Stroke {...p}>
+    <path d="M5 7h14M5 12h14M5 17h9" />
+  </Stroke>
+);
+
+/** Tick in a circle: the "Done" view. */
+export const CircleCheckIcon: React.FC<IconProps> = (p) => (
+  <Stroke {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M8 12.5l3 3 5-6" />
+  </Stroke>
+);
+
 export const CheckIcon: React.FC<IconProps> = (p) => (
   <Stroke strokeWidth={3} {...p}>
     <path d="M5 12.5l4.5 4.5L19 7.5" />
