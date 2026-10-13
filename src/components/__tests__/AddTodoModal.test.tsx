@@ -9,6 +9,8 @@ import type { Area } from '../../types/area';
 // Mock the hooks
 vi.mock('../../hooks/useTodoStore');
 vi.mock('../../contexts/AreaContext');
+// The topic picker reads topics; this file has no QueryClient
+vi.mock('../../hooks/useTopicStore', () => ({ useTopics: () => ({ data: [] }), useTopicMutations: () => ({}) }));
 // AI categorization (no area picked) and the success toast; neither is under test here
 vi.mock('../../hooks/useApi', () => ({
   useApi: () => ({

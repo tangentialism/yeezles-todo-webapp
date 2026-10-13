@@ -6,6 +6,8 @@ import { useToast } from '../contexts/ToastContext';
 import { logger } from '../utils/logger';
 import Dialog from './ui/Dialog';
 import AreaChips from './ui/AreaChips';
+import TopicPicker from './topics/TopicPicker';
+import { useTopicSelection } from '../hooks/useTopicSelection';
 import Switch from './ui/Switch';
 import { CalendarIcon, LinkIcon, Spinner, SunIcon } from './ui/Icons';
 import { fieldHint, fieldInput, fieldLabel, fieldOptional, ghostButton, primaryButton } from './ui/styles';
@@ -38,6 +40,7 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
   const [dueDate, setDueDate] = useState('');
   const [isToday, setIsToday] = useState(false);
   const [selectedAreaId, setSelectedAreaId] = useState<number | null>(null);
+  const { topicId, cleared: topicCleared, selectTopic, changeArea, reset: resetTopic } = useTopicSelection(selectedAreaId, setSelectedAreaId);
   const [referenceUrl, setReferenceUrl] = useState('');
   const [isCategorizing, setIsCategorizing] = useState(false);
   const { createTodo, isCreating } = useTodoStore();
@@ -51,6 +54,7 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
     if (isOpen) {
       // Default to null so AI can categorize (per Issue #4)
       setSelectedAreaId(null);
+      resetTopic(null, null);
       // Auto-enable "Add to Today List" when on Today tab
       setIsToday(currentView === 'today');
       if (initialData) {
@@ -59,7 +63,7 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
         if (initialData.referenceUrl) setReferenceUrl(initialData.referenceUrl);
       }
     }
-  }, [isOpen, currentView, initialData]);
+  }, [isOpen, currentView, initialData, resetTopic]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,6 +108,8 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
         due_date: dueDate ? new Date(dueDate).toISOString() : undefined,
         is_today: isToday,
         area_id: finalAreaId,
+        // A topic implies its area, which the picker already set (spec §5.4)
+        ...(topicId !== null ? { topic_id: topicId } : {}),
         reference_url: referenceUrl.trim() || undefined,
       };
 
@@ -115,6 +121,7 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
       setDueDate('');
       setIsToday(false);
       setSelectedAreaId(null);
+      resetTopic(null, null);
       setReferenceUrl('');
       
       // Notify parent with the assigned area info
@@ -141,6 +148,7 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
       setDueDate('');
       setIsToday(false);
       setSelectedAreaId(null);
+      resetTopic(null, null);
       setReferenceUrl('');
       onClose();
     }
@@ -202,7 +210,7 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
             <AreaChips
               areas={areas}
               value={selectedAreaId}
-              onChange={setSelectedAreaId}
+              onChange={changeArea}
               nullLabel="Auto"
               disabled={isSubmitting}
               labelId="area-label"
@@ -211,6 +219,15 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
               <p className={fieldHint}>Auto picks an area from the title and notes.</p>
             )}
           </div>
+
+          <TopicPicker
+            id="topic"
+            areaId={selectedAreaId}
+            value={topicId}
+            onChange={selectTopic}
+            showCleared={topicCleared}
+            disabled={isSubmitting}
+          />
 
           <div>
             <label htmlFor="dueDate" className={fieldLabel}>

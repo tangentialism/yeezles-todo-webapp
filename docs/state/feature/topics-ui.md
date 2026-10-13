@@ -8,7 +8,7 @@ Phase 3a of the topics feature: the webapp topics UI. Spec: workspace
 
 ## Next action
 
-Task 8: the picker in the three forms (todo-form half of Escape-closes-only-the-topic-dialog pinned there).
+Task 9: AREA_HAS_TOPICS on area delete.
 
 ## Verified
 
@@ -51,6 +51,13 @@ Task 8: the picker in the three forms (todo-form half of Escape-closes-only-the-
   onClose/closeDisabled in refs): Dialog.nested 5/5, the flushSync test RED
   first. Full check: `TSC_OK`, tests 432 total / 432 passed, lint 5 (baseline
   5), new failing names empty.
+- Task 8: TodoForms.topics 10/10 (brief's 7 plus New-topic-does-not-create-todo,
+  Escape-closes-only-topic-dialog, late-loading-area), RED first (no Topic label
+  on any form); the late-area test also shown RED with the guard removed.
+  AddTodoModal.test given a useTopicStore mock (RED: No QueryClient set).
+  EditTodoModal/CreateTodoFromExternal have no other suites. Full check:
+  `TSC_OK`, tests 442 total / 442 passed, lint 5 (baseline 5), new failing
+  names empty.
 
 ## Assumed
 
@@ -102,6 +109,11 @@ Task 8: the picker in the three forms (todo-form half of Escape-closes-only-the-
   `<label>` in a `fieldLabel` div, not inside it: the brief's markup gave the
   select the accessible name "Topic optional", so `getByLabelText('Topic')`
   in the brief's own tests failed.
+- Task 8 (rulings H3/M2/L11): forms destructure the selection hook's members and
+  depend on the stable `resetTopic` (already a useCallback), so lint stays at 5.
+  AddTodoModal.test mocks useTopicStore. CreateTodoFromExternal's currentArea
+  effect skips the overwrite once a topic is chosen (topic id read via a ref so
+  the effect still depends only on currentArea).
 
 ## Resume
 
