@@ -8,7 +8,7 @@ Phase 3a of the topics feature: the webapp topics UI. Spec: workspace
 
 ## Next action
 
-Task 5: Topics tab list, cards and New topic.
+Task 6: topic detail.
 
 ## Verified
 
@@ -32,6 +32,9 @@ Task 5: Topics tab list, cards and New topic.
 - Task 4: Navigation Topics tab, PhoneTabBar Topics tab, Dashboard.topics, each
   RED first (3 failing tests). Full check: `TSC_OK`, tests 386 total / 386
   passed, lint 5 (baseline 5), new failing names empty.
+- Task 5: TopicsView 8/8, NewTopicDialog 5/5 (incl. portal-bubbling test), each RED
+  first (unresolved import / no cards). Full check: `TSC_OK`, tests 399 total /
+  399 passed, lint 5 (baseline 5), new failing names empty.
 
 ## Assumed
 
@@ -63,6 +66,11 @@ Task 5: Topics tab list, cards and New topic.
   (now `useCallback` on `currentView`; `openTopic` is `useCallback` on it), so
   the fade and scroll save apply. The PhoneTabBar test "renders the three views"
   is renamed "renders the four views".
+- Task 5: TopicsView filters topics to the selected area itself (the brief's
+  component did not, so two of its tests failed). NewTopicDialog's form stops
+  propagation of submit and Cmd/Ctrl+Enter keydown so it cannot reach an
+  enclosing todo form. The query error message is read with an `instanceof
+  Error` guard because `error` is typed `{}` here.
 
 ## Resume
 
