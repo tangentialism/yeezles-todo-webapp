@@ -2,6 +2,55 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Design tokens (RGB channels, consumed by tailwind.config.js). */
+:root {
+  --paper: 246 248 250;
+  --surface: 255 255 255;
+  --ink: 20 26 33;
+  --ink-2: 62 70 81;
+  --ink-muted: 91 100 112;
+  --ink-faint: 125 134 147;
+  --line: 230 234 239;
+  --line-strong: 216 222 229;
+  --hover: 237 241 245;
+  --accent: 47 91 234;
+  --accent-soft: 234 240 253;
+  --accent-ink: 53 80 184;
+  --danger: 180 35 24;
+  --danger-soft: 253 238 236;
+  --ok: 46 158 91;
+}
+
+@layer base {
+  body {
+    @apply bg-paper text-ink font-sans antialiased;
+  }
+  :focus-visible {
+    outline: 2px solid rgb(var(--accent));
+    outline-offset: 2px;
+  }
+}
+
+/* Newly created todo: slide in with a brief accent wash. */
+@keyframes row-fresh {
+  0% { opacity: 0; transform: translateY(-6px); background-color: rgb(var(--accent-soft)); }
+  20% { opacity: 1; transform: none; }
+  100% { background-color: transparent; }
+}
+
+.animate-row-fresh {
+  animation: row-fresh 1.4s ease-out;
+}
+
+@keyframes dialog-rise {
+  from { opacity: 0; transform: translateY(10px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+
+.animate-dialog-rise {
+  animation: dialog-rise 0.2s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
 /* Custom animations for subtle interactions */
 @keyframes gentle-fade-in {
   0% {
