@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Dashboard from '../Dashboard';
+import { NEW_AREA_HIGHLIGHT_MS } from '../../constants';
 import { useOpenTopic } from '../../hooks/useOpenTopic';
 
 vi.mock('../Navigation', () => ({
@@ -62,5 +63,20 @@ describe('Dashboard: opening a topic', () => {
     render(<Dashboard />);
     expect(screen.getByTestId('view')).toHaveTextContent('topics');
     expect(screen.getByTestId('highlight')).toHaveTextContent('30,31');
+  });
+
+  it('the highlight clears after NEW_AREA_HIGHLIGHT_MS (final review M8)', () => {
+    vi.useFakeTimers();
+    try {
+      handoff.value = { view: 'topics', areaId: 2, highlightTopicIds: [30] };
+      render(<Dashboard />);
+      expect(screen.getByTestId('highlight')).toHaveTextContent('30');
+      act(() => vi.advanceTimersByTime(NEW_AREA_HIGHLIGHT_MS - 1));
+      expect(screen.getByTestId('highlight')).toHaveTextContent('30');
+      act(() => vi.advanceTimersByTime(1));
+      expect(screen.getByTestId('highlight')).toBeEmptyDOMElement();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

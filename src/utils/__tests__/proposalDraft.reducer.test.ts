@@ -105,6 +105,18 @@ describe('draftReducer', () => {
     expect(row(d, 7)).toMatchObject({ target: 't:11', accepted: true });
   });
 
+  it('a name error clears once the clashing topic is renamed away (final review M3)', () => {
+    let d = run({ type: 'addTopic', name: 'Patio' });
+    d = draftReducer(d, { type: 'renameTopic', key: 'n:2', name: 'Kitchen reno' });
+    expect(findTopic(d, 'n:2')?.nameError).toBe('A topic named "Kitchen reno" already exists.');
+    d = draftReducer(d, { type: 'renameTopic', key: 'n:0', name: 'Pantry' });
+    expect(findTopic(d, 'n:2')).toMatchObject({ name: 'Kitchen reno', nameError: null });
+    expect(findTopic(d, 'n:0')).toMatchObject({ name: 'Pantry', nameError: null });
+    // The L14 taken rule is untouched: the taken topic stays taken, with no nameError.
+    expect(findTopic(d, 'n:1')).toMatchObject({ taken: true, takenName: 'Taken', nameError: null });
+    expect(applyBlocker(d)).toBe('Fix 1 topic name first.');
+  });
+
   it('useExisting turns the taken new topic into the existing one, rows following', () => {
     const d = run({ type: 'useExisting', key: 'n:1' });
     expect(findTopic(d, 'n:1')).toBeUndefined();

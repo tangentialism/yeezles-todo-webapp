@@ -18,11 +18,27 @@ vi.mock('../../../contexts/ToastContext', () => ({ useToast: () => ({ showToast,
 const applyProposal = vi.fn();
 const rejectProposal = vi.fn();
 const refetch = vi.fn();
+const markResolvedElsewhere = vi.fn();
 
 const mockProposal = (data: ResolvedProposal | undefined, error: Error | null = null) =>
   vi.mocked(ProposalStore.useProposal).mockReturnValue({
     data, isLoading: false, error, refetch,
   } as unknown as ReturnType<typeof ProposalStore.useProposal>);
+
+const mockActions = (flags: { isApplying?: boolean; isRejecting?: boolean } = {}) =>
+  vi.mocked(ProposalStore.useProposalActions).mockReturnValue({
+    applyProposal, rejectProposal, markResolvedElsewhere, isApplying: false, isRejecting: false, ...flags,
+  } as unknown as ReturnType<typeof ProposalStore.useProposalActions>);
+
+/** The fixture with nothing blocking Apply at load: "Taken" is a free new name. */
+const enabledAtLoad = (): ResolvedProposal => {
+  const resolved = makeResolved();
+  resolved.topics = resolved.topics.map((t) =>
+    t.name === 'Taken' ? { ...t, exists: false, id: null, area_id: null, archived: null, open_count: null, done_count: null } : t
+  );
+  resolved.area_topics = resolved.area_topics.filter((t) => t.name !== 'Taken');
+  return resolved;
+};
 
 /** The fixture proposal, resolved with the given status. */
 const resolvedAs = (status: 'applied' | 'rejected', applied: ResolvedProposal['proposal']['applied'] = null): ResolvedProposal => {
@@ -51,11 +67,82 @@ const applyButton = () => screen.getByRole('button', { name: /^Apply/ });
 describe('ProposalReview', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Final review M9: clearAllMocks keeps implementations, so reset the ones
+    // tests set (mockResolvedValue, mockRejectedValue, mockImplementation).
+    for (const mock of [applyProposal, rejectProposal, refetch, markResolvedElsewhere, showToast]) mock.mockReset();
     vi.spyOn(AreaContextModule, 'useArea').mockReturnValue(areaContextValue({ areas: [makeArea({ id: 2, name: 'Home', color: '#43A047' })] }));
-    vi.mocked(ProposalStore.useProposalActions).mockReturnValue({
-      applyProposal, rejectProposal, isApplying: false, isRejecting: false,
-    } as unknown as ReturnType<typeof ProposalStore.useProposalActions>);
+    mockActions();
     mockProposal(makeResolved());
+  });
+
+  it('the first Apply click after load sends the request (final review I2)', async () => {
+    applyProposal.mockResolvedValue({ proposal: { id: 7, status: 'applied' }, created_topics: [] });
+    mockProposal(enabledAtLoad());
+    renderAt();
+    expect(applyButton()).toBeEnabled();
+    await userEvent.click(applyButton());
+    expect(applyProposal).toHaveBeenCalledTimes(1);
+  });
+
+  it('the first Apply click after the proposal arrives, with focus in a field, sends the request (final review I2)', async () => {
+    applyProposal.mockResolvedValue({ proposal: { id: 7, status: 'applied' }, created_topics: [] });
+    vi.mocked(ProposalStore.useProposal).mockReturnValue({
+      data: undefined, isLoading: true, error: null, refetch,
+    } as unknown as ReturnType<typeof ProposalStore.useProposal>);
+    const { rerender } = renderAt();
+    expect(screen.getByText('Loading proposal...')).toBeInTheDocument();
+    mockProposal(enabledAtLoad());
+    rerender(
+      <MemoryRouter initialEntries={['/topics/proposals/7']}>
+        <Routes>
+          <Route path="/topics/proposals/:id" element={<ProposalReview />} />
+          <Route path="/" element={<Home />} />
+        </Routes>
+      </MemoryRouter>
+    );
+    await userEvent.click(within(screen.getByRole('region', { name: 'Kitchen reno' })).getByRole('textbox', { name: 'Topic description' }));
+    await userEvent.click(applyButton());
+    expect(applyProposal).toHaveBeenCalledTimes(1);
+  });
+
+  it('a 422 while the Unassigned tab is open switches to By topic to show the marks (final review M1)', async () => {
+    applyProposal.mockRejectedValueOnce(new ApiError(422, 'PROPOSAL_INVALID', '1 item(s) cannot be applied; nothing was applied', [
+      { path: 'assignments[2].todo_id', reason: 'todo is in a different area' },
+    ]));
+    renderAt();
+    await userEvent.click(screen.getByRole('button', { name: 'Use existing "Taken"' }));
+    await userEvent.click(screen.getByRole('tab', { name: 'Unassigned (1)' }));
+    await userEvent.click(applyButton());
+    expect(screen.getByRole('tab', { name: 'By topic' })).toHaveAttribute('aria-selected', 'true');
+    expect(within(screen.getByRole('region', { name: 'Garden' })).getByText('todo is in a different area')).toBeInTheDocument();
+  });
+
+  it('a 409 on apply also refreshes the pending list (final review M2)', async () => {
+    applyProposal.mockRejectedValueOnce(new ApiError(409, 'PROPOSAL_RESOLVED', 'Proposal is already applied'));
+    renderAt();
+    await userEvent.click(screen.getByRole('button', { name: 'Use existing "Taken"' }));
+    await userEvent.click(applyButton());
+    expect(markResolvedElsewhere).toHaveBeenCalledTimes(1);
+  });
+
+  it('a 409 on reject also refreshes the pending list (final review M2)', async () => {
+    rejectProposal.mockRejectedValueOnce(new ApiError(409, 'PROPOSAL_RESOLVED', 'Proposal is already rejected'));
+    renderAt();
+    await userEvent.click(screen.getByRole('button', { name: 'Reject all…' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reject proposal' }));
+    expect(markResolvedElsewhere).toHaveBeenCalledTimes(1);
+  });
+
+  it('Reject all… is disabled while applying, and Apply while rejecting (final review M4)', () => {
+    mockProposal(enabledAtLoad());
+    mockActions({ isApplying: true });
+    const { unmount } = renderAt();
+    expect(screen.getByRole('button', { name: 'Reject all…' })).toBeDisabled();
+    unmount();
+    mockActions({ isRejecting: true });
+    renderAt();
+    expect(applyButton()).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Reject all…' })).toBeDisabled();
   });
 
   it('shows the header, the accepted count, and blocks Apply on the taken name', () => {

@@ -30,6 +30,8 @@ const ProposalTopicSection: React.FC<ProposalTopicSectionProps> = ({ topic, draf
       <div className="flex flex-wrap items-center gap-3 pb-2 border-b-[1.5px] border-ink">
         {topic.kind === 'new' ? (
           <>
+            {/* Final review M5: heading navigation reaches NEW sections too (ruling L26). */}
+            <h2 className="sr-only">{label}</h2>
             <Checkbox
               checked={topic.accepted}
               onChange={() => dispatch({ type: 'toggleTopic', key: topic.key })}

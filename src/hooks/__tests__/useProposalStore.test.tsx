@@ -59,6 +59,16 @@ describe('useProposalStore', () => {
     expect(broadcast).toHaveBeenCalledWith('PROPOSAL_RESOLVED', expect.objectContaining({ id: 7 }));
   });
 
+  it('markResolvedElsewhere refreshes the pending list (final review M2)', () => {
+    const { wrapper, client } = setup();
+    const spy = vi.spyOn(client, 'invalidateQueries');
+    const { result } = renderHook(() => useProposalActions(), { wrapper });
+    act(() => {
+      void result.current.markResolvedElsewhere();
+    });
+    expect(spy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['proposals'] }));
+  });
+
   it('a rejected apply is called once (no retry) and rejects', async () => {
     api.applyProposal.mockRejectedValue(new Error('boom'));
     const { wrapper } = setup();

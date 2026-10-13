@@ -73,6 +73,8 @@ export const useProposalActions = () => {
   return {
     applyProposal: (id: number, accepted: TopicChangesPayload) => apply.mutateAsync({ id, accepted }),
     rejectProposal: reject.mutateAsync,
+    /** After a 409: the proposal left the pending list elsewhere, so refresh the badge and banner now. */
+    markResolvedElsewhere: () => queryClient.invalidateQueries({ queryKey: ['proposals'] }),
     isApplying: apply.isPending,
     isRejecting: reject.isPending,
   };

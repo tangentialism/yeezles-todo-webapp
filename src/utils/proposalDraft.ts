@@ -395,26 +395,37 @@ const addTopic = (draft: Draft, name: string, rowKey?: string, unassignedTodoId?
   let next: Draft = { ...draft, topics: [...draft.topics, topic], nextSeq: draft.nextSeq + 1 };
   if (rowKey) next = redirect(next, rowKey, key);
   if (unassignedTodoId !== undefined) next = setUnassigned(next, unassignedTodoId, key);
-  return next;
+  return recheckNames(next);
 };
+
+/**
+ * Recomputes every new topic's `nameError` against the current names, so an
+ * error goes once its cause does (final review M3). A topic still on its
+ * server-reported taken name keeps `taken` and no `nameError` (ruling L14).
+ */
+const recheckNames = (draft: Draft): Draft => ({
+  ...draft,
+  topics: draft.topics.map((t) => {
+    if (t.kind !== 'new' || t.taken) return t;
+    const nameError = validateTopicName(draft, t.name, t.key);
+    return nameError === t.nameError ? t : { ...t, nameError };
+  }),
+});
 
 /**
  * The in-place name field is the "Rename" (spec §6.2). A taken topic stays
  * taken (and keeps Use existing) while its name matches the original taken
- * name; once it differs, plain name validation applies (ruling L14).
+ * name; once it differs, plain name validation applies (ruling L14). Every
+ * other new topic's name is then rechecked.
  */
 const renameTopic = (draft: Draft, key: string, name: string): Draft =>
-  mapTopic(draft, key, (t) => {
-    if (t.kind !== 'new') return t;
-    const stillTaken = t.takenName !== null && normName(name) === normName(t.takenName);
-    return {
-      ...t,
-      name,
-      taken: stillTaken,
-      nameError: stillTaken ? null : validateTopicName(draft, name, key),
-      error: null,
-    };
-  });
+  recheckNames(
+    mapTopic(draft, key, (t) => {
+      if (t.kind !== 'new') return t;
+      const stillTaken = t.takenName !== null && normName(name) === normName(t.takenName);
+      return { ...t, name, taken: stillTaken, nameError: null, error: null };
+    })
+  );
 
 /** Applies one user action. Every action clears the error of the item it touches. */
 export const draftReducer = (draft: Draft, action: DraftAction): Draft => {

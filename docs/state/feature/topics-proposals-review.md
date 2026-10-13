@@ -1,6 +1,6 @@
 <!-- verified-at: HEAD -->
 
-# feature/topics-proposals-review — in flight
+# feature/topics-proposals-review — landing record
 
 Phase 3b of the topics feature: the webapp proposal review screen at
 `/topics/proposals/:id`, plus the pending badge, banner and dashboard
@@ -14,6 +14,51 @@ PR review; then the workspace pin bump to the merge commit; then phase 4
 (remove dead tags). Push and `gh pr create --base master` are gated on David.
 
 ## Verified
+
+### Run by the final-review fix wave session (2026-10-13)
+
+- Final-review fix wave: full check (the script itself,
+  `/Users/davidyee/Code/yeezles-todo-webapp-wt/topics-proposals-review-check.sh`,
+  ran without refusal): `TSC_OK`; 557 tests, 557 passed, 0 failing names;
+  lint now 5, baseline 5; new failing names empty. Named suites (same 25
+  files as Task 8): 186 tests passed. `npm run build`: succeeded, 245
+  modules. `ProposalReview.test.tsx` also passed (23/23) under
+  `--sequence.shuffle` with seeds 1-12.
+- Fixes, each with its test RED first, then GREEN:
+  - F-I1: this record retitled "landing record"; item 6 no longer claims By
+    topic showed Hang shelf under Pantry (moved to Assumed).
+  - F-M1: a 422 while the Unassigned tab is open switches to By topic
+    (`setTab('topics')`), so the marked rows are on screen. RED: By topic
+    `aria-selected="false"` after the 422.
+  - F-M2: `useProposalActions` gains `markResolvedElsewhere()` (invalidates
+    `['proposals']`), called in both 409 branches, so the badge and banner
+    drop the proposal without waiting for the poll. RED: hook test
+    "markResolvedElsewhere is not a function"; review tests for apply 409 and
+    reject 409 "called 0 times".
+  - F-M3: `proposalDraft.ts` rechecks every non-taken new topic's
+    `nameError` after `renameTopic` and `addTopic` (`recheckNames`); a topic
+    on its server-reported taken name keeps `taken` and no `nameError`
+    (ruling L14 unchanged). Renaming B to A's name and then A away clears B's
+    error. A side effect: renaming B onto a new topic A's name now marks both
+    (both would collide). RED: B kept "already exists".
+  - F-M4: Reject all… and Apply are both disabled while
+    `isApplying || isRejecting`. RED: Reject all… enabled while applying.
+  - F-M5: a NEW section has an `sr-only` `h2` holding its label (follows
+    renames), matching existing sections (ruling L26). RED: no heading "Kitchen
+    reno" in the NEW section.
+  - F-M8: fake-timer test that the Dashboard highlight is still set at
+    `NEW_AREA_HIGHLIGHT_MS - 1` and clears at `NEW_AREA_HIGHLIGHT_MS`. A pin
+    on existing code: shown failing with the timer's clear sabotaged
+    (`Received: "30"`), passing restored.
+  - F-M9: `ProposalReview.test.tsx`'s `beforeEach` calls `mockReset()` on
+    `applyProposal`, `rejectProposal`, `refetch`, `markResolvedElsewhere` and
+    `showToast`. No RED: the leak was latent; 12 shuffled seeds passed before
+    and after.
+  - F-I2: two pins in `ProposalReview.test.tsx`: the first Apply click right
+    after load calls `applyProposal` once; likewise after a loading render
+    then focus in a field. Both passed on the unchanged code; the first
+    failed when the click handler was sabotaged to swallow a first click,
+    so the pin can see the bug class. No cause found (see Assumed).
 
 ### Run by the Task 8 session (2026-10-13)
 
@@ -50,8 +95,9 @@ PR review; then the workspace pin bump to the merge commit; then phase 4
   4. SEEN: redirecting "Fix sink" from Kitchen reno to Garden moves the row
      under a Garden section.
   5. SEEN: renaming "Review test" to "Pantry" renames the rows' topic select.
-  6. SEEN: Unassigned (2) tab, "Hang shelf" set to Pantry; By topic shows it
-     under Pantry, "5 of 5 accepted", "Apply 5 changes".
+  6. SEEN: Unassigned (2) tab, "Hang shelf" set to Pantry; "5 of 5
+     accepted", "Apply 5 changes". (That By topic then lists it under Pantry
+     was not recorded; see Assumed.)
   7. SEEN (landing); highlight SEEN on the Review Focus 5 run only: after
      Apply the app landed on the Topics tab with Pantry (2 open, note
      "First."), Garden 1 open, badge "Topics 2". The 2 s highlight had ended
@@ -149,12 +195,30 @@ PR review; then the workspace pin bump to the merge commit; then phase 4
   seen on screen; only the cross-area run (proposal 3) recorded it.
 - Layout at 390 px and 1280 px was seen for the review page only (iframes);
   the badge, banner and landing were seen at 606 px.
-- In the automation, the first Apply click after a page navigation sent no
-  request (no `POST /apply` in the backend log); a second click applied. Taken
-  as a harness artifact of the hidden tab, not reproduced by hand.
+- First Apply click after load dropped twice in hidden-tab automation; no
+  cause found in code or jsdom; needs a visible-tab hand check. (Task 8 saw no
+  `POST /apply` in the backend log for the first click on proposals 2 and 3;
+  a second click applied.) The fix wave read the Apply path: no
+  effect-initialised state gates the button after the draft exists, no
+  blur/focus handlers on the review inputs, no document mousedown listener
+  while the page is open; jsdom pins pass. One unverified candidate for the
+  hand check: the app's toast stack is `fixed bottom-4 left-4 right-4 z-50`
+  below 640 px (the walkthrough ran at 606 px) and sits over the review
+  footer (`z-20`), with its Dismiss button at the right where Apply is. Both
+  dropped clicks came after an earlier apply in the session (which shows an
+  "Applied: …" toast); whether that toast was still up, perhaps kept by a
+  hidden tab's throttled 5 s dismiss timer, is not known. Check: at phone
+  width, apply one proposal, open another within 5 s and click Apply once;
+  then repeat with no toast showing.
+- Item 6: that the By topic tab then listed "Hang shelf" under Pantry was not
+  recorded. Indirect evidence: after apply, item 7 saw Pantry with 2 open.
 
 ## Deviations
 
+- Ruling F-M6/M7: tablist aria and banner role=status left as is.
+- Final-review fix wave: M3's recheck also marks a new topic A when another
+  new topic is renamed onto A's name (both would collide on apply); before,
+  only the renamed one was marked.
 - Task 8: FEATURES.md's Topics section is extended as briefed; README's Topics
   bullet under "Completed Features" gains a clause on proposal review (Ruling
   L17). The named-suite run includes Ruling L16's extra suites.
@@ -249,7 +313,8 @@ PR review; then the workspace pin bump to the merge commit; then phase 4
 
 Branch `feature/topics-proposals-review` in
 `/Users/davidyee/Code/yeezles-todo-workspace/.claude/worktrees/topics-phase3/yeezles-todo-webapp`.
-Tasks 0-8 are done and the final check is green. Continue at Next action:
+Tasks 0-8 and the final-review fix wave are done and the final check is
+green. Continue at Next action:
 push and open the PR against `master` only once David says so. Every git
 command uses `-C` with that path. Run
 `/Users/davidyee/Code/yeezles-todo-webapp-wt/topics-proposals-review-check.sh`

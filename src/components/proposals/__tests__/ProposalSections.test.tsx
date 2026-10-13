@@ -37,6 +37,16 @@ describe('review sections', () => {
     expect(within(garden).getByText('Bulbs ordered.')).toBeInTheDocument();
   });
 
+  it('a NEW section has an h2 like an existing one, following renames (final review M5, ruling L26)', async () => {
+    render(<Harness />);
+    const kitchen = screen.getByRole('region', { name: 'Kitchen reno' });
+    expect(within(kitchen).getByRole('heading', { level: 2, name: 'Kitchen reno' })).toBeInTheDocument();
+    const name = within(kitchen).getByRole('textbox', { name: 'Topic name' });
+    await userEvent.clear(name);
+    await userEvent.type(name, 'Pantry');
+    expect(within(screen.getByRole('region', { name: 'Pantry' })).getByRole('heading', { level: 2, name: 'Pantry' })).toBeInTheDocument();
+  });
+
   it('shows no open count for a topic whose count is unknown', () => {
     render(<Harness />);
     const website = screen.getByRole('region', { name: 'Website' });

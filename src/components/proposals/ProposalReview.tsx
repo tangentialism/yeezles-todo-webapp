@@ -50,7 +50,9 @@ const ProposalReview: React.FC = () => {
   const { areas } = useArea();
   const { showToast } = useToast();
   const { data: resolved, isLoading, error, refetch } = useProposal(validId ? id : null);
-  const { applyProposal, rejectProposal, isApplying, isRejecting } = useProposalActions();
+  const { applyProposal, rejectProposal, markResolvedElsewhere, isApplying, isRejecting } = useProposalActions();
+  // Final review M4: one footer action at a time.
+  const busy = isApplying || isRejecting;
   const [draft, dispatch] = useReducer(reviewReducer, null);
   const [tab, setTab] = useState<'topics' | 'unassigned'>('topics');
   const [banner, setBanner] = useState<'invalid' | 'resolved-elsewhere' | null>(null);
@@ -129,6 +131,7 @@ const ProposalReview: React.FC = () => {
       setConfirmReject(false);
       if (isApiError(err, 'PROPOSAL_RESOLVED')) {
         setBanner('resolved-elsewhere');
+        markResolvedElsewhere();
         await refetch();
       } else {
         showToast({ message: `Could not reject: ${err instanceof Error ? err.message : 'unexpected error'}`, type: 'error' });
@@ -154,7 +157,7 @@ const ProposalReview: React.FC = () => {
   const footer = (applyArea: React.ReactNode) => (
     <div className="fixed inset-x-0 bottom-0 z-20 bg-paper/95 backdrop-blur border-t border-line-strong">
       <div className="max-w-[760px] mx-auto px-4 py-3 flex items-center gap-3">
-        <button type="button" className={dangerTextButton} onClick={() => setConfirmReject(true)}>
+        <button type="button" className={dangerTextButton} onClick={() => setConfirmReject(true)} disabled={busy}>
           Reject all…
         </button>
         {applyArea}
@@ -203,11 +206,14 @@ const ProposalReview: React.FC = () => {
     } catch (err) {
       if (isApiError(err, 'PROPOSAL_INVALID')) {
         dispatch({ type: 'attachErrors', errors: err.errors, pathIndex });
+        // Final review M1: the marked rows render only on the By topic tab.
+        setTab('topics');
         setBanner('invalid');
         requestAnimationFrame(() => document.querySelector('[data-draft-error="true"]')?.scrollIntoView?.({ block: 'center' }));
       } else if (isApiError(err, 'PROPOSAL_RESOLVED')) {
         // Spec §7.1: refetch, which brings the resolved status and the read-only view.
         setBanner('resolved-elsewhere');
+        markResolvedElsewhere();
         await refetch();
       } else {
         showToast({ message: `Could not apply: ${err instanceof Error ? err.message : 'unexpected error'}`, type: 'error' });
@@ -254,7 +260,7 @@ const ProposalReview: React.FC = () => {
       {footer(
         <>
           <span className="flex-1 text-right text-[12.5px] text-ink-muted">{blocker}</span>
-          <button type="button" className={primaryButton} disabled={blocker !== null || isApplying} onClick={handleApply}>
+          <button type="button" className={primaryButton} disabled={blocker !== null || busy} onClick={handleApply}>
             {isApplying && <Spinner className="w-4 h-4" />}
             {applyLabel(acceptedCount)}
           </button>
