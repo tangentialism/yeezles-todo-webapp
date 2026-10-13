@@ -6,6 +6,7 @@ import { getDueInfo } from '../utils/dueDate';
 import type { DueKind } from '../utils/dueDate';
 import TodoActions from './TodoActions';
 import TodayToggle from './TodayToggle';
+import TopicChip from './topics/TopicChip';
 import { CheckIcon, ExternalLinkIcon } from './ui/Icons';
 
 /** Display flags supplied by the owning store's `getTodoDisplayState`. */
@@ -22,6 +23,8 @@ interface TodoRowProps {
   /** The todo's area, shown as a dot and name when `showArea` is set. */
   area?: Area | null;
   showArea?: boolean;
+  /** Show the topic chip (off in topic detail, where every row has that topic). */
+  showTopic?: boolean;
   /** "today" says "Due" instead of "Today" and hides empty date cells. */
   variant?: 'all' | 'today';
   /** Show the sun toggle; when false a spacer keeps columns aligned. */
@@ -52,6 +55,7 @@ const TodoRow: React.FC<TodoRowProps> = ({
   displayState,
   area,
   showArea = false,
+  showTopic = true,
   variant = 'all',
   showTodayToggle = true,
   isNew = false,
@@ -64,7 +68,8 @@ const TodoRow: React.FC<TodoRowProps> = ({
   const tags = extractTags(todo.title);
   const due = getDueInfo(todo.due_date);
   const whenLabel = variant === 'today' && due.kind === 'today' ? 'Due' : due.label;
-  const hasMeta = (showArea && !!area) || tags.length > 0 || !!todo.reference_url;
+  const topic = showTopic ? (todo.topic ?? null) : null;
+  const hasMeta = (showArea && !!area) || !!topic || tags.length > 0 || !!todo.reference_url;
 
   return (
     <div
@@ -114,6 +119,7 @@ const TodoRow: React.FC<TodoRowProps> = ({
                 {area.name}
               </span>
             )}
+            {topic && <TopicChip topic={topic} color={area?.color} />}
             {tags.map((tag) => (
               <span key={tag} className="font-mono text-xs text-accent-ink">@{tag}</span>
             ))}

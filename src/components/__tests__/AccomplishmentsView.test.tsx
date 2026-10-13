@@ -3,6 +3,8 @@ import { render, screen, within } from '@testing-library/react';
 import AccomplishmentsView from '../AccomplishmentsView';
 import * as useTodoStoreModule from '../../hooks/useTodoStore';
 import * as AreaContextModule from '../../contexts/AreaContext';
+import userEvent from '@testing-library/user-event';
+import { TopicNavigationContext } from '../../hooks/useOpenTopic';
 import type { Todo } from '../../types/todo';
 
 // Mock the useTodoStore hook and the area context (for area names)
@@ -127,6 +129,31 @@ describe('AccomplishmentsView', () => {
     render(<AccomplishmentsView />);
     
     expect(screen.getByText(/failed to load/i)).toBeInTheDocument();
+  });
+
+  it('shows the topic chip on a done todo and opens the topic through the context', async () => {
+    const openTopic = vi.fn();
+    const done: Todo = {
+      id: 9, title: 'Order tiles', description: '', completed: true,
+      completed_at: new Date().toISOString(), created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(), due_date: null, is_today: false, tags: [],
+      area_id: null, reference_url: null, topic_id: 3, topic: { id: 3, name: 'Kitchen reno' },
+    };
+    vi.spyOn(useTodoStoreModule, 'useTodoStore').mockReturnValue({
+      todos: [done, { ...done, id: 10, title: 'No topic here', topic_id: null, topic: null }],
+      isLoading: false, isRefetching: false, error: null,
+    } as never);
+
+    render(
+      <TopicNavigationContext.Provider value={openTopic}>
+        <AccomplishmentsView />
+      </TopicNavigationContext.Provider>
+    );
+
+    const chips = screen.getAllByRole('button', { name: 'Open topic Kitchen reno' });
+    expect(chips).toHaveLength(1);
+    await userEvent.click(chips[0]);
+    expect(openTopic).toHaveBeenCalledWith(3);
   });
 });
 

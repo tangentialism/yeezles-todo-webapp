@@ -8,7 +8,7 @@ Phase 3a of the topics feature: the webapp topics UI. Spec: workspace
 
 ## Next action
 
-Task 3: topic chip on todo rows.
+Task 4: Topics view in the navigation.
 
 ## Verified
 
@@ -25,6 +25,10 @@ Task 3: topic chip on todo rows.
   each RED first (unresolved import; missing invalidations). Full check:
   `TSC_OK`, tests 365 total / 365 passed, lint 5 (baseline 5), new failing
   names empty.
+- Task 3: topicStaleness 4/4, formatRelative 9/9, TopicChip 4/4, AccomplishmentsView
+  Done-chip test, each RED first (unresolved imports / missing export). Full check:
+  `TSC_OK`, tests 383 total / 383 passed, lint 5 (baseline 5), new failing names
+  empty.
 
 ## Assumed
 
@@ -49,6 +53,9 @@ Task 3: topic chip on todo rows.
   from `useTopicStore`, to avoid an import cycle with `useCrossTabSync`.
   Rulings M3/M4: todo create/update/delete and the cross-tab TODO_* handler also
   invalidate `['topic']`; moveToToday/removeFromToday invalidate `['topicTodos']`.
+- Task 3 (ruling M1): spec §5.3 wants the chip on every row, Done included.
+  `DoneItem` in `AccomplishmentsView.tsx` renders the same `TopicChip` (area
+  colour, open-topic context); test added in `AccomplishmentsView.test.tsx`.
 
 ## Resume
 

@@ -5,6 +5,7 @@ import { groupTodosByCompletionDate, formatCompletionDateGroup, calculateComplet
 import { extractTags, stripTags } from '../utils/todoText';
 import { ViewEmpty, ViewError, ViewHeader, ViewLoading } from './ViewChrome';
 import { CheckIcon } from './ui/Icons';
+import TopicChip from './topics/TopicChip';
 import type { Todo } from '../types/todo';
 import type { Area } from '../types/area';
 
@@ -108,7 +109,7 @@ const DoneItem: React.FC<{ todo: Todo; area?: Area }> = ({ todo, area }) => {
         {todo.description && (
           <p className="text-[13px] text-ink-muted line-clamp-2">{todo.description}</p>
         )}
-        {(area || tags.length > 0) && (
+        {(area || todo.topic || tags.length > 0) && (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[12.5px] text-ink-muted">
             {area && (
               <span className="inline-flex items-center gap-1.5">
@@ -116,6 +117,7 @@ const DoneItem: React.FC<{ todo: Todo; area?: Area }> = ({ todo, area }) => {
                 {area.name}
               </span>
             )}
+            {todo.topic && <TopicChip topic={todo.topic} color={area?.color} />}
             {tags.map((tag) => (
               <span key={tag} className="font-mono text-xs text-accent-ink">@{tag.replace(/^@/, '')}</span>
             ))}

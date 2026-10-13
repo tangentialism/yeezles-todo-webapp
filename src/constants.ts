@@ -97,3 +97,16 @@ export const TOAST_ENTRANCE_DELAY_MS = 10;
 
 /** Toast exit animation duration. */
 export const TOAST_EXIT_ANIMATION_MS = 200;
+
+// ── Topics ────────────────────────────────────────────────────────────
+
+/** A note older than this, on a topic with open todos, is marked stale (topics spec §7.1). */
+export const TOPIC_STALE_DAYS = 14;
+
+/** Backend limits for topics (API.md "Topics Management"). */
+export const TOPIC_NAME_MAX = 100;
+export const TOPIC_DESCRIPTION_MAX = 2000;
+export const TOPIC_NOTE_MAX = 10_000;
+
+/** The note's character counter appears from this length. */
+export const TOPIC_NOTE_COUNTER_FROM = 9_000;
