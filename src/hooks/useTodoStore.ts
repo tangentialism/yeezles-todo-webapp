@@ -347,7 +347,7 @@ export const useTodoStore = (options: UseTodoStoreOptions = {}) => {
       if (newCompleted) {
         const todoTitle = todo.title.length > TITLE_TRUNCATION_LENGTH ? `${todo.title.substring(0, TITLE_TRUNCATION_LENGTH)}...` : todo.title;
         undoToastId = showToast({
-          message: `Completed "${todoTitle}" • Click to undo`,
+          message: `Completed "${todoTitle}"`,
           type: 'success',
           duration: UNDO_TOAST_DURATION_MS,
           action: {

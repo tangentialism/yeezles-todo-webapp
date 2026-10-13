@@ -9,6 +9,15 @@ import type { Area } from '../../types/area';
 // Mock the hooks
 vi.mock('../../hooks/useTodoStore');
 vi.mock('../../contexts/AreaContext');
+// AI categorization (no area picked) and the success toast; neither is under test here
+vi.mock('../../hooks/useApi', () => ({
+  useApi: () => ({
+    categorizeTodo: vi.fn().mockResolvedValue({ success: false, data: {} }),
+  }),
+}));
+vi.mock('../../contexts/ToastContext', () => ({
+  useToast: () => ({ showToast: vi.fn(), hideToast: vi.fn() }),
+}));
 
 describe('AddTodoModal', () => {
   const mockCreateTodo = vi.fn();
@@ -268,7 +277,7 @@ describe('AddTodoModal', () => {
         />
       );
       
-      expect(screen.getByText('Add New Todo')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'New todo' })).toBeInTheDocument();
     });
 
     it('should not render when isOpen is false', () => {
@@ -280,7 +289,7 @@ describe('AddTodoModal', () => {
         />
       );
       
-      expect(screen.queryByText('Add New Todo')).not.toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'New todo' })).not.toBeInTheDocument();
     });
 
     it('should call onClose when close button is clicked', async () => {
@@ -294,7 +303,7 @@ describe('AddTodoModal', () => {
         />
       );
       
-      const closeButton = screen.getByRole('button', { name: '' }); // X button has no text
+      const closeButton = screen.getByRole('button', { name: 'Close' });
       await user.click(closeButton);
       
       expect(mockOnClose).toHaveBeenCalled();

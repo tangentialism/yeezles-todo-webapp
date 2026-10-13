@@ -50,8 +50,8 @@ export const VIEW_TRANSITION_DURATION_MS = 200;
 /** Standard animation delay for deletion/revocation feedback. */
 export const ANIMATION_DELAY_MS = 300;
 
-/** Animation duration for todo list entrance + highlight. */
-export const TODO_ENTRANCE_ANIMATION_MS = 400;
+/** Animation duration for todo list entrance + highlight (matches `animate-row-fresh`). */
+export const TODO_ENTRANCE_ANIMATION_MS = 1400;
 
 /** Animation duration for todo completion visual feedback. */
 export const COMPLETION_ANIMATION_MS = 450;

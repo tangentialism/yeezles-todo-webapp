@@ -100,14 +100,14 @@ const CreateMultipleTodos: React.FC = () => {
 
   if (parsedTodos.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
+      <div className="min-h-screen bg-paper py-8">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-white shadow-lg rounded-lg p-6">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Create Multiple Todos</h1>
-            <p className="text-gray-600">No todos found in the provided data.</p>
+            <h1 className="text-2xl font-bold text-ink mb-4">Create Multiple Todos</h1>
+            <p className="text-ink-muted">No todos found in the provided data.</p>
             <button
               onClick={handleCancel}
-              className="mt-4 px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+              className="mt-4 px-4 py-2 border border-line-strong rounded-md shadow-sm text-sm font-medium text-ink-2 bg-white hover:bg-hover"
             >
               Go Back
             </button>
@@ -118,34 +118,34 @@ const CreateMultipleTodos: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-paper py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white shadow-lg rounded-lg p-6">
           <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">Create Multiple Todos from Obsidian</h1>
+            <h1 className="text-2xl font-bold text-ink">Create Multiple Todos from Obsidian</h1>
             {vault && sourceNote && (
-              <p className="text-sm text-gray-600 mt-2">
-                From: <span className="font-mono bg-gray-100 px-2 py-1 rounded">{vault}/{sourceNote}</span>
+              <p className="text-sm text-ink-muted mt-2">
+                From: <span className="font-mono bg-hover px-2 py-1 rounded">{vault}/{sourceNote}</span>
               </p>
             )}
-            <p className="text-sm text-gray-600 mt-2">
+            <p className="text-sm text-ink-muted mt-2">
               Found {parsedTodos.length} todo(s). Select which ones to create:
             </p>
           </div>
 
           {/* Global settings */}
-          <div className="bg-gray-50 p-4 rounded-lg mb-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Global Settings</h3>
+          <div className="bg-paper p-4 rounded-lg mb-6">
+            <h3 className="text-lg font-medium text-ink mb-4">Global Settings</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="area" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="area" className="block text-sm font-medium text-ink-2 mb-2">
                   Area/Project (applies to all selected todos)
                 </label>
                 <select
                   id="area"
                   value={selectedAreaId || ''}
                   onChange={(e) => setSelectedAreaId(e.target.value ? parseInt(e.target.value) : null)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  className="w-full px-3 py-2 border border-line-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
                 >
                   <option value="">No area</option>
                   {areas.map((area) => (
@@ -161,9 +161,9 @@ const CreateMultipleTodos: React.FC = () => {
                   id="addToToday"
                   checked={addToToday}
                   onChange={(e) => setAddToToday(e.target.checked)}
-                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                  className="h-4 w-4 text-accent focus:ring-accent border-line-strong rounded"
                 />
-                <label htmlFor="addToToday" className="ml-2 block text-sm text-gray-900">
+                <label htmlFor="addToToday" className="ml-2 block text-sm text-ink">
                   Add all selected todos to Today's Focus List
                 </label>
               </div>
@@ -175,18 +175,18 @@ const CreateMultipleTodos: React.FC = () => {
             <div className="flex space-x-2">
               <button
                 onClick={handleSelectAll}
-                className="px-3 py-1 text-sm border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                className="px-3 py-1 text-sm border border-line-strong rounded-md text-ink-2 hover:bg-hover"
               >
                 Select All
               </button>
               <button
                 onClick={handleDeselectAll}
-                className="px-3 py-1 text-sm border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                className="px-3 py-1 text-sm border border-line-strong rounded-md text-ink-2 hover:bg-hover"
               >
                 Deselect All
               </button>
             </div>
-            <span className="text-sm text-gray-600">
+            <span className="text-sm text-ink-muted">
               {selectedTodos.size} of {parsedTodos.length} selected
             </span>
           </div>
@@ -197,7 +197,7 @@ const CreateMultipleTodos: React.FC = () => {
               <div
                 key={index}
                 className={`border rounded-lg p-4 ${
-                  selectedTodos.has(index) ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200'
+                  selectedTodos.has(index) ? 'border-accent bg-accent-soft' : 'border-line'
                 }`}
               >
                 <div className="flex items-start space-x-3">
@@ -205,16 +205,16 @@ const CreateMultipleTodos: React.FC = () => {
                     type="checkbox"
                     checked={selectedTodos.has(index)}
                     onChange={() => handleTodoToggle(index)}
-                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded mt-1"
+                    className="h-4 w-4 text-accent focus:ring-accent border-line-strong rounded mt-1"
                   />
                   <div className="flex-1">
-                    <h4 className="text-lg font-medium text-gray-900">{todo.title}</h4>
+                    <h4 className="text-lg font-medium text-ink">{todo.title}</h4>
                     {todo.description && (
-                      <p className="text-gray-600 text-sm mt-1">{todo.description}</p>
+                      <p className="text-ink-muted text-sm mt-1">{todo.description}</p>
                     )}
                     {todo.source_line && (
-                      <p className="text-xs text-gray-500 mt-2">
-                        Line {todo.source_line}: <span className="font-mono bg-gray-100 px-1 py-0.5 rounded">{todo.original_text}</span>
+                      <p className="text-xs text-ink-muted mt-2">
+                        Line {todo.source_line}: <span className="font-mono bg-hover px-1 py-0.5 rounded">{todo.original_text}</span>
                       </p>
                     )}
                     {todo.completed && (
@@ -229,17 +229,17 @@ const CreateMultipleTodos: React.FC = () => {
           </div>
 
           {/* Action buttons */}
-          <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+          <div className="flex justify-end space-x-3 pt-6 border-t border-line">
             <button
               onClick={handleCancel}
-              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="px-4 py-2 border border-line-strong rounded-md shadow-sm text-sm font-medium text-ink-2 bg-white hover:bg-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent"
             >
               Cancel
             </button>
             <button
               onClick={handleCreateTodos}
               disabled={isCreating || selectedTodos.size === 0}
-              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-ink hover:bg-ink-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent disabled:bg-line-strong disabled:cursor-not-allowed"
             >
               {isCreating ? 'Creating...' : `Create ${selectedTodos.size} Todo(s)`}
             </button>

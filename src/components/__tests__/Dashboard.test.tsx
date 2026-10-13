@@ -38,15 +38,25 @@ const renderDashboard = () =>
     includeQueryClient: false,
   });
 
+// "Manage passkeys" now lives in the account menu behind the avatar button.
+const openAccountMenu = async (user: ReturnType<typeof userEvent.setup>) => {
+  await user.click(screen.getByRole('button', { name: /account menu/i }));
+};
+
 describe('Dashboard - passkey management entry point', () => {
   beforeEach(() => {
     vi.mocked(passkeyApi.listPasskeys).mockResolvedValue([]);
   });
 
-  it('renders a "Manage passkeys" control for a signed-in user', () => {
+  it('renders a "Manage passkeys" control in the account menu for a signed-in user', async () => {
+    const user = userEvent.setup();
     renderDashboard();
 
-    expect(screen.getByRole('button', { name: /manage passkeys/i })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /manage passkeys/i })).not.toBeInTheDocument();
+    await openAccountMenu(user);
+
+    expect(screen.getByRole('menuitem', { name: /manage passkeys/i })).toBeInTheDocument();
+    expect(screen.getByText('ada@example.com')).toBeInTheDocument();
   });
 
   it('opens the passkey modal, showing PasskeyEnrollment content, when clicked', async () => {
@@ -55,7 +65,8 @@ describe('Dashboard - passkey management entry point', () => {
 
     expect(screen.queryByText(/no passkeys enrolled yet/i)).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /manage passkeys/i }));
+    await openAccountMenu(user);
+    await user.click(screen.getByRole('menuitem', { name: /manage passkeys/i }));
 
     // Content only PasskeyEnrollment renders confirms the real component
     // (not a stand-in) is mounted inside the modal.
@@ -66,7 +77,8 @@ describe('Dashboard - passkey management entry point', () => {
     const user = userEvent.setup();
     renderDashboard();
 
-    await user.click(screen.getByRole('button', { name: /manage passkeys/i }));
+    await openAccountMenu(user);
+    await user.click(screen.getByRole('menuitem', { name: /manage passkeys/i }));
     expect(await screen.findByText(/no passkeys enrolled yet/i)).toBeInTheDocument();
 
     // The close (X) button has no accessible text, matching the convention

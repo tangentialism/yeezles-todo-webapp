@@ -1,15 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import AccomplishmentsView from '../AccomplishmentsView';
 import * as useTodoStoreModule from '../../hooks/useTodoStore';
+import * as AreaContextModule from '../../contexts/AreaContext';
 import type { Todo } from '../../types/todo';
 
-// Mock the useTodoStore hook
+// Mock the useTodoStore hook and the area context (for area names)
 vi.mock('../../hooks/useTodoStore');
+vi.mock('../../contexts/AreaContext');
 
 describe('AccomplishmentsView', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(AreaContextModule, 'useArea').mockReturnValue({ areas: [], currentArea: null } as unknown as ReturnType<typeof AreaContextModule.useArea>);
   });
 
   it('should render loading state', () => {
@@ -97,15 +100,14 @@ describe('AccomplishmentsView', () => {
 
     render(<AccomplishmentsView />);
     
-    // Should show "Today" as the date group
-    expect(screen.getByText('Today')).toBeInTheDocument();
-    
-    // Should show both todos
-    expect(screen.getByText('Todo Today 1')).toBeInTheDocument();
-    expect(screen.getByText('Todo Today 2')).toBeInTheDocument();
-    
-    // Should show stats
-    expect(screen.getByText(/2.*completed/i)).toBeInTheDocument();
+    // Should group both todos under "Today"
+    const group = screen.getByRole('region', { name: 'Today' });
+    expect(within(group).getByText('Todo Today 1')).toBeInTheDocument();
+    expect(within(group).getByText('Todo Today 2')).toBeInTheDocument();
+
+    // Should show stats in the totals line
+    const totals = screen.getByRole('group', { name: 'Totals' });
+    expect(within(totals).getByText((_, el) => el?.textContent === '2 all time')).toBeInTheDocument();
   });
 
   it('should display error state', () => {

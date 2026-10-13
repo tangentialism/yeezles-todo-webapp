@@ -1,11 +1,16 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import TodoList from '../TodoList';
 import * as useTodoStoreModule from '../../hooks/useTodoStore';
 import * as AreaContextModule from '../../contexts/AreaContext';
 import type { Todo } from '../../types/todo';
+import { getDueInfo } from '../../utils/dueDate';
+
+/** Text of one item in the header's totals line, e.g. "2 open". */
+const totalsItem = (text: string) =>
+  within(screen.getByRole('group', { name: 'Totals' })).getByText((_, el) => el?.textContent === text);
 
 // Mock the hooks
 vi.mock('../../hooks/useTodoStore');
@@ -17,7 +22,7 @@ vi.mock('../EditTodoModal', () => ({
 vi.mock('../TodoActions', () => ({
   default: () => React.createElement('div', { 'data-testid': 'todo-actions' }),
 }));
-vi.mock('../TodayCorner', () => ({
+vi.mock('../TodayToggle', () => ({
   default: () => null,
 }));
 
@@ -134,11 +139,12 @@ describe('TodoList', () => {
     });
 
     it('should show todo titles and due dates', () => {
+      const dueDate = '2024-06-15T00:00:00Z';
       const todos: Todo[] = [
         createTestTodo({
           id: 1,
           title: 'Task with due date',
-          due_date: '2024-06-15T00:00:00Z',
+          due_date: dueDate,
         }),
       ];
 
@@ -147,21 +153,41 @@ describe('TodoList', () => {
       render(<TodoList view="all" />);
 
       expect(screen.getByText('Task with due date')).toBeInTheDocument();
-      // Due date should be rendered somewhere
-      expect(screen.getByText(/due:/i)).toBeInTheDocument();
+      // Compact due label in the row's date column (overdue here, e.g. "−850 days")
+      expect(screen.getByText(getDueInfo(dueDate).label)).toBeInTheDocument();
     });
 
-    it('should display todo count', () => {
+    it('should strip @tags from the title and show them separately', () => {
+      setupTodoStore({ todos: [createTestTodo({ title: 'Send invoice @finance' })] });
+
+      render(<TodoList view="all" />);
+
+      expect(screen.getByText('Send invoice')).toBeInTheDocument();
+      expect(screen.getByText('@finance')).toBeInTheDocument();
+    });
+
+    it('should display open, today and overdue totals', () => {
       const todos: Todo[] = [
         createTestTodo({ id: 1, title: 'Todo 1' }),
-        createTestTodo({ id: 2, title: 'Todo 2' }),
+        createTestTodo({ id: 2, title: 'Todo 2', is_today: true }),
+        createTestTodo({ id: 3, title: 'Todo 3', due_date: '2020-01-01' }),
       ];
 
       setupTodoStore({ todos });
 
       render(<TodoList view="all" />);
 
-      expect(screen.getByText('2 todos')).toBeInTheDocument();
+      expect(totalsItem('3 open')).toBeInTheDocument();
+      expect(totalsItem('2 today')).toBeInTheDocument();
+      expect(totalsItem('1 overdue')).toBeInTheDocument();
+    });
+
+    it('should head the list with the current area, or "All areas"', () => {
+      setupTodoStore({ todos: [createTestTodo()] });
+
+      render(<TodoList view="all" />);
+
+      expect(screen.getByRole('heading', { name: 'All areas' })).toBeInTheDocument();
     });
   });
 
@@ -174,19 +200,23 @@ describe('TodoList', () => {
 
       render(<TodoList view="all" />);
 
-      // The checkbox is rendered as a button element in this component
-      // Find the toggle button (the completion button)
-      const buttons = screen.getAllByRole('button');
-      // The first non-refresh button should be the completion toggle
-      const completionButton = buttons.find(btn =>
-        btn.classList.contains('rounded') &&
-        btn.classList.contains('border-2')
-      );
+      await user.click(screen.getByRole('button', { name: 'Complete "Clickable Todo"' }));
+      expect(mockToggleTodoCompletion).toHaveBeenCalledWith(todo);
+    });
 
-      if (completionButton) {
-        await user.click(completionButton);
-        expect(mockToggleTodoCompletion).toHaveBeenCalledWith(todo);
-      }
+    it('should show a completed todo struck through with an inline Undo', async () => {
+      const user = userEvent.setup();
+      const todo = createTestTodo({ id: 1, title: 'Just finished', completed: true });
+
+      setupTodoStore({
+        todos: [todo],
+        getTodoDisplayState: vi.fn().mockReturnValue({ completed: true, isPending: true, isRemoving: false, isCreating: false }),
+      });
+
+      render(<TodoList view="all" />);
+
+      await user.click(screen.getByRole('button', { name: 'Undo' }));
+      expect(mockToggleTodoCompletion).toHaveBeenCalledWith(todo);
     });
   });
 

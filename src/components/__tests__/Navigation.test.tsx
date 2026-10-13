@@ -40,9 +40,9 @@ describe('Navigation', () => {
 
       // The component renders tab labels with icons
       // On small screens the labels are hidden but still in DOM
-      expect(screen.getByText('All Todos')).toBeInTheDocument();
-      expect(screen.getByText('Today')).toBeInTheDocument();
-      expect(screen.getByText('Accomplishments')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'All' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Today' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Done' })).toBeInTheDocument();
     });
   });
 
@@ -50,28 +50,26 @@ describe('Navigation', () => {
     it('should highlight active tab with distinct styling', () => {
       render(<Navigation currentView="today" onViewChange={mockOnViewChange} />);
 
-      // Find buttons by their data-tab attribute
-      const todayButton = screen.getByText('Today').closest('button');
-      const allButton = screen.getByText('All Todos').closest('button');
+      const todayButton = screen.getByRole('button', { name: 'Today' });
+      const allButton = screen.getByRole('button', { name: 'All' });
 
-      // The active tab should have text-indigo-600 class
-      expect(todayButton).toHaveClass('text-indigo-600');
-      // Non-active tabs should have text-gray-500
-      expect(allButton).toHaveClass('text-gray-500');
+      // The active tab is marked as the current page; the others are not
+      expect(todayButton).toHaveAttribute('aria-current', 'page');
+      expect(allButton).not.toHaveAttribute('aria-current');
     });
 
     it('should highlight "all" tab when currentView is "all"', () => {
       render(<Navigation currentView="all" onViewChange={mockOnViewChange} />);
 
-      const allButton = screen.getByText('All Todos').closest('button');
-      expect(allButton).toHaveClass('text-indigo-600');
+      const allButton = screen.getByRole('button', { name: 'All' });
+      expect(allButton).toHaveAttribute('aria-current', 'page');
     });
 
     it('should highlight "accomplishments" tab when currentView is "accomplishments"', () => {
       render(<Navigation currentView="accomplishments" onViewChange={mockOnViewChange} />);
 
-      const accomplishmentsButton = screen.getByText('Accomplishments').closest('button');
-      expect(accomplishmentsButton).toHaveClass('text-indigo-600');
+      const accomplishmentsButton = screen.getByRole('button', { name: 'Done' });
+      expect(accomplishmentsButton).toHaveAttribute('aria-current', 'page');
     });
   });
 
@@ -81,7 +79,7 @@ describe('Navigation', () => {
 
       render(<Navigation currentView="all" onViewChange={mockOnViewChange} />);
 
-      const todayButton = screen.getByText('Today').closest('button')!;
+      const todayButton = screen.getByRole('button', { name: 'Today' })!;
       await user.click(todayButton);
 
       expect(mockOnViewChange).toHaveBeenCalledWith('today');
@@ -92,7 +90,7 @@ describe('Navigation', () => {
 
       render(<Navigation currentView="today" onViewChange={mockOnViewChange} />);
 
-      const allButton = screen.getByText('All Todos').closest('button')!;
+      const allButton = screen.getByRole('button', { name: 'All' })!;
       await user.click(allButton);
 
       expect(mockOnViewChange).toHaveBeenCalledWith('all');
@@ -103,7 +101,7 @@ describe('Navigation', () => {
 
       render(<Navigation currentView="all" onViewChange={mockOnViewChange} />);
 
-      const accompButton = screen.getByText('Accomplishments').closest('button')!;
+      const accompButton = screen.getByRole('button', { name: 'Done' })!;
       await user.click(accompButton);
 
       expect(mockOnViewChange).toHaveBeenCalledWith('accomplishments');
@@ -137,6 +135,37 @@ describe('Navigation', () => {
       render(<Navigation currentView="all" onViewChange={mockOnViewChange} />);
 
       expect(screen.getByText('Work')).toBeInTheDocument();
+    });
+  });
+
+  describe('Area menu', () => {
+    it('opens the menu and selects an area', async () => {
+      const user = userEvent.setup();
+      const setCurrentArea = vi.fn();
+      const work = { id: 1, name: 'Work', color: '#3B82F6', user_id: 'test', reference_code: 'work', description: null, is_default: true, created_at: '', updated_at: '' };
+      vi.spyOn(AreaContextModule, 'useArea').mockReturnValue({
+        areas: [work],
+        currentArea: null,
+        setCurrentArea,
+        isLoading: false,
+        availableColors: [],
+        refreshAreas: vi.fn(),
+        createArea: vi.fn(),
+        updateArea: vi.fn(),
+        deleteArea: vi.fn(),
+        getAreaStats: vi.fn(),
+        getAreaDisplayState: vi.fn().mockReturnValue({ isPending: false, isDeleting: false, isCreating: false }),
+      } as unknown as ReturnType<typeof AreaContextModule.useArea>);
+
+      render(<Navigation currentView="all" onViewChange={mockOnViewChange} />);
+
+      expect(screen.queryByRole('menu', { name: 'Areas' })).not.toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: /all areas/i }));
+      expect(screen.getByRole('menu', { name: 'Areas' })).toBeInTheDocument();
+
+      await user.click(screen.getByRole('menuitemradio', { name: /work/i }));
+      expect(setCurrentArea).toHaveBeenCalledWith(work);
+      expect(screen.queryByRole('menu', { name: 'Areas' })).not.toBeInTheDocument();
     });
   });
 });

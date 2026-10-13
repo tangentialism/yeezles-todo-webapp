@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTodoStore } from '../hooks/useTodoStore';
 import { useArea } from '../contexts/AreaContext';
-import { formatDate } from '../utils/date';
-
+import { getDueInfo } from '../utils/dueDate';
+import { calculateCompletionStats } from '../utils/todoGrouping';
 import EditTodoModal from './EditTodoModal';
-import TodoActions from './TodoActions';
-import TodayCorner from './TodayCorner';
+import TodoRow from './TodoRow';
+import { ViewEmpty, ViewError, ViewHeader, ViewLoading } from './ViewChrome';
 import type { Todo } from '../types/todo';
 import { TODO_ENTRANCE_ANIMATION_MS } from '../constants';
 
@@ -22,12 +22,13 @@ interface TodoListProps {
 }
 
 /**
- * Scrollable list of todo cards for the "All Todos" and similar views.
+ * Flat list of todos for the "All" view, headed by the current area's name
+ * and a one-line totals summary (open, today, overdue, done today).
  *
- * Each todo shows a completion checkbox (with optimistic toggle and undo),
- * tags, dates, a reference-URL link, and a {@link TodoActions} dropdown.
- * Newly created todos play an entrance animation, and completed todos in
- * the "all" view are animated out via a two-phase opacity+height transition.
+ * Each todo is a {@link TodoRow}: completion tick (with optimistic toggle and
+ * undo), tags, due date, Today toggle and actions menu. Newly created todos
+ * play an entrance highlight, and completed todos in the "all" view collapse
+ * out once the store marks them for removal.
  */
 const TodoList: React.FC<TodoListProps> = ({
   view, 
@@ -36,7 +37,7 @@ const TodoList: React.FC<TodoListProps> = ({
   onNewTodoAnimationComplete 
 }) => {
 
-  const { currentArea } = useArea();
+  const { currentArea, areas } = useArea();
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [animatingTodos, setAnimatingTodos] = useState<Set<number>>(new Set());
@@ -53,6 +54,23 @@ const TodoList: React.FC<TodoListProps> = ({
   } = useTodoStore({ view });
 
   const error = queryError ? (queryError as Error).message : null;
+
+  // Completed todos (shared cache with the Done view) for the "done today" count
+  const { todos: completedTodos } = useTodoStore({ view: 'completed' });
+  const doneToday = useMemo(
+    () => calculateCompletionStats(completedTodos).completedToday,
+    [completedTodos]
+  );
+
+  const totals = useMemo(() => {
+    const open = todos.filter((todo) => !todo.completed);
+    const dueKinds = open.map((todo) => getDueInfo(todo.due_date).kind);
+    return {
+      open: open.length,
+      today: open.filter((todo, i) => todo.is_today || dueKinds[i] === 'today' || dueKinds[i] === 'overdue').length,
+      overdue: dueKinds.filter((kind) => kind === 'overdue').length,
+    };
+  }, [todos]);
 
   // Remove the loadTodos function - now handled by useTodoStore
 
@@ -75,7 +93,7 @@ const TodoList: React.FC<TodoListProps> = ({
           return next;
         });
         onNewTodoAnimationComplete?.();
-      }, TODO_ENTRANCE_ANIMATION_MS); // Animation duration: 250ms entrance + 150ms highlight
+      }, TODO_ENTRANCE_ANIMATION_MS);
       
       return () => clearTimeout(timer);
     }
@@ -102,231 +120,56 @@ const TodoList: React.FC<TodoListProps> = ({
 
 
 
-  const extractTags = (title: string) => {
-    const tagRegex = /@(\w+(?:-\w+)*)/g;
-    const tags = [];
-    let match;
-    while ((match = tagRegex.exec(title)) !== null) {
-      tags.push(match[1]);
-    }
-    return tags;
-  };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-        <span className="ml-2 text-gray-600">Loading todos...</span>
-      </div>
-    );
+    return <ViewLoading label="Loading todos..." />;
   }
 
   if (error) {
-    return (
-      <div className="text-center py-12">
-        <div className="text-red-600 mb-4">❌ Error loading todos</div>
-        <p className="text-gray-600 mb-4">{error}</p>
-        <button
-          onClick={() => refetchTodos()}
-          className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
-        >
-          Try Again
-        </button>
-      </div>
-    );
+    return <ViewError title="Error loading todos" message={error} onRetry={() => refetchTodos()} />;
   }
 
-  if (todos.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <div className="text-6xl mb-4">📝</div>
-        <h3 className="text-lg font-medium text-gray-900 mb-2">No todos found</h3>
-        <p className="text-gray-600">
-          {view === 'completed' ? 'No completed todos yet.' : 'Start by creating your first todo!'}
-        </p>
-      </div>
-    );
-  }
+  const heading = currentArea ? currentArea.name : 'All areas';
+  const areaById = new Map((Array.isArray(areas) ? areas : []).map((area) => [area.id, area]));
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="mb-6">
-        <div className="flex items-center space-x-2 mb-2">
-          <h2 className="text-2xl font-bold text-gray-900 capitalize">{view} Todos</h2>
-          <button
-            onClick={() => refetchTodos()}
-            disabled={isRefetching}
-            className="flex items-center justify-center w-5 h-5 text-gray-400 hover:text-gray-600 focus:text-gray-600 transition-colors duration-200 focus:outline-none"
-            title="Refresh todos"
-          >
-            <svg
-              className={`w-4 h-4 ${isRefetching ? 'animate-spin' : ''}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
-            </svg>
-          </button>
-          {currentArea && (
-            <>
-              <span className="text-gray-400">in</span>
-              <div className="flex items-center space-x-2">
-                <div
-                  className="w-4 h-4 rounded-full border border-gray-300"
-                  style={{ backgroundColor: currentArea.color }}
-                ></div>
-                <span className="text-lg font-medium text-gray-700">{currentArea.name}</span>
-              </div>
-            </>
-          )}
-          {!currentArea && (
-            <>
-              <span className="text-gray-400">from</span>
-              <span className="text-lg font-medium text-gray-700">All Areas</span>
-            </>
-          )}
-        </div>
-        <p className="text-gray-600">{todos.length} todo{todos.length !== 1 ? 's' : ''}</p>
-      </div>
+    <div>
+      <ViewHeader
+        title={heading}
+        dotColor={currentArea?.color}
+        totals={[
+          { value: totals.open, label: 'open' },
+          { value: totals.today, label: 'today' },
+          { value: totals.overdue, label: 'overdue', tone: totals.overdue ? 'danger' : undefined },
+          { value: doneToday, label: 'done today', tone: 'accent' },
+        ]}
+        onRefresh={() => refetchTodos()}
+        isRefreshing={isRefetching}
+        refreshLabel="Refresh todos"
+      />
 
-      <div className="space-y-3">
-        {todos.map((todo) => {
-          const tags = extractTags(todo.title);
-          const displayState = getTodoDisplayState(todo);
-          const isCompleted = displayState.completed;
-          const isPending = displayState.isPending;
-          const isRemoving = displayState.isRemoving;
-          const isAnimating = animatingTodos.has(todo.id);
-          
-          return (
-            <div
+      {todos.length === 0 ? (
+        <ViewEmpty
+          title={view === 'completed' ? 'No completed todos yet.' : 'No todos found'}
+          message={view === 'completed' ? undefined : 'Add one with New.'}
+        />
+      ) : (
+        <div role="list">
+          {todos.map((todo) => (
+            <TodoRow
               key={todo.id}
-              className={`relative bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all duration-200 ${
-                isCompleted ? 'bg-gray-50' : ''
-              } ${isPending ? 'ring-2 ring-blue-200 ring-opacity-50 opacity-60' : ''} ${
-                isRemoving ? 'opacity-0 pointer-events-none' : 
-                isAnimating ? 'animate-gentle-fade-in bg-green-50 border-green-200' :
-                'opacity-100'
-              }`}
-              style={{
-                height: isRemoving ? '0' : 'auto',
-                marginBottom: isRemoving ? '0' : '12px',
-                overflow: 'hidden',
-                transition: 'opacity 0.2s ease-out, height 0.25s ease-out 0.1s, margin 0.25s ease-out 0.1s'
-              }}
-            >
-              <div className="flex items-start space-x-2 sm:space-x-3">
-                <button
-                  onClick={() => toggleTodo(todo)}
-                  className={`mt-1 w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
-                    isCompleted
-                      ? 'bg-green-500 border-green-500 text-white'
-                      : 'border-gray-300 hover:border-gray-400'
-                  } ${isPending ? 'shadow-lg scale-105 animate-pulse' : ''}`}
-                >
-                  {isCompleted && (
-                    <svg 
-                      className="w-3 h-3" 
-                      viewBox="0 0 24 24" 
-                      fill="none" 
-                      stroke="currentColor" 
-                      strokeWidth="3" 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round"
-                    >
-                      <polyline 
-                        points="20,6 9,17 4,12" 
-                        className={`animate-checkmark-draw ${isPending ? 'animate-pulse' : ''}`}
-                        strokeDasharray="24"
-                        strokeDashoffset="0"
-                      />
-                    </svg>
-                  )}
-                </button>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h3
-                      className={`text-base sm:text-lg font-medium transition-all duration-200 ${
-                        isCompleted ? 'text-gray-500 animate-strikethrough' : 'text-gray-900'
-                      }`}
-                    >
-                      {todo.title}
-                      {isPending && (
-                        <span className="ml-2 text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full animate-pulse">
-                          Click again to cancel
-                        </span>
-                      )}
-                    </h3>
-                    {todo.reference_url && (
-                      <a
-                        href={todo.reference_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-shrink-0 text-indigo-500 hover:text-indigo-700 transition-colors"
-                        title="Open reference link"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                        </svg>
-                      </a>
-                    )}
-                  </div>
-                  
-                  {todo.description && (
-                    <p className={`mt-1 text-sm transition-all duration-200 ${
-                      isCompleted ? 'text-gray-400' : 'text-gray-600'
-                    }`}>
-                      {todo.description}
-                    </p>
-                  )}
-
-                  <div className="mt-2 flex items-center space-x-4 text-xs text-gray-500">
-                    <span>Created: {formatDate(todo.created_at)}</span>
-                    {todo.due_date && (
-                      <span className="text-orange-600">Due: {formatDate(todo.due_date)}</span>
-                    )}
-                    {todo.completed_at && (
-                      <span className="text-green-600">Completed: {formatDate(todo.completed_at)}</span>
-                    )}
-                  </div>
-
-                  {tags.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      {tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
-                        >
-                          @{tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Actions Dropdown */}
-                <TodoActions
-                  todo={todo}
-                  onEdit={handleEditTodo}
-                  onUpdate={handleTodoUpdated}
-                  onToggleComplete={toggleTodo}
-                />
-              </div>
-              
-              {/* Today Corner Indicator */}
-              <TodayCorner todo={todo} onUpdate={handleTodoUpdated} />
-            </div>
-          );
-        })}
-      </div>
+              todo={todo}
+              displayState={getTodoDisplayState(todo)}
+              area={todo.area_id !== null ? areaById.get(todo.area_id) : null}
+              showArea={!currentArea}
+              isNew={animatingTodos.has(todo.id)}
+              onToggleComplete={toggleTodo}
+              onEdit={handleEditTodo}
+              onUpdate={handleTodoUpdated}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Edit Todo Modal */}
       <EditTodoModal

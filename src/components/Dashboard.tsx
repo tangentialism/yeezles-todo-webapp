@@ -1,20 +1,21 @@
 import React, { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import ApiStatus from './ApiStatus';
 import Navigation from './Navigation';
 import ViewContainer from './ViewContainer';
 import AddTodoModal from './AddTodoModal';
 import PasskeyManagementModal from './PasskeyManagementModal';
 import AccessTokenManagementModal from './AccessTokenManagementModal';
+import AccountMenu from './AccountMenu';
+import { PlusIcon } from './ui/Icons';
+import { primaryButton } from './ui/styles';
 import { VIEW_TRANSITION_DURATION_MS } from '../constants';
 
 /**
- * Main authenticated layout containing the header, navigation tabs, and the
- * multi-view container. Manages view switching with a fade transition and
- * coordinates the "Add Todo" modal with entrance animation for new todos.
+ * Main authenticated layout: a single header (wordmark, view tabs, area
+ * switcher, New button, account menu) above the multi-view container.
+ * Manages view switching with a fade transition and coordinates the
+ * "Add Todo" modal with entrance animation for new todos.
  */
 const Dashboard: React.FC = () => {
-  const { user, logout } = useAuth();
   const [currentView, setCurrentView] = useState('all');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isPasskeyModalOpen, setIsPasskeyModalOpen] = useState(false);
@@ -38,88 +39,43 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <h1 className="text-lg sm:text-xl font-semibold text-gray-900">Yeezles Todo</h1>
-            </div>
-            
-            <div className="flex items-center space-x-2 sm:space-x-4">
-              <button
-                onClick={() => setIsAddModalOpen(true)}
-                className="inline-flex items-center px-3 sm:px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                <svg className="w-4 h-4 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                <span className="hidden sm:inline">Add Todo</span>
-              </button>
+    <div className="min-h-screen bg-paper">
+      <header className="sticky top-0 z-20 bg-paper/90 backdrop-blur">
+        <div className="max-w-[1120px] mx-auto px-4 sm:px-10 py-3 sm:py-4 flex flex-wrap items-center gap-x-8 gap-y-2">
+          <span className="font-serif font-medium text-[22px] tracking-[-0.01em] text-ink">Yeezles</span>
 
-              <div className="flex items-center space-x-2 sm:space-x-3">
-                {user?.picture && (
-                  <img
-                    src={user.picture}
-                    alt={user.name}
-                    className="h-8 w-8 rounded-full"
-                  />
-                )}
-                <div className="hidden lg:block">
-                  <div className="text-sm font-medium text-gray-900">{user?.name}</div>
-                  <div className="text-xs text-gray-500">{user?.email}</div>
-                </div>
-              </div>
+          {/* Phones: tabs and area pill wrap to a second row under the wordmark and actions */}
+          <div className="order-last w-full sm:order-none sm:w-auto sm:flex-1 flex min-w-0">
+            <Navigation currentView={currentView} onViewChange={handleViewChange} />
+          </div>
 
-              <button
-                onClick={() => setIsPasskeyModalOpen(true)}
-                className="inline-flex items-center px-2 sm:px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                <span className="hidden sm:inline">Manage passkeys</span>
-                <span className="sm:hidden">🔑</span>
-              </button>
+          <div className="ml-auto sm:ml-0 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setIsAddModalOpen(true)}
+              className={`${primaryButton} pl-3.5`}
+            >
+              <PlusIcon className="w-4 h-4" />
+              New
+            </button>
 
-              <button
-                onClick={() => setIsTokenModalOpen(true)}
-                className="inline-flex items-center px-2 sm:px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                <span className="hidden sm:inline">Access Tokens</span>
-                <span className="sm:hidden">🔐</span>
-              </button>
-
-              <button
-                onClick={() => logout()}
-                className="inline-flex items-center px-2 sm:px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                <span className="hidden sm:inline">Sign out</span>
-                <span className="sm:hidden">⏻</span>
-              </button>
-            </div>
+            <AccountMenu
+              onManagePasskeys={() => setIsPasskeyModalOpen(true)}
+              onManageTokens={() => setIsTokenModalOpen(true)}
+            />
           </div>
         </div>
       </header>
 
-      {/* Navigation */}
-      <Navigation currentView={currentView} onViewChange={handleViewChange} />
-
       {/* Main content */}
-      <main className="max-w-7xl mx-auto py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
-        <div className="py-4 sm:py-6">
-          {/* Multi-View Container */}
-          <ViewContainer
-            currentView={currentView}
-            isTransitioning={isViewTransitioning}
-            refreshTrigger={refreshTrigger}
-            newTodoId={newTodoId}
-            onNewTodoAnimationComplete={() => setNewTodoId(null)}
-          />
-          
-          {/* API Status at bottom of content */}
-          <div className="mt-4 pt-2 border-t border-gray-200">
-            <ApiStatus />
-          </div>
-        </div>
+      <main className="max-w-[1120px] mx-auto px-4 sm:px-10 pt-6 pb-24">
+        <ViewContainer
+          currentView={currentView}
+          isTransitioning={isViewTransitioning}
+          refreshTrigger={refreshTrigger}
+          newTodoId={newTodoId}
+          onNewTodoAnimationComplete={() => setNewTodoId(null)}
+        />
       </main>
 
       {/* Add Todo Modal */}
