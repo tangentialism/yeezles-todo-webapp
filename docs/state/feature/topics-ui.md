@@ -8,7 +8,7 @@ Phase 3a of the topics feature: the webapp topics UI. Spec: workspace
 
 ## Next action
 
-Final whole-branch review fix wave (browser bugs B1–B4 plus review findings); then PR review (gated on David); then the workspace pin bump; then plan 3b.
+Final whole-branch review fix wave (browser bugs B1–B4 plus review findings); then PR review (gated on David); then the workspace pin bump; then plan 3b (workspace `docs/superpowers/plans/2026-10-13-topics-webapp-proposals.md`).
 
 ## Verified
 
@@ -78,8 +78,12 @@ Final whole-branch review fix wave (browser bugs B1–B4 plus review findings); 
   topic detail on the Topics tab; (7) completing a todo in detail moves it to
   Done (n) and counts update; (8) area delete refused, dialog stays open, toast
   confirmed in the DOM after forcing focus (see B3/B4); extra: Escape in
-  "New topic..." from the add-todo form closes only that dialog. Screenshots at
-  390 px and 1280 px (via same-origin iframes) were taken.
+  "New topic..." from the add-todo form closes only that dialog. The "Move or
+  delete this area's topics first." toast was seen for an area with a topic and
+  no open todos (Errands); an area with open todos (Work) is refused first for
+  its todos (B4). Screenshots cover the Topics home and topic detail at 390 px
+  and 1280 px only (via same-origin iframes); they are uncommitted local files
+  under `/Users/davidyee/.claude/jobs/291300d3/tmp/shots/`.
   Caveat: the tab was hidden throughout, so the 3-8 s update lag was NOT
   verified as app or browser behaviour, and item 8's toast was seen only after
   forcing React Query focus, never in a screenshot.
@@ -152,7 +156,6 @@ Found in the browser walkthrough; a later fix wave handles them.
   AddTodoModal.test mocks useTopicStore. CreateTodoFromExternal's currentArea
   effect skips the overwrite once a topic is chosen (topic id read via a ref so
   the effect still depends only on currentArea).
-
 - Controller rulings (executed): base is origin/master `e2ba5db`, not `b52ba1d`; the
   webapp worktree is the submodule here; the workspace dirty submodule line is
   never staged (pin bump is separate); esbuild install scripts left unapproved.
