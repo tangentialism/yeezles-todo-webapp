@@ -3,6 +3,12 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useTodoStore } from '../hooks/useTodoStore';
 import { useArea } from '../contexts/AreaContext';
 import { logger } from '../utils/logger';
+import PageShell from './ui/PageShell';
+import AreaChips from './ui/AreaChips';
+import Checkbox from './ui/Checkbox';
+import Switch from './ui/Switch';
+import { CircleCheckIcon, FileIcon, Spinner, SunIcon } from './ui/Icons';
+import { ghostButton, outlineButton, pageCard, primaryButton, sectionCap } from './ui/styles';
 
 interface ParsedTodo {
   title: string;
@@ -100,153 +106,134 @@ const CreateMultipleTodos: React.FC = () => {
 
   if (parsedTodos.length === 0) {
     return (
-      <div className="min-h-screen bg-paper py-8">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-white shadow-lg rounded-lg p-6">
-            <h1 className="text-2xl font-bold text-ink mb-4">Create Multiple Todos</h1>
-            <p className="text-ink-muted">No todos found in the provided data.</p>
-            <button
-              onClick={handleCancel}
-              className="mt-4 px-4 py-2 border border-line-strong rounded-md shadow-sm text-sm font-medium text-ink-2 bg-white hover:bg-hover"
-            >
-              Go Back
-            </button>
-          </div>
-        </div>
-      </div>
+      <PageShell homeHref="/">
+        <main className={`mx-4 sm:mx-auto sm:max-w-[400px] mt-4 sm:mt-12 p-6 sm:p-8 flex flex-col gap-4 ${pageCard}`}>
+          <span aria-hidden="true" className="w-10 h-10 rounded-full bg-hover text-ink-muted flex items-center justify-center">
+            <FileIcon className="w-[18px] h-[18px]" />
+          </span>
+          <h1 className="font-serif font-medium text-2xl tracking-[-0.01em] text-ink">Nothing to import</h1>
+          <p className="text-[14.5px] text-ink-muted">No todos were found in the link from Obsidian.</p>
+          <button type="button" onClick={handleCancel} className={`${outlineButton} self-start`}>
+            Back to Yeezles
+          </button>
+        </main>
+      </PageShell>
     );
   }
 
+  const alreadyDone = parsedTodos.filter((todo) => todo.completed).length;
+  const selectedCount = selectedTodos.size;
+
   return (
-    <div className="min-h-screen bg-paper py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white shadow-lg rounded-lg p-6">
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-ink">Create Multiple Todos from Obsidian</h1>
-            {vault && sourceNote && (
-              <p className="text-sm text-ink-muted mt-2">
-                From: <span className="font-mono bg-hover px-2 py-1 rounded">{vault}/{sourceNote}</span>
-              </p>
+    <PageShell homeHref="/">
+      <main className="max-w-[720px] mx-auto px-5 sm:px-10 pt-4 sm:pt-7 pb-36">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2.5 pb-3 border-b-[1.5px] border-ink">
+          <h1 className="font-serif font-medium text-[30px] sm:text-4xl leading-[1.1] tracking-[-0.015em] text-ink">
+            Import todos
+          </h1>
+          <div role="group" aria-label="Totals" className="flex flex-wrap items-baseline gap-x-[18px] gap-y-1 text-[13px] text-ink-muted">
+            <span><span className="font-mono font-medium text-ink">{parsedTodos.length}</span> found</span>
+            <span><span className="font-mono font-medium text-accent">{selectedCount}</span> selected</span>
+            {alreadyDone > 0 && (
+              <span><span className="font-mono font-medium text-ink">{alreadyDone}</span> already done</span>
             )}
-            <p className="text-sm text-ink-muted mt-2">
-              Found {parsedTodos.length} todo(s). Select which ones to create:
-            </p>
-          </div>
-
-          {/* Global settings */}
-          <div className="bg-paper p-4 rounded-lg mb-6">
-            <h3 className="text-lg font-medium text-ink mb-4">Global Settings</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="area" className="block text-sm font-medium text-ink-2 mb-2">
-                  Area/Project (applies to all selected todos)
-                </label>
-                <select
-                  id="area"
-                  value={selectedAreaId || ''}
-                  onChange={(e) => setSelectedAreaId(e.target.value ? parseInt(e.target.value) : null)}
-                  className="w-full px-3 py-2 border border-line-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
-                >
-                  <option value="">No area</option>
-                  {areas.map((area) => (
-                    <option key={area.id} value={area.id}>
-                      {area.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="addToToday"
-                  checked={addToToday}
-                  onChange={(e) => setAddToToday(e.target.checked)}
-                  className="h-4 w-4 text-accent focus:ring-accent border-line-strong rounded"
-                />
-                <label htmlFor="addToToday" className="ml-2 block text-sm text-ink">
-                  Add all selected todos to Today's Focus List
-                </label>
-              </div>
-            </div>
-          </div>
-
-          {/* Selection controls */}
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex space-x-2">
-              <button
-                onClick={handleSelectAll}
-                className="px-3 py-1 text-sm border border-line-strong rounded-md text-ink-2 hover:bg-hover"
-              >
-                Select All
-              </button>
-              <button
-                onClick={handleDeselectAll}
-                className="px-3 py-1 text-sm border border-line-strong rounded-md text-ink-2 hover:bg-hover"
-              >
-                Deselect All
-              </button>
-            </div>
-            <span className="text-sm text-ink-muted">
-              {selectedTodos.size} of {parsedTodos.length} selected
-            </span>
-          </div>
-
-          {/* Todo list */}
-          <div className="space-y-3 mb-6">
-            {parsedTodos.map((todo, index) => (
-              <div
-                key={index}
-                className={`border rounded-lg p-4 ${
-                  selectedTodos.has(index) ? 'border-accent bg-accent-soft' : 'border-line'
-                }`}
-              >
-                <div className="flex items-start space-x-3">
-                  <input
-                    type="checkbox"
-                    checked={selectedTodos.has(index)}
-                    onChange={() => handleTodoToggle(index)}
-                    className="h-4 w-4 text-accent focus:ring-accent border-line-strong rounded mt-1"
-                  />
-                  <div className="flex-1">
-                    <h4 className="text-lg font-medium text-ink">{todo.title}</h4>
-                    {todo.description && (
-                      <p className="text-ink-muted text-sm mt-1">{todo.description}</p>
-                    )}
-                    {todo.source_line && (
-                      <p className="text-xs text-ink-muted mt-2">
-                        Line {todo.source_line}: <span className="font-mono bg-hover px-1 py-0.5 rounded">{todo.original_text}</span>
-                      </p>
-                    )}
-                    {todo.completed && (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 mt-2">
-                        Already completed
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Action buttons */}
-          <div className="flex justify-end space-x-3 pt-6 border-t border-line">
-            <button
-              onClick={handleCancel}
-              className="px-4 py-2 border border-line-strong rounded-md shadow-sm text-sm font-medium text-ink-2 bg-white hover:bg-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleCreateTodos}
-              disabled={isCreating || selectedTodos.size === 0}
-              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-ink hover:bg-ink-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent disabled:bg-line-strong disabled:cursor-not-allowed"
-            >
-              {isCreating ? 'Creating...' : `Create ${selectedTodos.size} Todo(s)`}
-            </button>
           </div>
         </div>
+        {vault && sourceNote && (
+          <p className="mt-3 flex items-center gap-2 text-[13px] text-ink-muted min-w-0">
+            <FileIcon className="w-3.5 h-3.5 flex-none" />
+            <span className="flex-none">From Obsidian</span>
+            <span className="font-mono text-ink-2 truncate">{vault}/{sourceNote}</span>
+          </p>
+        )}
+
+        <div className="mt-6 flex flex-wrap items-center gap-x-7 gap-y-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <span id="import-area-label" className="text-[12.5px] font-medium text-ink-2">
+              Area
+            </span>
+            <AreaChips
+              areas={areas}
+              value={selectedAreaId}
+              onChange={setSelectedAreaId}
+              nullLabel="None"
+              labelId="import-area-label"
+            />
+          </div>
+          <label htmlFor="addToToday" className="sm:ml-auto flex items-center gap-2.5 min-h-[44px] cursor-pointer">
+            <SunIcon className={`w-[18px] h-[18px] ${addToToday ? 'text-accent' : 'text-ink-faint'}`} />
+            <span className="text-sm font-medium text-ink">Add to Today</span>
+            <Switch id="addToToday" checked={addToToday} onChange={setAddToToday} />
+          </label>
+        </div>
+
+        <div className="mt-5 flex items-center gap-1 pb-1.5 border-b border-line">
+          <h2 className={`${sectionCap} mr-auto`}>Todos</h2>
+          <button type="button" onClick={handleSelectAll} className="h-8 px-2.5 rounded-full text-[13px] text-ink-2 hover:bg-hover">
+            Select all
+          </button>
+          <button type="button" onClick={handleDeselectAll} className="h-8 px-2.5 rounded-full text-[13px] text-ink-2 hover:bg-hover">
+            None
+          </button>
+        </div>
+
+        <div role="group" aria-label="Todos to import">
+          {parsedTodos.map((todo, index) => {
+            const isSelected = selectedTodos.has(index);
+            return (
+              <label key={index} className="flex items-start gap-3.5 py-3.5 border-b border-line cursor-pointer">
+                <span className="mt-0.5">
+                  <Checkbox checked={isSelected} onChange={() => handleTodoToggle(index)} />
+                </span>
+                <span className="flex-1 min-w-0">
+                  <span className={`block text-base leading-[23px] ${isSelected ? 'font-medium text-ink' : 'text-ink-faint'}`}>
+                    {todo.title}
+                  </span>
+                  {todo.description && (
+                    <span className="block mt-0.5 text-[13.5px] leading-5 text-ink-muted">{todo.description}</span>
+                  )}
+                  {todo.completed && (
+                    <span className="mt-1 inline-flex items-center gap-1.5 text-[12.5px] text-ink-muted">
+                      <CircleCheckIcon className="w-[13px] h-[13px] text-ok" />
+                      Already done
+                    </span>
+                  )}
+                </span>
+                {todo.source_line && (
+                  <span className="flex-none pt-1 font-mono text-[11.5px] text-ink-faint" title={todo.original_text}>
+                    <span className="sr-only">Line </span>L{todo.source_line}
+                  </span>
+                )}
+              </label>
+            );
+          })}
+        </div>
+      </main>
+
+      <div
+        className="fixed inset-x-0 bottom-0 z-20 bg-paper/95 backdrop-blur border-t border-line-strong"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
+        <div className="max-w-[720px] mx-auto px-5 sm:px-10 py-3.5 flex items-center gap-1.5">
+          <span className="mr-auto text-[13px] text-ink-muted">
+            <span className="font-mono font-medium text-ink">{selectedCount}</span> of{' '}
+            <span className="font-mono">{parsedTodos.length}</span> selected
+          </span>
+          <button type="button" onClick={handleCancel} className={ghostButton}>
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleCreateTodos}
+            disabled={isCreating || selectedCount === 0}
+            className={primaryButton}
+          >
+            {isCreating && <Spinner className="w-4 h-4" />}
+            {isCreating ? 'Adding…' : `Add ${selectedCount} ${selectedCount === 1 ? 'todo' : 'todos'}`}
+          </button>
+        </div>
       </div>
-    </div>
+    </PageShell>
   );
 };
 
