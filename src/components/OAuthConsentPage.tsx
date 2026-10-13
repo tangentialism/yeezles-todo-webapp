@@ -1,6 +1,18 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import PasskeyLoginButton from './PasskeyLoginButton';
+import PageShell from './ui/PageShell';
+import Checkbox from './ui/Checkbox';
+import {
+  AlertCircleIcon,
+  AlertTriangleIcon,
+  KeyIcon,
+  LinkIcon,
+  RefreshIcon,
+  ReturnIcon,
+  Spinner,
+} from './ui/Icons';
+import { ghostButton, outlineButton, pageCard, primaryButton, sectionCap } from './ui/styles';
 import {
   getConsentRequest,
   approveConsent,
@@ -65,12 +77,36 @@ const ERROR_COPY: Record<OAuthConsentErrorCode, ErrorPresentation> = {
 const toCode = (err: unknown): OAuthConsentErrorCode =>
   err instanceof OAuthConsentError ? err.code : 'UNKNOWN';
 
-const Shell: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="flex flex-col items-center justify-center min-h-screen bg-paper">
-    <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full mx-4 space-y-4">
+/** Page frame: wordmark header, then a centred card. */
+const Shell: React.FC<{ children: React.ReactNode; narrow?: boolean }> = ({ children, narrow }) => (
+  <PageShell>
+    <main
+      className={`mx-5 sm:mx-auto mt-4 sm:mt-12 mb-10 p-6 sm:p-8 flex flex-col gap-4 ${pageCard} ${
+        narrow ? 'sm:max-w-[400px]' : 'sm:max-w-[520px]'
+      }`}
+    >
       {children}
-    </div>
-  </div>
+    </main>
+  </PageShell>
+);
+
+/** Round status mark at the top of a state card. */
+const StatusMark: React.FC<{ tone: 'danger' | 'quiet'; children: React.ReactNode }> = ({ tone, children }) => (
+  <span
+    aria-hidden="true"
+    className={`w-10 h-10 rounded-full flex items-center justify-center ${
+      tone === 'danger' ? 'bg-danger-soft text-danger' : 'bg-hover text-ink-muted'
+    }`}
+  >
+    {children}
+  </span>
+);
+
+/** Message for a failure, styled as the body of a state card. */
+const ErrorMessage: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <p role="alert" className="text-[14.5px] leading-[22px] text-ink">
+    {children}
+  </p>
 );
 
 /**
@@ -188,20 +224,18 @@ const OAuthConsentPage: React.FC = () => {
 
   if (!requestId) {
     return (
-      <Shell>
-        <p role="alert" className="text-sm text-danger">
-          This link is missing its request. Start again from Claude.
-        </p>
+      <Shell narrow>
+        <StatusMark tone="danger"><AlertCircleIcon className="w-[18px] h-[18px]" /></StatusMark>
+        <ErrorMessage>This link is missing its request. Start again from Claude.</ErrorMessage>
       </Shell>
     );
   }
 
   if (errorCode && !ERROR_COPY[errorCode].retry) {
     return (
-      <Shell>
-        <p role="alert" className="text-sm text-danger">
-          {ERROR_COPY[errorCode].message}
-        </p>
+      <Shell narrow>
+        <StatusMark tone="danger"><AlertCircleIcon className="w-[18px] h-[18px]" /></StatusMark>
+        <ErrorMessage>{ERROR_COPY[errorCode].message}</ErrorMessage>
         {errorCode === 'UNAUTHENTICATED' && (
           <PasskeyLoginButton onSuccess={() => window.location.reload()} />
         )}
@@ -211,24 +245,23 @@ const OAuthConsentPage: React.FC = () => {
 
   if (!details) {
     return (
-      <Shell>
+      <Shell narrow>
         {errorCode ? (
           <>
-            <p role="alert" className="text-sm text-danger">
-              {ERROR_COPY[errorCode].message}
-            </p>
-            <button
-              type="button"
-              onClick={handleRetryLoad}
-              className="py-2 px-4 rounded-md border border-line-strong text-sm text-ink-2 hover:bg-hover"
-            >
+            <StatusMark tone="quiet"><RefreshIcon className="w-[18px] h-[18px]" /></StatusMark>
+            <ErrorMessage>{ERROR_COPY[errorCode].message}</ErrorMessage>
+            <button type="button" onClick={handleRetryLoad} className={`${outlineButton} self-start`}>
               Try again
             </button>
           </>
         ) : (
-          <div className="flex items-center space-x-3 text-ink-muted">
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-accent"></div>
-            <span>Loading request...</span>
+          <div aria-busy="true" className="flex flex-col gap-4">
+            <StatusMark tone="quiet"><Spinner className="w-[18px] h-[18px]" /></StatusMark>
+            <span className="text-[14.5px] text-ink-muted">Loading request…</span>
+            <div aria-hidden="true" className="flex flex-col gap-2.5">
+              <span className="h-2.5 w-4/5 rounded bg-hover" />
+              <span className="h-2.5 w-3/5 rounded bg-hover" />
+            </div>
           </div>
         )}
       </Shell>
@@ -238,86 +271,120 @@ const OAuthConsentPage: React.FC = () => {
   const busy = phase !== 'idle';
   const hasPasskey = (details.passkeyOptions.allowCredentials?.length ?? 0) > 0;
 
+  const selectedCount = details.requestedScopes.filter((scope) => selected.has(scope)).length;
+
   return (
     <Shell>
-      <h1 className="text-xl font-semibold text-ink">
-        {details.clientName} wants to access your Yeezles Todo account
-      </h1>
-      <p className="text-sm text-ink-muted">
-        Will redirect to <span className="font-mono text-ink">{details.redirectHost}</span>
-      </p>
+      {/* The app and Yeezles, joined: what this page is about, at a glance */}
+      <div aria-hidden="true" className="flex items-center gap-2.5">
+        <span className="w-11 h-11 rounded-full bg-ink text-paper flex items-center justify-center text-base font-semibold">
+          {details.clientName.trim().charAt(0).toUpperCase()}
+        </span>
+        <span className="w-10 border-t-[1.5px] border-dashed border-ink-faint/60" />
+        <LinkIcon className="w-4 h-4 text-ink-faint" />
+        <span className="w-10 border-t-[1.5px] border-dashed border-ink-faint/60" />
+        <span className="w-11 h-11 rounded-full bg-accent-soft text-accent-ink flex items-center justify-center font-serif text-xl">
+          Y
+        </span>
+      </div>
+
+      <div>
+        <h1 className="mt-1.5 font-serif font-medium text-2xl sm:text-[26px] leading-[1.2] tracking-[-0.01em] text-ink">
+          {details.clientName} wants to access your Yeezles account
+        </h1>
+        <p className="mt-2.5 flex items-center gap-2 text-[13px] text-ink-muted">
+          <ReturnIcon className="w-[15px] h-[15px] flex-none" />
+          <span>
+            Returns to <span className="font-mono text-ink">{details.redirectHost}</span>
+          </span>
+        </p>
+      </div>
 
       {details.isLoopback && (
         <div
           role="note"
           aria-label="Loopback warning"
-          className="text-sm text-amber-800 bg-amber-50 border border-amber-300 rounded-md p-3"
+          className="flex gap-3 rounded-xl bg-danger-soft px-4 py-3.5 text-[13.5px] leading-5 text-ink-2"
         >
-          <p className="font-semibold">This app runs on your own computer.</p>
-          <p className="mt-1">
-            {details.redirectHost} is an address on this machine, and any program running here
-            can use it. Approve only if you started this connection yourself just now, from an
-            app you trust such as Claude Code.
-          </p>
+          <AlertTriangleIcon className="w-[18px] h-[18px] flex-none mt-px text-danger" />
+          <div>
+            <p className="font-semibold text-danger">This app runs on your own computer.</p>
+            <p className="mt-0.5">
+              {details.redirectHost} is an address on this machine, and any program running here
+              can use it. Approve only if you started this connection yourself just now, from an
+              app you trust such as Claude Code.
+            </p>
+          </div>
         </div>
       )}
 
       {hasPasskey ? (
-        <fieldset className="space-y-2">
-          <legend className="text-sm font-semibold text-ink mb-1">Permissions</legend>
+        <fieldset className="mt-2">
+          <legend className={`${sectionCap} mb-1`}>Permissions</legend>
           {details.requestedScopes.map(scope => (
-            <label key={scope} className="flex items-start space-x-2 text-sm cursor-pointer">
-              <input
-                type="checkbox"
-                checked={selected.has(scope)}
-                onChange={() => toggle(scope)}
-                disabled={busy}
-                className="mt-1 rounded border-line-strong text-accent"
-              />
-              <span>
-                <span className="text-ink">{details.scopeDescriptions[scope] ?? scope}</span>
-                <span className="block font-mono text-xs text-ink-muted">{scope}</span>
+            <label
+              key={scope}
+              className="flex items-start gap-3.5 py-3 border-b border-line last:border-b-0 cursor-pointer"
+            >
+              <span className="mt-px">
+                <Checkbox checked={selected.has(scope)} onChange={() => toggle(scope)} disabled={busy} />
+              </span>
+              <span className="min-w-0">
+                <span className={`block text-[14.5px] leading-[21px] ${selected.has(scope) ? 'text-ink' : 'text-ink-muted'}`}>
+                  {details.scopeDescriptions[scope] ?? scope}
+                </span>
+                <span className="block font-mono text-xs text-ink-faint">{scope}</span>
               </span>
             </label>
           ))}
         </fieldset>
       ) : (
-        <p role="alert" className="text-sm text-danger">
-          You have no passkey on this account yet. Add one under Passkeys in the app, then start
-          again from Claude.
-        </p>
+        <div className="flex gap-3 rounded-xl bg-danger-soft px-4 py-3.5">
+          <AlertCircleIcon className="w-[18px] h-[18px] flex-none mt-px text-danger" />
+          <p role="alert" className="text-[13.5px] leading-5 text-ink-2">
+            You have no passkey on this account yet. Add one under Passkeys in the app, then start
+            again from Claude.
+          </p>
+        </div>
       )}
 
       {errorCode && (
-        <p role="alert" className="text-sm text-danger">
+        <p role="alert" className="flex items-start gap-2 text-[13.5px] leading-5 text-danger">
+          <AlertCircleIcon className="w-4 h-4 flex-none mt-0.5" />
           {ERROR_COPY[errorCode].message}
         </p>
       )}
 
-      {phase === 'leaving' ? (
-        <p className="text-sm text-ink-muted">Returning to {details.clientName}...</p>
-      ) : (
-        <div className="flex justify-end space-x-2">
-          <button
-            type="button"
-            onClick={handleDeny}
-            disabled={busy}
-            className="py-2 px-4 rounded-md border border-line-strong text-sm text-ink-2 hover:bg-hover disabled:opacity-60"
-          >
-            {phase === 'denying' ? 'Denying...' : 'Deny'}
-          </button>
-          {hasPasskey && (
-            <button
-              type="button"
-              onClick={handleApprove}
-              disabled={busy || selected.size === 0}
-              className="py-2 px-4 rounded-md bg-ink text-white text-sm hover:bg-ink-2 disabled:opacity-60"
-            >
-              {phase === 'approving' ? 'Waiting for passkey...' : 'Approve with passkey'}
+      <div className="flex flex-wrap items-center justify-end gap-1.5 pt-[18px] border-t border-line">
+        {phase === 'leaving' ? (
+          <p className="mr-auto flex items-center gap-2 text-sm text-ink-muted">
+            <Spinner className="w-4 h-4" />
+            Returning to {details.clientName}…
+          </p>
+        ) : (
+          <>
+            {hasPasskey && (
+              <span className="mr-auto font-mono text-xs text-ink-faint">
+                {selectedCount} of {details.requestedScopes.length}
+              </span>
+            )}
+            <button type="button" onClick={handleDeny} disabled={busy} className={`${ghostButton} h-11 px-[18px]`}>
+              {phase === 'denying' ? 'Denying…' : 'Deny'}
             </button>
-          )}
-        </div>
-      )}
+            {hasPasskey && (
+              <button
+                type="button"
+                onClick={handleApprove}
+                disabled={busy || selected.size === 0}
+                className={`${primaryButton} h-11 px-5 max-sm:w-full`}
+              >
+                {phase === 'approving' ? <Spinner className="w-4 h-4" /> : <KeyIcon className="w-4 h-4" />}
+                {phase === 'approving' ? 'Waiting for passkey…' : 'Approve with passkey'}
+              </button>
+            )}
+          </>
+        )}
+      </div>
     </Shell>
   );
 };

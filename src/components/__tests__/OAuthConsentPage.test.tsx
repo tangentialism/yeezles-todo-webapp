@@ -70,7 +70,7 @@ describe('OAuthConsentPage', () => {
 
     expect(await screen.findByRole('heading', { name: /claude wants to access/i })).toBeInTheDocument();
     expect(api.getConsentRequest).toHaveBeenCalledWith('req-1');
-    expect(screen.getByText(/will redirect to/i)).toHaveTextContent('Will redirect to claude.ai');
+    expect(screen.getByText(/returns to/i)).toHaveTextContent('Returns to claude.ai');
   });
 
   it('ticks every requested scope by default, labelled by its description', async () => {
