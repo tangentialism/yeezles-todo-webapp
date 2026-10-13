@@ -93,13 +93,27 @@ PR review (gated on David); then the workspace pin bump to the merge commit; the
   `TSC_OK`, tests 456 total / 456 passed, 0 failing names, lint 5 (baseline
   5), new failing names empty. Named suites plus every touched suite: 28
   files, 163 tests passed. `npm run build` (tsc -b && vite build) succeeded,
-  234 modules. Not re-checked in a browser.
+  234 modules. Browser re-check of the fix wave: see the next bullet.
+- Browser re-check at 17cbae0 (local backend yeezles-todo 4db2fab, src compiled
+  to a scratch dir because the committed backend dist predates topics; minted
+  session cookie). B1: GETs per list per mutation are at most 1 in-tab and at
+  most 2 server-side across two tabs (was 13-14). B2: no "Missing queryFn" or
+  skipToken errors in the console after any mutation, and the Today nav count
+  updated ("Today 2" to "Today 1"). B3: one DELETE (409) and the toast present
+  in the DOM at +270 ms. B4: one DELETE (400); toast text exactly `Failed to
+  delete area: Cannot delete area with incomplete todos. Complete or move todos
+  first.` (single prefix). B5: UI updates at about 440-470 ms (create topic
+  +473 ms, complete in detail +437 ms). Note-draft switch (I5) passed in both
+  directions (Garden draft then Kitchen reno chip, and the reverse). Caveat: the
+  tab reported visibilityState 'hidden' throughout, so the timings are from a
+  throttled tab.
 
 ## Known issues (fixed in the final-review fix wave)
 
 Found in the browser walkthrough; all fixed in the fix-wave commit after
-`0ad693c`. Each fix has a unit test that failed before it and passes after; none
-was re-checked in a browser.
+`0ad693c`. Each fix has a unit test that failed before it and passes after; B1-B5
+and the note-draft switch were then re-checked in a browser (see the "Browser
+re-check at 17cbae0" bullet under Verified).
 
 - B1 (fixed): every topic or todo mutation caused a refetch storm (13-14
   refetches per list), because each `useCrossTabSync()` instance had its own
@@ -127,8 +141,9 @@ was re-checked in a browser.
   and non-ApiError toast (guard; passed before and after). The other half of
   B4, an area with topics and open todos getting the todos error, is backend
   check order and stays as is.
-- Possible B5 (unverified): the 3-8 s lag was probably B1 plus the hidden tab.
-  It has not been re-checked in a browser since the B1 fix.
+- B5 (re-checked): the 3-8 s lag was B1's refetch storm. At 17cbae0 updates show
+  at about 440-470 ms, even in a hidden tab (see the "Browser re-check at
+  17cbae0" bullet under Verified).
 - I5 (fixed, from the final review): TopicDetail had no key, so opening topic B
   while A's detail was mounted kept A's unsaved note draft and Save wrote it to
   B. Now `key={openTopicId}`. Test: `TopicsView.switchTopic.test.tsx` (RED: B's
@@ -142,12 +157,13 @@ was re-checked in a browser.
 
 - The backend at `yeezles-todo` `4db2fab` serves the topics API as documented
   in its `docs/api/API.md`.
-- Not run: the deployed app, the hosted backend, Google sign-in (the walkthrough
-  used a minted persistent-session cookie), the update lag in a visible tab,
-  and the toast in a visible tab (item 8 toast timing).
-- The fix wave's fixes behave in the browser as their unit tests show: no
-  browser re-check was run after them (refetch counts, console errors, toast
-  timing and B5 are all unobserved since).
+- Not run: the deployed app and the hosted backend.
+- Google sign-in is not exercised; the walkthroughs used the persistent-session
+  cookie path.
+- Visible-tab timing: the walkthrough and the re-check both ran in a hidden,
+  throttled tab, so the timings (B3 to B5) are not visible-tab numbers.
+- The fix wave was re-checked in a browser at 17cbae0 (see the "Browser
+  re-check at 17cbae0" bullet under Verified).
 
 ## Deviations
 
