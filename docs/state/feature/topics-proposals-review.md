@@ -10,9 +10,14 @@ hand-back. Spec: workspace
 
 ## Next action
 
-Task 2: proposal draft init and selectors.
+Task 3: draft reducer.
 
 ## Verified
+
+- Task 2: `proposalDraft.init.test.ts` written first and RED (unresolved import
+  `../proposalDraft`), then GREEN: 11 passed (brief's 9 plus 2 Ruling L10
+  tests). Full check: `TSC_OK`; 479 tests, 479 passed, 0 failing names; lint now 5,
+  baseline 5; new failing names empty.
 
 - Task 1: tests written first and RED (client methods "is not a function",
   store module unresolved, sync logged unknown type; 6 failed, 3 files), then
@@ -35,6 +40,16 @@ Task 2: proposal draft init and selectors.
 ## Deviations
 
 - Ruling M3: `useProposal` also sets `gcTime: 0`; added a test asserting it.
+- Ruling L10: `validateTopicName` refuses a name matching any `resolved.topics`
+  or `area_topics` name, whatever the `is_new`/`exists` flags (a Ghost topic is
+  refused). `knownNames` skips only a still-free new name (`is_new && !exists`),
+  which is checked through `draft.topics` so the topic may keep its own name; a
+  taken new topic (`is_new && exists`) still cannot be renamed to its own name.
+  No brief test changed behaviour; two tests added.
+- Ruling L12: an existing topic section with no rows left is hidden; spec §6.2
+  says one section per topic.
+- Ruling L19: `draftTopicFromArea` is the single exported function, no local
+  function plus alias.
 - Ruling L1: store and cross-tab `PROPOSAL_RESOLVED` use `invalidateTopicViews`
   / `invalidateTodoViews` from `./topicInvalidation` (they already take filter
   options, no change needed) instead of hand-listed keys. The brief's tests
