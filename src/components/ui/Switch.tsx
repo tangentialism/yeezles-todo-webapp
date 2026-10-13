@@ -14,7 +14,6 @@ const Switch: React.FC<SwitchProps> = ({ id, checked, onChange, disabled }) => (
     <input
       id={id}
       type="checkbox"
-      role="switch"
       checked={checked}
       disabled={disabled}
       onChange={(event) => onChange(event.target.checked)}

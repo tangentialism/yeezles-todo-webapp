@@ -3,6 +3,11 @@ import { useTodoStore } from '../hooks/useTodoStore';
 import { useArea } from '../contexts/AreaContext';
 import type { Todo } from '../types/todo';
 import { logger } from '../utils/logger';
+import Dialog from './ui/Dialog';
+import AreaChips from './ui/AreaChips';
+import Switch from './ui/Switch';
+import { CalendarIcon, CheckIcon, LinkIcon, Spinner, SunIcon } from './ui/Icons';
+import { fieldHint, fieldInput, fieldLabel, fieldOptional, ghostButton, primaryButton } from './ui/styles';
 
 /** Props for {@link EditTodoModal}. */
 interface EditTodoModalProps {
@@ -81,193 +86,137 @@ const EditTodoModal: React.FC<EditTodoModalProps> = ({ todo, isOpen, onClose, on
     }
   };
 
+  // Cmd/Ctrl+Enter submits from any field
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      e.currentTarget.requestSubmit();
+    }
+  };
+
   if (!isOpen || !todo) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto mx-4">
-        <div className="p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-gray-900">Edit Todo</h2>
-            <button
-              onClick={handleClose}
+    <Dialog title="Edit todo" onClose={handleClose} closeDisabled={isSubmitting}>
+      <form onSubmit={handleSubmit} onKeyDown={handleKeyDown}>
+        <div className="px-7 pt-3 flex flex-col gap-[18px]">
+          <div>
+            <label htmlFor="edit-title" className="sr-only">
+              Title
+            </label>
+            <input
+              type="text"
+              id="edit-title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="What needs doing?"
+              className="w-full bg-transparent border-0 border-b-[1.5px] border-ink pt-2 pb-2.5 text-[19px] font-medium text-ink placeholder:text-ink-faint placeholder:font-normal focus:outline-none focus:border-accent disabled:opacity-60"
+              required
               disabled={isSubmitting}
-              className="text-gray-400 hover:text-gray-600 disabled:opacity-50"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+              autoFocus
+            />
+            <p className={fieldHint}>
+              <span className="font-mono text-accent-ink">@tag</span> to tag ·{' '}
+              <span className="font-mono text-accent-ink">#123</span> to link a todo
+            </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="edit-title" className="block text-sm font-medium text-gray-700 mb-1">
-                Title *
-              </label>
-              <input
-                type="text"
-                id="edit-title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="What needs to be done?"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                required
-                disabled={isSubmitting}
-                autoFocus
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Use @tags like @work, @today, @priority-1
-              </p>
-            </div>
+          <div>
+            <label htmlFor="edit-description" className={fieldLabel}>
+              Notes <span className={fieldOptional}>optional</span>
+            </label>
+            <textarea
+              id="edit-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={2}
+              className={fieldInput}
+              disabled={isSubmitting}
+            />
+          </div>
 
-            <div>
-              <label htmlFor="edit-description" className="block text-sm font-medium text-gray-700 mb-1">
-                Description
-              </label>
-              <textarea
-                id="edit-description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Additional details..."
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                disabled={isSubmitting}
-              />
-            </div>
+          <div>
+            <span id="edit-area-label" className={fieldLabel}>
+              Area
+            </span>
+            <AreaChips
+              areas={areas}
+              value={selectedAreaId}
+              onChange={setSelectedAreaId}
+              nullLabel="None"
+              disabled={isSubmitting}
+              labelId="edit-area-label"
+            />
+          </div>
 
-            <div>
-              <label htmlFor="edit-referenceUrl" className="block text-sm font-medium text-gray-700 mb-1">
-                Reference URL
-              </label>
-              <input
-                type="text"
-                id="edit-referenceUrl"
-                value={referenceUrl}
-                onChange={(e) => setReferenceUrl(e.target.value)}
-                placeholder="e.g., obsidian://open?vault=MyVault&file=Note.md"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                disabled={isSubmitting}
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Link to source note or related content
-              </p>
-            </div>
-
-            <div>
-              <label htmlFor="edit-area" className="block text-sm font-medium text-gray-700 mb-1">
-                Area
-              </label>
-              <select
-                id="edit-area"
-                value={selectedAreaId || ''}
-                onChange={(e) => setSelectedAreaId(e.target.value ? parseInt(e.target.value) : null)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                disabled={isSubmitting}
-              >
-                <option value="">No area (shows in all views)</option>
-                {areas.map((area) => (
-                  <option key={area.id} value={area.id}>
-                    {area.name}
-                  </option>
-                ))}
-              </select>
-              <div className="flex items-center mt-2">
-                {selectedAreaId && (
-                  <>
-                    <div
-                      className="w-3 h-3 rounded-full mr-2 border border-gray-300"
-                      style={{ backgroundColor: areas.find(a => a.id === selectedAreaId)?.color || '#6B7280' }}
-                    ></div>
-                    <span className="text-sm text-gray-600">
-                      {areas.find(a => a.id === selectedAreaId)?.name}
-                    </span>
-                  </>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="edit-dueDate" className="block text-sm font-medium text-gray-700 mb-1">
-                Due Date
-              </label>
+          <div>
+            <label htmlFor="edit-dueDate" className={fieldLabel}>
+              Due <span className={fieldOptional}>optional</span>
+            </label>
+            <div className="relative max-w-[260px]">
+              <CalendarIcon className="pointer-events-none absolute left-3 top-[13px] w-4 h-4 text-ink-muted" />
               <input
                 type="datetime-local"
                 id="edit-dueDate"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className={`${fieldInput} pl-[38px] font-mono text-[13.5px]`}
                 disabled={isSubmitting}
               />
             </div>
+          </div>
 
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-md">
-              <div className="flex items-center">
-                <svg className="w-5 h-5 text-indigo-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
-                </svg>
-                <div>
-                  <span className="text-sm font-medium text-gray-900">Today List</span>
-                  <p className="text-xs text-gray-500">Mark this todo for today's focus</p>
-                </div>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={isToday}
-                  onChange={(e) => setIsToday(e.target.checked)}
-                  disabled={isSubmitting}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-              </label>
-            </div>
-
-            <div className="flex items-center">
+          <div>
+            <label htmlFor="edit-referenceUrl" className={fieldLabel}>
+              Link <span className={fieldOptional}>optional</span>
+            </label>
+            <div className="relative">
+              <LinkIcon className="pointer-events-none absolute left-3 top-[13px] w-4 h-4 text-ink-muted" />
               <input
-                type="checkbox"
-                id="edit-completed"
-                checked={completed}
-                onChange={(e) => setCompleted(e.target.checked)}
-                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                type="text"
+                id="edit-referenceUrl"
+                value={referenceUrl}
+                onChange={(e) => setReferenceUrl(e.target.value)}
+                placeholder="obsidian:// or https://"
+                className={`${fieldInput} pl-[38px]`}
                 disabled={isSubmitting}
               />
-              <label htmlFor="edit-completed" className="ml-2 block text-sm text-gray-900">
-                Mark as completed
-              </label>
             </div>
+          </div>
 
-            <div className="flex justify-end space-x-3 pt-4">
-              <button
-                type="button"
-                onClick={handleClose}
-                disabled={isSubmitting}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={!title.trim() || isSubmitting}
-                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? (
-                  <span className="flex items-center">
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Updating...
-                  </span>
-                ) : (
-                  'Update Todo'
-                )}
-              </button>
-            </div>
-          </form>
+          <div className="border-t border-line">
+            <label htmlFor="edit-isToday" className="flex items-center gap-3 py-3 cursor-pointer">
+              <SunIcon className="w-[18px] h-[18px] text-accent" />
+              <span className="flex-1 text-sm font-medium text-ink">Add to Today</span>
+              <Switch id="edit-isToday" checked={isToday} onChange={setIsToday} disabled={isSubmitting} />
+            </label>
+            <label htmlFor="edit-completed" className="flex items-center gap-3 py-3 border-t border-line cursor-pointer">
+              <CheckIcon className="w-[18px] h-[18px] text-ink-muted" />
+              <span className="flex-1 text-sm font-medium text-ink">Mark as completed</span>
+              <Switch id="edit-completed" checked={completed} onChange={setCompleted} disabled={isSubmitting} />
+            </label>
+          </div>
         </div>
-      </div>
-    </div>
+
+        <div className="flex items-center justify-end gap-1.5 pl-7 pr-5 pt-2 pb-5">
+          <button type="button" onClick={handleClose} disabled={isSubmitting} className={ghostButton}>
+            Cancel
+          </button>
+          <button type="submit" disabled={!title.trim() || isSubmitting} className={primaryButton}>
+            {isSubmitting ? (
+              <>
+                <Spinner className="w-4 h-4" />
+                Saving…
+              </>
+            ) : (
+              <>
+                Save <span className="font-mono text-[11px] text-ink-faint" aria-hidden="true">⌘↵</span>
+              </>
+            )}
+          </button>
+        </div>
+      </form>
+    </Dialog>
   );
 };
 
