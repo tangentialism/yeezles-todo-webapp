@@ -1,40 +1,76 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTodayViewStore } from '../hooks/useTodayViewStore';
-import { formatDate } from '../utils/date';
+import { useTodoStore } from '../hooks/useTodoStore';
+import { useArea } from '../contexts/AreaContext';
+import { getDueInfo } from '../utils/dueDate';
+import { stripTags } from '../utils/todoText';
 import EditTodoModal from './EditTodoModal';
-import TodoActions from './TodoActions';
-import TodayCorner from './TodayCorner';
+import TodoRow from './TodoRow';
+import { ViewEmpty, ViewError, ViewHeader, ViewLoading } from './ViewChrome';
+import { CheckIcon } from './ui/Icons';
 import type { Todo } from '../types/todo';
 
+/** Segments in the progress bar beyond which it is drawn as one continuous bar. */
+const MAX_PROGRESS_SEGMENTS = 20;
+
+const isSameLocalDay = (iso: string, day: Date) => {
+  const date = new Date(iso);
+  return (
+    date.getFullYear() === day.getFullYear() &&
+    date.getMonth() === day.getMonth() &&
+    date.getDate() === day.getDate()
+  );
+};
+
 /**
- * Renders the Today focus view with summary cards, attention banners, and
- * categorized todo sections (For Today, Overdue, Due Today, Coming Soon).
+ * The Today view: date heading, a totals line and progress bar, then one list
+ * of everything in focus (overdue first, then due today, then picked for
+ * today), today's completed todos, and a short "Coming up" list.
  *
  * Backed by {@link useTodayViewStore} for data fetching and optimistic updates.
- * Each todo card is color-coded by priority and supports inline completion toggling.
  */
 const TodayView: React.FC = () => {
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  
-  // Use the optimized today view store
+  const { areas } = useArea();
+
   const {
     todayData,
     isLoading: loading,
+    isRefetching,
     error: queryError,
     toggleTodoCompletion,
     getTodoDisplayState,
     refetchTodayView
   } = useTodayViewStore();
-  
+
+  // Completed todos (shared cache with the Done view) for today's progress
+  const { todos: completedTodos } = useTodoStore({ view: 'completed' });
+
   const error = queryError ? (queryError as Error).message : null;
+  const now = new Date();
 
-  // Data loading is now handled by the store
+  const doneToday = useMemo(
+    () =>
+      completedTodos
+        .filter((todo) => todo.completed_at && isSameLocalDay(todo.completed_at, now))
+        .sort((a, b) => (b.completed_at ?? '').localeCompare(a.completed_at ?? '')),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `now` only matters per render of the list
+    [completedTodos]
+  );
 
-  // Optimistic updates are now handled by the store
-
-  // Todo completion is now handled by the store
-  // Data loading is automatic
+  // Overdue first, then due today, then picked for today; a todo appears once.
+  const focusTodos = useMemo(() => {
+    if (!todayData) return [];
+    const seen = new Set<number>();
+    return [...todayData.focus.overdue, ...todayData.focus.due_today, ...todayData.focus.today_tagged].filter(
+      (todo) => {
+        if (seen.has(todo.id)) return false;
+        seen.add(todo.id);
+        return true;
+      }
+    );
+  }, [todayData]);
 
   const toggleTodo = async (todo: Todo) => {
     await toggleTodoCompletion(todo);
@@ -55,298 +91,136 @@ const TodayView: React.FC = () => {
     refetchTodayView();
   };
 
-  const extractTags = (title: string) => {
-    const tagRegex = /@(\w+(?:-\w+)*)/g;
-    const tags = [];
-    let match;
-    while ((match = tagRegex.exec(title)) !== null) {
-      tags.push(match[1]);
-    }
-    return tags;
-  };
-
-
-
-  const TodoCard: React.FC<{ todo: Todo; priority?: string }> = ({ todo, priority }) => {
-    const tags = extractTags(todo.title);
-    const displayState = getTodoDisplayState(todo);
-    const isCompleted = displayState.completed;
-    const isPending = displayState.isPending;
-    
-    return (
-      <div className={`relative bg-white border-l-4 rounded-lg p-4 shadow-sm hover:shadow-md transition-all duration-200 ${
-        priority === 'overdue' ? 'border-red-500 bg-red-50' :
-        priority === 'due-today' ? 'border-orange-500 bg-orange-50' :
-        priority === 'today-tagged' ? 'border-blue-500 bg-blue-50' :
-        'border-gray-200'
-      } ${isPending ? 'ring-2 ring-blue-200 ring-opacity-50 opacity-60' : ''}`}>
-        <div className="flex items-start space-x-2 sm:space-x-3">
-          <button
-            onClick={() => toggleTodo(todo)}
-            className={`mt-1 w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
-              isCompleted
-                ? 'bg-green-500 border-green-500 text-white'
-                : 'border-gray-300 hover:border-gray-400'
-            } ${isPending ? 'shadow-lg scale-105 animate-pulse' : ''}`}
-          >
-            {isCompleted && (
-              <svg 
-                className="w-3 h-3" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="3" 
-                strokeLinecap="round" 
-                strokeLinejoin="round"
-              >
-                <polyline 
-                  points="20,6 9,17 4,12" 
-                  className={`animate-checkmark-draw ${isPending ? 'animate-pulse' : ''}`}
-                  strokeDasharray="24"
-                  strokeDashoffset="0"
-                />
-              </svg>
-            )}
-          </button>
-
-          <div className="flex-1 min-w-0">
-            <h4 className={`text-sm sm:text-base font-medium transition-all duration-200 ${
-              isCompleted ? 'text-gray-500 animate-strikethrough' : 'text-gray-900'
-            }`}>
-              {todo.title}
-              {isPending && (
-                <span className="ml-2 text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full animate-pulse">
-                  Click again to cancel
-                </span>
-              )}
-            </h4>
-            
-            {todo.description && (
-              <p className={`mt-1 text-sm transition-all duration-200 ${
-                isCompleted ? 'text-gray-400' : 'text-gray-600'
-              }`}>
-                {todo.description}
-              </p>
-            )}
-
-            <div className="mt-2 flex items-center space-x-4 text-xs text-gray-500">
-              {todo.due_date && (
-                <span className={priority === 'overdue' ? 'text-red-600 font-medium' : 'text-orange-600'}>
-                  Due: {formatDate(todo.due_date)}
-                </span>
-              )}
-              {priority === 'overdue' && (
-                <span className="text-red-600 font-medium">⚠️ OVERDUE</span>
-              )}
-            </div>
-
-            {tags.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-1">
-                {tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      tag === 'today' ? 'bg-blue-100 text-blue-800' :
-                      tag.includes('priority') ? 'bg-purple-100 text-purple-800' :
-                      'bg-indigo-100 text-indigo-800'
-                    }`}
-                  >
-                    @{tag}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Actions Dropdown */}
-          <TodoActions
-            todo={todo}
-            onEdit={handleEditTodo}
-            onUpdate={handleTodoUpdated}
-            onToggleComplete={toggleTodo}
-          />
-        </div>
-        
-        {/* Today Corner Indicator */}
-        <TodayCorner todo={todo} onUpdate={handleTodoUpdated} />
-      </div>
-    );
-  };
-
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-        <span className="ml-2 text-gray-600">Loading today's focus...</span>
-      </div>
-    );
+    return <ViewLoading label="Loading today's focus..." />;
   }
 
   if (error) {
-    return (
-      <div className="text-center py-12">
-        <div className="text-red-600 mb-4">❌ Error loading today view</div>
-        <p className="text-gray-600 mb-4">{error}</p>
-        <button
-          onClick={() => refetchTodayView()}
-          className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
-        >
-          Try Again
-        </button>
-      </div>
-    );
+    return <ViewError title="Error loading today view" message={error} onRetry={() => refetchTodayView()} />;
   }
 
   if (!todayData) {
-    return <div className="text-center py-12 text-gray-600">No data available</div>;
+    return <ViewEmpty title="No data available" />;
   }
 
-  const { focus, upcoming, summary } = todayData;
+  const { upcoming, summary } = todayData;
+  const areaById = new Map((Array.isArray(areas) ? areas : []).map((area) => [area.id, area]));
+  const areaFor = (todo: Todo) => (todo.area_id !== null ? areaById.get(todo.area_id) ?? null : null);
+
+  const openCount = focusTodos.filter((todo) => !getTodoDisplayState(todo).completed).length;
+  const progressTotal = openCount + doneToday.length;
+  const weekday = now.toLocaleDateString('en-US', { weekday: 'long' });
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200">
-          <div className="flex items-center">
-            <div className="flex-1">
-              <p className="text-xs sm:text-sm font-medium text-gray-600">Focus Items</p>
-              <p className="text-xl sm:text-2xl font-bold text-indigo-600">{summary.total_focus_items}</p>
-            </div>
-            <div className="text-xl sm:text-2xl">🎯</div>
-          </div>
-        </div>
+    <div>
+      <ViewHeader
+        title={
+          <span>
+            {weekday} <span className="text-accent">{now.getDate()}</span>
+          </span>
+        }
+        totals={[
+          { value: openCount, label: 'today' },
+          { value: summary.total_overdue, label: 'overdue', tone: summary.total_overdue ? 'danger' : undefined },
+          { value: doneToday.length, label: 'done', tone: 'accent' },
+          { value: summary.total_coming_soon, label: 'coming up' },
+        ]}
+        onRefresh={() => refetchTodayView()}
+        isRefreshing={isRefetching}
+        refreshLabel="Refresh today view"
+        ruled={false}
+      />
 
-        <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200">
-          <div className="flex items-center">
-            <div className="flex-1">
-              <p className="text-xs sm:text-sm font-medium text-gray-600">Due Today</p>
-              <p className="text-xl sm:text-2xl font-bold text-orange-600">{focus.due_today.length}</p>
-            </div>
-            <div className="text-xl sm:text-2xl">📅</div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200">
-          <div className="flex items-center">
-            <div className="flex-1">
-              <p className="text-xs sm:text-sm font-medium text-gray-600">Overdue</p>
-              <p className="text-xl sm:text-2xl font-bold text-red-600">{summary.total_overdue}</p>
-            </div>
-            <div className="text-xl sm:text-2xl">⚠️</div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200">
-          <div className="flex items-center">
-            <div className="flex-1">
-              <p className="text-xs sm:text-sm font-medium text-gray-600">Coming Soon</p>
-              <p className="text-xl sm:text-2xl font-bold text-blue-600">{summary.total_coming_soon}</p>
-            </div>
-            <div className="text-xl sm:text-2xl">📋</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Attention Banner */}
-      {summary.needs_attention && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <div className="flex items-center">
-            <div className="text-red-500 mr-3">⚠️</div>
-            <div>
-              <h3 className="text-sm font-medium text-red-800">Needs Attention</h3>
-              <p className="text-sm text-red-700">
-                You have {summary.total_overdue} overdue items that need immediate attention.
-              </p>
-            </div>
-          </div>
+      {progressTotal > 0 && (
+        <div
+          role="img"
+          aria-label={`${doneToday.length} of ${progressTotal} done today`}
+          className="flex gap-[3px] mb-1.5"
+        >
+          {progressTotal <= MAX_PROGRESS_SEGMENTS ? (
+            Array.from({ length: progressTotal }, (_, i) => (
+              <span
+                key={i}
+                className={`flex-1 h-1 rounded-sm transition-colors ${i < doneToday.length ? 'bg-accent' : 'bg-line'}`}
+              />
+            ))
+          ) : (
+            <span className="flex-1 h-1 rounded-sm bg-line overflow-hidden">
+              <span
+                className="block h-full bg-accent transition-[width]"
+                style={{ width: `${(doneToday.length / progressTotal) * 100}%` }}
+              />
+            </span>
+          )}
         </div>
       )}
 
-      {/* Focus Section */}
-      <div className="space-y-6">
-        <div>
-          <div className="flex items-center space-x-2 mb-4">
-            <h2 className="text-xl font-bold text-gray-900">🎯 Today's Focus</h2>
-            <button
-              onClick={() => refetchTodayView()}
-              disabled={loading}
-              className="flex items-center justify-center w-5 h-5 text-gray-400 hover:text-gray-600 focus:text-gray-600 transition-colors duration-200 focus:outline-none"
-              title="Refresh today view"
-            >
-              <svg
-                className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                />
-              </svg>
-            </button>
-          </div>
-          
-          {/* For Today Items */}
-          {focus.today_tagged.length > 0 && (
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-blue-600 mb-3">⭐ For Today ({focus.today_tagged.length})</h3>
-              <div className="space-y-3">
-                {focus.today_tagged.map((todo) => (
-                  <TodoCard key={todo.id} todo={todo} priority="today-tagged" />
-                ))}
-              </div>
+      {focusTodos.length === 0 && doneToday.length === 0 ? (
+        <ViewEmpty title="All caught up!" message="Use the sun on any todo to add it to Today." />
+      ) : (
+        <div role="list">
+          {focusTodos.map((todo) => (
+            <TodoRow
+              key={todo.id}
+              todo={todo}
+              displayState={getTodoDisplayState(todo)}
+              area={areaFor(todo)}
+              showArea
+              variant="today"
+              showTodayToggle={todo.is_today}
+              onToggleComplete={toggleTodo}
+              onEdit={handleEditTodo}
+              onUpdate={handleTodoUpdated}
+            />
+          ))}
+          {doneToday.map((todo) => (
+            <div key={todo.id} role="listitem" className="flex items-start gap-4 py-[15px] border-b border-line">
+              <span className="-my-2.5 -ml-3 -mr-2 w-11 h-11 flex-none inline-flex items-center justify-center" aria-hidden="true">
+                <span className="w-[22px] h-[22px] rounded-full bg-accent text-white flex items-center justify-center">
+                  <CheckIcon className="w-3 h-3" />
+                </span>
+              </span>
+              <span className="flex-1 min-w-0 text-[16.5px] leading-6 text-ink-faint line-through decoration-line-strong">
+                <span className="sr-only">Done: </span>
+                {stripTags(todo.title)}
+              </span>
+              <span className="flex-none pt-[3px] mr-[50px] font-mono text-xs text-ink-faint">
+                {new Date(todo.completed_at!).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+              </span>
             </div>
-          )}
-
-          {/* Overdue Items */}
-          {focus.overdue.length > 0 && (
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-red-600 mb-3">⚠️ Overdue ({focus.overdue.length})</h3>
-              <div className="space-y-3">
-                {focus.overdue.map((todo) => (
-                  <TodoCard key={todo.id} todo={todo} priority="overdue" />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Due Today Items */}
-          {focus.due_today.length > 0 && (
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-orange-600 mb-3">📅 Due Today ({focus.due_today.length})</h3>
-              <div className="space-y-3">
-                {focus.due_today.map((todo) => (
-                  <TodoCard key={todo.id} todo={todo} priority="due-today" />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {focus.total_focus === 0 && (
-            <div className="text-center py-8 bg-green-50 rounded-lg border border-green-200">
-              <div className="text-4xl mb-2">🎉</div>
-              <h3 className="text-lg font-medium text-green-800 mb-1">All caught up!</h3>
-              <p className="text-green-600">No urgent items for today. Great job!</p>
-            </div>
-          )}
+          ))}
         </div>
+      )}
 
-        {/* Upcoming Section */}
-        {upcoming.coming_soon.length > 0 && (
-          <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-4">📋 Coming Soon ({upcoming.total_coming_soon})</h2>
-            <div className="space-y-3">
-              {upcoming.coming_soon.map((todo) => (
-                <TodoCard key={todo.id} todo={todo} />
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+      {upcoming.coming_soon.length > 0 && (
+        <section aria-labelledby="coming-up-heading" className="mt-11">
+          <h2
+            id="coming-up-heading"
+            className="mb-1 font-mono text-[11.5px] font-medium uppercase tracking-[0.12em] text-ink-muted"
+          >
+            Coming up
+          </h2>
+          <ul>
+            {upcoming.coming_soon.map((todo) => {
+              const area = areaFor(todo);
+              return (
+                <li
+                  key={todo.id}
+                  className="flex items-center gap-3.5 py-[11px] border-b border-dashed border-line-strong text-[15px] text-ink-2"
+                >
+                  <span
+                    className="w-2 h-2 rounded-full flex-none"
+                    style={{ backgroundColor: area?.color ?? 'rgb(var(--line-strong))' }}
+                    aria-hidden="true"
+                  />
+                  <span className="flex-1 min-w-0 truncate">{stripTags(todo.title)}</span>
+                  <span className="flex-none font-mono text-xs">{getDueInfo(todo.due_date).label}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
 
       {/* Edit Todo Modal */}
       <EditTodoModal
