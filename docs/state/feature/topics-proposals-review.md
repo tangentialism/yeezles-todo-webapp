@@ -10,10 +10,15 @@ hand-back. Spec: workspace
 
 ## Next action
 
-Task 1: proposal types, client, store and sync.
+Task 2: proposal draft init and selectors.
 
 ## Verified
 
+- Task 1: tests written first and RED (client methods "is not a function",
+  store module unresolved, sync logged unknown type; 6 failed, 3 files), then
+  GREEN: api.proposals 5, useProposalStore 6, useCrossTabSync.proposals 1 (12
+  passed). Full check: `TSC_OK`; 468 tests, 468 passed, 0 failing names; lint
+  now 5, baseline 5; new failing names empty.
 - Task 0: branch from origin/master `621046c` (phase 3a merged as PR #28;
   `src/hooks/useTopicStore.ts` and `src/services/apiError.ts` present on
   master); upstream unset; `npm ci` ok (Node 26.7.0); `tsc -b` exit 0
@@ -28,6 +33,14 @@ Task 1: proposal types, client, store and sync.
   documented in its `docs/api/API.md`.
 
 ## Deviations
+
+- Ruling M3: `useProposal` also sets `gcTime: 0`; added a test asserting it.
+- Ruling L1: store and cross-tab `PROPOSAL_RESOLVED` use `invalidateTopicViews`
+  / `invalidateTodoViews` from `./topicInvalidation` (they already take filter
+  options, no change needed) instead of hand-listed keys. The brief's tests
+  assert the same keys via `objectContaining({ queryKey })`, plus
+  `refetchType: 'active'` for the cross-tab test. The brief's "does not retry"
+  test is split into apply-once and reject-once tests.
 
 - The checkout is the workspace worktree's own submodule,
   `/Users/davidyee/Code/yeezles-todo-workspace/.claude/worktrees/topics-phase3/yeezles-todo-webapp`,

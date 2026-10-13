@@ -95,6 +95,15 @@ export const useCrossTabSync = () => {
           invalidateTodoViews(queryClient, { refetchType: 'active' });
           break;
 
+        case 'PROPOSAL_RESOLVED':
+          // Another tab applied or rejected a proposal: an open review here turns read-only
+          for (const key of ['proposals', 'proposal']) {
+            queryClient.invalidateQueries({ queryKey: [key], refetchType: 'active' });
+          }
+          invalidateTopicViews(queryClient, { refetchType: 'active' });
+          invalidateTodoViews(queryClient, { refetchType: 'active' });
+          break;
+
         default:
           logger.warn('Unknown sync message type:', message.type);
       }
