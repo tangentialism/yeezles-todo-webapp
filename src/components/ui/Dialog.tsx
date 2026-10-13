@@ -14,6 +14,21 @@ interface DialogProps {
   children: React.ReactNode;
 }
 
+interface DialogEntry {
+  onClose: () => void;
+  closeDisabled: boolean;
+}
+
+/** Open dialogs, outermost first. Only the last one acts on Escape. */
+const openDialogs: DialogEntry[] = [];
+
+/** One document listener for all dialogs: the topmost handles Escape, even if disabled. */
+const handleEscape = (event: KeyboardEvent) => {
+  if (event.key !== 'Escape') return;
+  const top = openDialogs[openDialogs.length - 1];
+  if (top && !top.closeDisabled) top.onClose();
+};
+
 /**
  * Modal shell: dimmed scrim, centred panel with a serif title and close button.
  * Closes on Escape or a click on the scrim unless `closeDisabled` is set.
@@ -21,19 +36,23 @@ interface DialogProps {
 const Dialog: React.FC<DialogProps> = ({ title, titleDotColor, onClose, closeDisabled = false, children }) => {
   const titleId = React.useId();
 
-  const panelRef = React.useRef<HTMLDivElement>(null);
-
+  // Escape is decided by the module-level stack below, not by listener order
+  // or DOM presence, so it cannot fall through to a dialog underneath. The refs
+  // keep the entry stable across re-renders that change onClose.
+  const entryRef = React.useRef<DialogEntry>({ onClose, closeDisabled });
   useEffect(() => {
-    const handleKey = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape' || closeDisabled) return;
-      // Nested dialogs (New topic… over a todo form): only the topmost closes.
-      const open = document.querySelectorAll('[role="dialog"]');
-      if (open.length > 0 && open[open.length - 1] !== panelRef.current) return;
-      onClose();
+    entryRef.current.onClose = onClose;
+    entryRef.current.closeDisabled = closeDisabled;
+  });
+  useEffect(() => {
+    const entry = entryRef.current;
+    openDialogs.push(entry);
+    if (openDialogs.length === 1) document.addEventListener('keydown', handleEscape);
+    return () => {
+      openDialogs.splice(openDialogs.indexOf(entry), 1);
+      if (openDialogs.length === 0) document.removeEventListener('keydown', handleEscape);
     };
-    document.addEventListener('keydown', handleKey);
-    return () => document.removeEventListener('keydown', handleKey);
-  }, [onClose, closeDisabled]);
+  }, []);
 
   // Portalled to <body>: a dialog opened from inside the sticky, blurred
   // header would otherwise be positioned and clipped by it.
@@ -45,7 +64,6 @@ const Dialog: React.FC<DialogProps> = ({ title, titleDotColor, onClose, closeDis
       }}
     >
       <div
-        ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}

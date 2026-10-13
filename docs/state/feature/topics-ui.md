@@ -47,6 +47,10 @@ Task 8: the picker in the three forms (todo-form half of Escape-closes-only-the-
   first (unresolved imports; outer dialog closed on Escape). Full check:
   `TSC_OK`, tests 429 total / 429 passed, lint 5 (baseline 5), new failing
   names empty.
+  Fix round 1 (Dialog Escape via a module-level stack, one document listener,
+  onClose/closeDisabled in refs): Dialog.nested 5/5, the flushSync test RED
+  first. Full check: `TSC_OK`, tests 432 total / 432 passed, lint 5 (baseline
+  5), new failing names empty.
 
 ## Assumed
 
@@ -93,8 +97,8 @@ Task 8: the picker in the three forms (todo-form half of Escape-closes-only-the-
   Again. (L1/L2) The no-chip assertion runs inside a `TopicNavigationContext`
   provider and checks the topic name is absent from the list; "archives and
   unarchives" is split into an Archive and an Unarchive test.
-- Task 7: Dialog Escape is topmost-only (last `[role="dialog"]` in the document
-  is the one that handles it). TopicPicker's "optional" tag sits beside the
+- Task 7: Dialog Escape is topmost-only, decided by a module-level stack of open
+  dialogs with a single document listener (not DOM order or listener order). TopicPicker's "optional" tag sits beside the
   `<label>` in a `fieldLabel` div, not inside it: the brief's markup gave the
   select the accessible name "Topic optional", so `getByLabelText('Topic')`
   in the brief's own tests failed.
