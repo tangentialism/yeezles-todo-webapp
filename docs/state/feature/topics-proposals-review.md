@@ -10,9 +10,16 @@ hand-back. Spec: workspace
 
 ## Next action
 
-Task 4: serialize and attachErrors.
+Task 5: review components.
 
 ## Verified
+
+- Task 4: `proposalDraft.serialize.test.ts` written first and RED (8 failed,
+  `serialize`/`summarizeAccepted` not functions), then GREEN: serialize 8 +
+  reducer 18 + init 11 = 37 passed (brief's 6 plus 2 added: takenName absent
+  from the payload; second serialize rebuilds pathIndex after partial fixes).
+  Full check: `TSC_OK`; 505 tests, 505 passed, 0 failing names; lint now 5,
+  baseline 5; new failing names empty.
 
 - Task 3: `proposalDraft.reducer.test.ts` written first and RED (18 failed,
   `draftReducer` not exported), then GREEN: reducer 18 + init 11 = 29 passed

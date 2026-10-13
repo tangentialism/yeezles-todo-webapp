@@ -5,7 +5,7 @@
  * and attachErrors maps a 422's paths back to items. Components only render
  * and dispatch.
  */
-import type { ResolvedProposal } from '../types/proposal';
+import type { ResolvedProposal, TopicChangesPayload } from '../types/proposal';
 import type { TopicRef, TopicWithCounts } from '../types/topic';
 import { TOPIC_NAME_MAX } from '../constants';
 
@@ -452,6 +452,73 @@ export const draftReducer = (draft: Draft, action: DraftAction): Draft => {
     case 'setUnassigned':
       return setUnassigned(draft, action.todoId, action.target);
     case 'attachErrors':
-      return draft; // implemented in Task 4
+      return attachErrors(draft, action.errors, action.pathIndex);
   }
+};
+
+// ── Serialize and errors ──────────────────────────────────────────────
+
+/** The `accepted` payload for apply, and the draft key behind each index. */
+export const serialize = (draft: Draft): { accepted: TopicChangesPayload; pathIndex: PathIndex } => {
+  const nameOf = (key: string) => (findTopic(draft, key)?.name ?? '').trim();
+  const newTopics = draft.topics.filter((t) => t.kind === 'new' && t.accepted);
+  const rows = draft.rows.filter((r) => isRowIncluded(draft, r));
+  const notes = draft.notes.filter((n) => isNoteIncluded(draft, n));
+  return {
+    accepted: {
+      area_id: draft.areaId,
+      new_topics: newTopics.map((t) => ({ name: t.name.trim(), description: t.description?.trim() ? t.description.trim() : null })),
+      assignments: rows.map((r) => ({ todo_id: r.todoId, topic: nameOf(r.target) })),
+      note_edits: notes.map((n) => ({ topic: nameOf(n.key), status_note: n.text })),
+    },
+    pathIndex: {
+      new_topics: newTopics.map((t) => t.key),
+      assignments: rows.map((r) => r.key),
+      note_edits: notes.map((n) => n.key),
+    },
+  };
+};
+
+const ITEM_PATH = /^(new_topics|assignments|note_edits)\[(\d+)\]/;
+
+/**
+ * Puts a 422's `{ path, reason }` items on the draft items they index, using
+ * the pathIndex from the serialize that produced the request. Errors are
+ * replaced, not merged. Paths that name no item go to `pageErrors`.
+ */
+export const attachErrors = (draft: Draft, errors: Array<{ path: string; reason: string }>, pathIndex: PathIndex): Draft => {
+  const cleared: Draft = {
+    ...draft,
+    topics: draft.topics.map((t) => ({ ...t, error: null })),
+    rows: draft.rows.map((r) => ({ ...r, error: null })),
+    notes: draft.notes.map((n) => ({ ...n, error: null })),
+    pageErrors: [],
+  };
+  return errors.reduce<Draft>((d, { path, reason }) => {
+    const match = ITEM_PATH.exec(path);
+    const list = match?.[1] as keyof PathIndex | undefined;
+    const key = match && list ? pathIndex[list][Number(match[2])] : undefined;
+    if (list === 'new_topics' && key) return { ...d, topics: d.topics.map((t) => (t.key === key ? { ...t, error: reason } : t)) };
+    if (list === 'assignments' && key) return { ...d, rows: d.rows.map((r) => (r.key === key ? { ...r, error: reason } : r)) };
+    if (list === 'note_edits' && key) return { ...d, notes: d.notes.map((n) => (n.key === key ? { ...n, error: reason } : n)) };
+    return { ...d, pageErrors: [...d.pageErrors, path ? `${path}: ${reason}` : reason] };
+  }, cleared);
+};
+
+export const hasErrors = (draft: Draft): boolean =>
+  draft.pageErrors.length > 0 ||
+  draft.topics.some((t) => t.error !== null) ||
+  draft.rows.some((r) => r.error !== null) ||
+  draft.notes.some((n) => n.error !== null);
+
+/** "2 new topics, 38 assignments, 1 note" (zero parts omitted). */
+export const summarizeAccepted = (payload: TopicChangesPayload): string => {
+  const part = (n: number, one: string, many: string) => (n === 0 ? null : `${n} ${n === 1 ? one : many}`);
+  return [
+    part(payload.new_topics.length, 'new topic', 'new topics'),
+    part(payload.assignments.length, 'assignment', 'assignments'),
+    part(payload.note_edits.length, 'note', 'notes'),
+  ]
+    .filter((p): p is string => p !== null)
+    .join(', ');
 };
