@@ -155,7 +155,7 @@ describe('Navigation', () => {
         deleteArea: vi.fn(),
         getAreaStats: vi.fn(),
         getAreaDisplayState: vi.fn().mockReturnValue({ isPending: false, isDeleting: false, isCreating: false }),
-      } as any);
+      } as unknown as ReturnType<typeof AreaContextModule.useArea>);
 
       render(<Navigation currentView="all" onViewChange={mockOnViewChange} />);
 

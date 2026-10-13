@@ -60,10 +60,12 @@ describe('TodayView', () => {
         { id: 7, name: 'Work', color: '#1E88E5', user_id: 'test', reference_code: 'work', description: null, is_default: true, created_at: '', updated_at: '' },
       ],
       currentArea: null,
-    } as any);
+    } as unknown as ReturnType<typeof AreaContextModule.useArea>);
 
     // TodayView reads completed todos for today's progress
-    vi.spyOn(useTodoStoreModule, 'useTodoStore').mockImplementation(() => ({ todos: completedTodos }) as any);
+    vi.spyOn(useTodoStoreModule, 'useTodoStore').mockImplementation(
+      () => ({ todos: completedTodos }) as unknown as ReturnType<typeof useTodoStoreModule.useTodoStore>
+    );
   });
 
   const setupTodayViewStore = (overrides: Record<string, unknown> = {}) => {

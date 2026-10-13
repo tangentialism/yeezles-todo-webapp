@@ -12,7 +12,7 @@ vi.mock('../../contexts/AreaContext');
 describe('AccomplishmentsView', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.spyOn(AreaContextModule, 'useArea').mockReturnValue({ areas: [], currentArea: null } as any);
+    vi.spyOn(AreaContextModule, 'useArea').mockReturnValue({ areas: [], currentArea: null } as unknown as ReturnType<typeof AreaContextModule.useArea>);
   });
 
   it('should render loading state', () => {

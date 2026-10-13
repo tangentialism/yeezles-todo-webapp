@@ -41,12 +41,15 @@ const Dashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-paper">
       <header className="sticky top-0 z-20 bg-paper/90 backdrop-blur">
-        <div className="max-w-[1120px] mx-auto px-4 sm:px-10 py-4 flex flex-wrap items-center gap-x-8 gap-y-3">
+        <div className="max-w-[1120px] mx-auto px-4 sm:px-10 py-3 sm:py-4 flex flex-wrap items-center gap-x-8 gap-y-2">
           <span className="font-serif font-medium text-[22px] tracking-[-0.01em] text-ink">Yeezles</span>
 
-          <Navigation currentView={currentView} onViewChange={handleViewChange} />
+          {/* Phones: tabs and area pill wrap to a second row under the wordmark and actions */}
+          <div className="order-last w-full sm:order-none sm:w-auto sm:flex-1 flex min-w-0">
+            <Navigation currentView={currentView} onViewChange={handleViewChange} />
+          </div>
 
-          <div className="flex items-center gap-3">
+          <div className="ml-auto sm:ml-0 flex items-center gap-3">
             <button
               type="button"
               onClick={() => setIsAddModalOpen(true)}

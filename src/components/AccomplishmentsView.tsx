@@ -9,10 +9,11 @@ import type { Todo } from '../types/todo';
 import type { Area } from '../types/area';
 
 /** "MON 12" for a YYYY-MM-DD group key. */
-const formatGroupDate = (dateKey: string) =>
-  new Date(`${dateKey}T00:00:00Z`)
-    .toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', timeZone: 'UTC' })
-    .toUpperCase();
+const formatGroupDate = (dateKey: string) => {
+  const date = new Date(`${dateKey}T00:00:00Z`);
+  const weekday = date.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' }).toUpperCase();
+  return `${weekday} ${date.getUTCDate()}`;
+};
 
 /**
  * The Done view: completed todos grouped by completion day (newest first),
