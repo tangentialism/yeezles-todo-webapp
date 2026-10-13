@@ -1,5 +1,8 @@
 import React from 'react';
 import type { AccessTokenSummary } from '../services/accessTokenApi';
+import TokenRow from './TokenRow';
+import { sectionCap } from './ui/styles';
+import { formatShortDate } from '../utils/date';
 
 interface ConnectedAppsSectionProps {
   /** Rows with source 'oauth' only; the modal does the split. */
@@ -8,12 +11,10 @@ interface ConnectedAppsSectionProps {
   onRevoke: (id: number) => void;
 }
 
-const formatDate = (iso: string) => new Date(iso).toLocaleDateString();
-
 function expiryText(expiresAt: string | null): string {
   if (expiresAt === null) return 'no expiry';
   const expired = new Date(expiresAt).getTime() <= Date.now();
-  return `${expired ? 'expired' : 'expires'} ${formatDate(expiresAt)}`;
+  return `${expired ? 'expired' : 'expires'} ${formatShortDate(expiresAt)}`;
 }
 
 /**
@@ -26,50 +27,35 @@ const ConnectedAppsSection: React.FC<ConnectedAppsSectionProps> = ({
   revokingIds,
   onRevoke,
 }) => (
-  <section className="space-y-3" aria-labelledby="connected-apps-heading">
-    <h3 id="connected-apps-heading" className="text-sm font-semibold text-ink">
-      Connected apps
+  <section aria-labelledby="connected-apps-heading">
+    <h3 id="connected-apps-heading" className={`${sectionCap} flex items-baseline gap-2.5 mb-0.5`}>
+      Connected apps <span className="font-normal tracking-normal text-ink-faint">{connections.length}</span>
     </h3>
 
     {connections.length === 0 && (
-      <p className="text-sm text-ink-muted">No apps are connected.</p>
+      <p className="py-3.5 border-b border-line text-sm text-ink-muted">No apps are connected.</p>
     )}
 
-    <ul className="space-y-3">
+    <ul>
       {connections.map(c => {
         const label = c.clientName ?? c.name;
         return (
-          <li key={c.id} className={`text-sm ${c.isRevoked ? 'line-through text-ink-faint' : ''}`}>
-            <div className="flex items-center justify-between">
-              <span>{label}</span>
-              {!c.isRevoked && (
-                <button
-                  type="button"
-                  onClick={() => onRevoke(c.id)}
-                  disabled={revokingIds.has(c.id)}
-                  aria-label={`Disconnect ${label}`}
-                  className="text-danger hover:underline disabled:opacity-60 disabled:no-underline disabled:cursor-not-allowed"
-                >
-                  {revokingIds.has(c.id) ? 'Disconnecting...' : 'Disconnect'}
-                </button>
-              )}
-            </div>
-            <div className="flex flex-wrap gap-1 mt-1">
-              {c.scopes.map(scope => (
-                <span
-                  key={scope}
-                  className="inline-block px-2 py-0.5 rounded-full bg-hover text-xs text-ink-2"
-                >
-                  {scope}
-                </span>
-              ))}
-            </div>
-            <div className="text-xs text-ink-muted mt-1">
-              {`Created ${formatDate(c.createdAt)} — last used ${
-                c.lastUsedAt ? formatDate(c.lastUsedAt) : 'never'
-              } — ${expiryText(c.expiresAt)}`}
-            </div>
-          </li>
+          <TokenRow
+            key={c.id}
+            icon={label.trim().charAt(0).toUpperCase()}
+            strongIcon
+            label={label}
+            meta={`since ${formatShortDate(c.createdAt)} · ${
+              c.lastUsedAt ? `used ${formatShortDate(c.lastUsedAt)}` : 'never used'
+            } · ${expiryText(c.expiresAt)}`}
+            scopes={c.scopes}
+            isRevoked={c.isRevoked}
+            isBusy={revokingIds.has(c.id)}
+            actionLabel="Disconnect"
+            busyLabel="Disconnecting…"
+            actionAriaLabel={`Disconnect ${label}`}
+            onAction={() => onRevoke(c.id)}
+          />
         );
       })}
     </ul>

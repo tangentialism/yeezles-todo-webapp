@@ -1,13 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import PasskeyLoginButton from './PasskeyLoginButton';
+import Switch from './ui/Switch';
+import { Spinner } from './ui/Icons';
 import { logger } from '../utils/logger';
 import type { GoogleCredentialResponse } from '../types/auth';
 
 /**
- * Full-page login screen with a Google Sign-In button and "Remember me" checkbox.
+ * Full-page sign-in: passkey first, then Google's own button, then a
+ * "Stay signed in" switch.
  *
- * When "Remember me" is checked, the login flow creates a persistent server-side
+ * When the switch is on, the login flow creates a persistent server-side
  * session (90-day cookie) in addition to the standard Google OAuth token.
  * Re-initializes the Google button whenever `rememberMe` toggles so the
  * credential callback captures the latest value.
@@ -43,14 +46,15 @@ const LoginButton: React.FC = () => {
           cancel_on_tap_outside: false,
         });
 
+        // Google draws this button itself; shape and width are all we set.
         window.google.accounts.id.renderButton(buttonRef.current, {
           type: 'standard',
           theme: 'outline',
           size: 'large',
           text: 'signin_with',
-          shape: 'rectangular',
-          logo_alignment: 'left',
-          width: '280px',
+          shape: 'pill',
+          logo_alignment: 'center',
+          width: '316px',
         });
       } catch (error) {
         logger.error('Failed to render Google sign-in button:', error);
@@ -59,59 +63,52 @@ const LoginButton: React.FC = () => {
   }, [isGoogleReady, rememberMe]); // Re-run when Google becomes ready or remember me changes
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-paper">
-      <div className="bg-surface p-8 rounded-[18px] shadow-dialog max-w-md w-full mx-4">
-        <div className="text-center mb-7">
-          <h1 className="font-serif font-medium text-4xl tracking-[-0.015em] text-ink mb-2">Yeezles</h1>
-          <p className="text-sm text-ink-muted">
-            Sign in with your authorized Google account
-          </p>
-          <p className="mt-1 text-xs text-ink-faint">
-            Access restricted to authorized users only
-          </p>
+    <div className="min-h-screen bg-paper flex flex-col px-6 sm:items-center sm:pt-[18vh]">
+      <div className="w-full sm:max-w-[380px] flex flex-col flex-1 sm:flex-none">
+        <div className="flex-1 sm:flex-none flex flex-col justify-center sm:text-center">
+          <h1 className="font-serif font-medium text-4xl sm:text-[40px] leading-[1.1] tracking-[-0.015em] text-ink">
+            Yeezles
+          </h1>
+          <p className="mt-2 sm:mt-2.5 text-sm text-ink-muted">Sign in to continue</p>
         </div>
-        
-        <div className="mb-4">
-          <PasskeyLoginButton onSuccess={() => window.location.reload()} />
-        </div>
-        <div className="text-center text-xs text-ink-faint mb-4">or</div>
 
-        <div className="flex justify-center">
-          {isGoogleReady && !isLoading ? (
-            <div ref={buttonRef}></div>
-          ) : (
-            <div className="flex items-center justify-center py-3 px-6 border border-line-strong rounded-[10px]">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-ink mr-3"></div>
-              <span className="text-ink-muted">
-                {isLoading ? 'Signing In...' : 'Loading Sign In...'}
-              </span>
-            </div>
-          )}
-        </div>
-        
-        {/* Remember Me Checkbox */}
-        {isGoogleReady && !isLoading && (
-          <div className="mt-4 flex items-center justify-center">
-            <label className="flex items-center space-x-2 text-sm text-ink-muted cursor-pointer">
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="rounded border-line-strong text-accent shadow-sm focus:border-accent focus:ring focus:ring-accent/20 focus:ring-opacity-50"
-              />
-              <span>Remember me for 90 days</span>
-            </label>
+        <div className="sm:mt-8 sm:p-7 flex flex-col gap-4 sm:gap-[18px] pb-10 sm:pb-7 sm:bg-surface sm:rounded-[18px] sm:shadow-[0_1px_2px_rgb(20_26_33_/_0.04),0_0_0_1px_rgb(20_26_33_/_0.06)]">
+          <PasskeyLoginButton onSuccess={() => window.location.reload()} />
+
+          <div
+            aria-hidden="true"
+            className="flex items-center gap-3 font-mono text-[11.5px] uppercase tracking-[0.12em] text-ink-faint before:flex-1 before:h-px before:bg-line after:flex-1 after:h-px after:bg-line"
+          >
+            or
           </div>
-        )}
-        
-        <div className="mt-6 text-xs text-ink-muted text-center">
-          <p>Secure authentication with Google OAuth 2.0</p>
-          {rememberMe && (
-            <p className="mt-1 text-accent">
-              Persistent session will be created for secure access
-            </p>
+
+          <div className="flex justify-center min-h-[44px]">
+            {isGoogleReady && !isLoading ? (
+              <div ref={buttonRef}></div>
+            ) : (
+              <div className="w-full flex items-center justify-center gap-2.5 h-11 rounded-full border border-line-strong bg-surface text-sm text-ink-muted">
+                <Spinner className="w-4 h-4" />
+                {isLoading ? 'Signing in…' : 'Loading Google sign-in…'}
+              </div>
+            )}
+          </div>
+
+          {isGoogleReady && !isLoading && (
+            <label
+              htmlFor="remember-me"
+              className="flex items-center gap-3 min-h-[44px] pt-3 sm:pt-4 border-t border-line cursor-pointer"
+            >
+              <span className="flex-1 text-sm text-ink">
+                Stay signed in <span className="font-mono text-[12.5px] text-ink-faint">90 days</span>
+              </span>
+              <Switch id="remember-me" checked={rememberMe} onChange={setRememberMe} />
+            </label>
           )}
+
+          <p className="sm:hidden text-[12.5px] text-ink-faint">Authorized accounts only</p>
         </div>
+
+        <p className="hidden sm:block mt-[18px] text-center text-[12.5px] text-ink-faint">Authorized accounts only</p>
       </div>
     </div>
   );

@@ -44,6 +44,7 @@ export default {
       boxShadow: {
         menu: '0 18px 44px -14px rgb(20 26 33 / 0.25), 0 2px 6px rgb(20 26 33 / 0.05)',
         dialog: '0 30px 80px -24px rgb(20 26 33 / 0.45), 0 0 0 1px rgb(20 26 33 / 0.06)',
+        fab: '0 10px 24px -8px rgb(20 26 33 / 0.5)',
       },
     },
   },

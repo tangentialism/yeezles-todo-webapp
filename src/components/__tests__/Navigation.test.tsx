@@ -4,12 +4,17 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Navigation from '../Navigation';
 import * as AreaContextModule from '../../contexts/AreaContext';
+import { useAreaOpenCounts } from '../../hooks/useNavCounts';
 
 // Mock the AreaContext
 vi.mock('../../contexts/AreaContext');
 // Mock the AreaManagementModal since it has complex dependencies
 vi.mock('../AreaManagementModal', () => ({
   default: () => null,
+}));
+// The area menu's open counts come from a query; stub it so these tests need no QueryClient
+vi.mock('../../hooks/useNavCounts', () => ({
+  useAreaOpenCounts: vi.fn(() => null),
 }));
 
 describe('Navigation', () => {
@@ -166,6 +171,47 @@ describe('Navigation', () => {
       await user.click(screen.getByRole('menuitemradio', { name: /work/i }));
       expect(setCurrentArea).toHaveBeenCalledWith(work);
       expect(screen.queryByRole('menu', { name: 'Areas' })).not.toBeInTheDocument();
+    });
+  });
+  describe('Counts', () => {
+    it('shows the open count beside the Today tab', () => {
+      render(<Navigation currentView="all" onViewChange={mockOnViewChange} todayCount={5} />);
+
+      const todayButton = screen.getByRole('button', { name: 'Today (5 open)' });
+      expect(todayButton).toHaveTextContent('5');
+    });
+
+    it('leaves the Today tab bare when nothing is open', () => {
+      render(<Navigation currentView="all" onViewChange={mockOnViewChange} todayCount={0} />);
+
+      expect(screen.getByRole('button', { name: 'Today' })).toBeInTheDocument();
+    });
+
+    it('shows open counts per area in the area menu', async () => {
+      const user = userEvent.setup();
+      const work = { id: 1, name: 'Work', color: '#3B82F6', user_id: 'test', reference_code: 'work', description: null, is_default: true, created_at: '', updated_at: '' };
+      const home = { ...work, id: 2, name: 'Home', reference_code: 'home', is_default: false };
+      vi.spyOn(AreaContextModule, 'useArea').mockReturnValue({
+        areas: [work, home],
+        currentArea: work,
+        setCurrentArea: vi.fn(),
+        isLoading: false,
+        availableColors: [],
+        refreshAreas: vi.fn(),
+        createArea: vi.fn(),
+        updateArea: vi.fn(),
+        deleteArea: vi.fn(),
+        getAreaStats: vi.fn(),
+        getAreaDisplayState: vi.fn().mockReturnValue({ isPending: false, isDeleting: false, isCreating: false }),
+      } as unknown as ReturnType<typeof AreaContextModule.useArea>);
+      vi.mocked(useAreaOpenCounts).mockReturnValue({ byArea: new Map([[1, 5], [2, 2]]), total: 7 });
+
+      render(<Navigation currentView="all" onViewChange={mockOnViewChange} />);
+      await user.click(screen.getByRole('button', { name: /^work$/i }));
+
+      expect(screen.getByRole('menuitemradio', { name: 'All Areas, 7 open' })).toBeInTheDocument();
+      expect(screen.getByRole('menuitemradio', { name: 'Work, 5 open' })).toHaveAttribute('aria-checked', 'true');
+      expect(screen.getByRole('menuitemradio', { name: 'Home, 2 open' })).toBeInTheDocument();
     });
   });
 });

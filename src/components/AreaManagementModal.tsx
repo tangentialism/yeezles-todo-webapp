@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import type { Area } from '../types/area';
 import { useArea } from '../contexts/AreaContext';
 import { logger } from '../utils/logger';
+import Dialog from './ui/Dialog';
+import { CheckIcon, Spinner, TrashIcon } from './ui/Icons';
+import { fieldError, fieldInput, fieldLabel, fieldOptional, ghostButton, primaryButton } from './ui/styles';
 
 /** Props for {@link AreaManagementModal}. */
 interface AreaManagementModalProps {
@@ -142,147 +145,119 @@ const AreaManagementModal: React.FC<AreaManagementModalProps> = ({
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-        <div className="px-6 py-4 border-b border-line">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-ink">
-              {editingArea ? 'Edit Area' : 'Create New Area'}
-            </h2>
-            <button
-              onClick={onClose}
-              className="text-ink-faint hover:text-ink transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
+  const canDelete = Boolean(editingArea && !editingArea.is_default);
 
-        <form onSubmit={handleSubmit} className="px-6 py-4">
-          {/* Area Name */}
-          <div className="mb-4">
-            <label htmlFor="area-name" className="block text-sm font-medium text-ink-2 mb-2">
-              Area Name
+  return (
+    <Dialog
+      title={editingArea ? 'Edit area' : 'New area'}
+      titleDotColor={selectedColor}
+      onClose={onClose}
+      closeDisabled={isSubmitting}
+    >
+      <form onSubmit={handleSubmit} noValidate>
+        <div className="px-7 pt-3.5 flex flex-col gap-[18px]">
+          <div>
+            <label htmlFor="area-name" className={fieldLabel}>
+              Name
             </label>
             <input
               type="text"
               id="area-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent ${
-                errors.name ? 'border-danger/40' : 'border-line-strong'
-              }`}
-              placeholder="e.g., Work, Personal, Side Projects"
+              className={`${fieldInput} ${errors.name ? '!border-danger/50' : ''}`}
+              placeholder="Work, Personal, Side projects"
               maxLength={100}
               disabled={isSubmitting}
+              aria-invalid={Boolean(errors.name)}
+              aria-describedby={errors.name ? 'area-name-error' : undefined}
+              autoFocus
             />
             {errors.name && (
-              <p className="mt-1 text-sm text-danger">{errors.name}</p>
+              <p id="area-name-error" className={fieldError}>
+                {errors.name}
+              </p>
             )}
           </div>
 
-          {/* Description for AI Categorization */}
-          <div className="mb-4">
-            <label htmlFor="area-description" className="block text-sm font-medium text-ink-2 mb-2">
-              Description
-              <span className="ml-1 text-xs text-ink-muted font-normal">(helps AI categorize todos)</span>
+          <div>
+            <label htmlFor="area-description" className={fieldLabel}>
+              Description <span className={fieldOptional}>optional</span>
             </label>
             <textarea
               id="area-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent resize-none ${
-                errors.description ? 'border-danger/40' : 'border-line-strong'
-              }`}
-              placeholder="e.g., Work projects, professional tasks, and career-related items"
+              className={`${fieldInput} resize-none ${errors.description ? '!border-danger/50' : ''}`}
+              placeholder="Work projects, reviews and planning"
               rows={2}
               maxLength={500}
               disabled={isSubmitting}
+              aria-describedby="area-description-hint"
             />
-            <div className="flex justify-between mt-1">
+            <div id="area-description-hint" className="mt-2 flex justify-between gap-4 text-[12.5px]">
               {errors.description ? (
-                <p className="text-sm text-danger">{errors.description}</p>
+                <span className="text-danger">{errors.description}</span>
               ) : (
-                <p className="text-xs text-ink-muted">
-                  Describe what types of todos belong in this area
-                </p>
+                <span className="text-ink-faint">Helps sort incoming todos into this area</span>
               )}
-              <span className="text-xs text-ink-faint">{description.length}/500</span>
+              <span className="flex-none font-mono text-[11.5px] text-ink-faint">{description.length}/500</span>
             </div>
           </div>
 
-          {/* Color Selection */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-ink-2 mb-3">
-              Choose Color
-            </label>
-            <div className="grid grid-cols-4 gap-3">
-              {Array.isArray(colorsToUse) && colorsToUse.map((color) => (
-                <button
-                  key={color}
-                  type="button"
-                  onClick={() => setSelectedColor(color)}
-                  className={`w-12 h-12 rounded-lg border-2 transition-all ${
-                    selectedColor === color
-                      ? 'border-ink scale-110'
-                      : 'border-line-strong hover:border-ink-faint'
-                  }`}
-                  style={{ backgroundColor: color }}
-                  disabled={isSubmitting}
-                >
-                  {selectedColor === color && (
-                    <svg className="w-6 h-6 text-white mx-auto" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  )}
-                </button>
-              ))}
+          <div>
+            <span id="area-colour-label" className={fieldLabel}>
+              Colour
+            </span>
+            <div role="radiogroup" aria-labelledby="area-colour-label" className="flex flex-wrap gap-3 px-0.5 py-1">
+              {Array.isArray(colorsToUse) && colorsToUse.map((color) => {
+                const isSelected = selectedColor === color;
+                return (
+                  <button
+                    key={color}
+                    type="button"
+                    role="radio"
+                    aria-checked={isSelected}
+                    aria-label={color}
+                    onClick={() => setSelectedColor(color)}
+                    disabled={isSubmitting}
+                    className={`w-9 h-9 rounded-full inline-flex items-center justify-center text-white transition-shadow disabled:opacity-60 ${
+                      isSelected ? 'ring-2 ring-ink ring-offset-2 ring-offset-surface' : 'hover:ring-2 hover:ring-line-strong hover:ring-offset-2'
+                    }`}
+                    style={{ backgroundColor: color }}
+                  >
+                    {isSelected && <CheckIcon className="w-4 h-4" />}
+                  </button>
+                );
+              })}
             </div>
-            {errors.color && (
-              <p className="mt-2 text-sm text-danger">{errors.color}</p>
-            )}
+            {errors.color && <p className={fieldError}>{errors.color}</p>}
           </div>
+        </div>
 
-          {/* Action Buttons */}
-          <div className="flex items-center justify-between pt-4 border-t border-line">
-            {editingArea && !editingArea.is_default && (
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={isSubmitting}
-                className="px-4 py-2 text-sm font-medium text-danger hover:text-danger hover:bg-danger-soft rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Delete Area
-              </button>
-            )}
-            
-            <div className={`flex space-x-3 ${editingArea && !editingArea.is_default ? '' : 'ml-auto'}`}>
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={isSubmitting}
-                className="px-4 py-2 text-sm font-medium text-ink-2 bg-hover hover:bg-line rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="px-4 py-2 text-sm font-medium text-white bg-ink hover:bg-ink-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-              >
-                {isSubmitting && (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                )}
-                {editingArea ? 'Update Area' : 'Create Area'}
-              </button>
-            </div>
-          </div>
-        </form>
-      </div>
-    </div>
+        <div className="mt-[18px] flex items-center gap-1.5 pl-[18px] pr-5 pt-3.5 pb-5 border-t border-line">
+          {canDelete && (
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={isSubmitting}
+              className="inline-flex items-center gap-2 h-10 px-3.5 rounded-full text-sm font-medium text-danger hover:bg-danger-soft disabled:opacity-50 transition-colors"
+            >
+              <TrashIcon className="w-4 h-4" />
+              Delete…
+            </button>
+          )}
+          <span className="flex-1" />
+          <button type="button" onClick={onClose} disabled={isSubmitting} className={ghostButton}>
+            Cancel
+          </button>
+          <button type="submit" disabled={isSubmitting} className={primaryButton}>
+            {isSubmitting && <Spinner className="w-4 h-4" />}
+            {editingArea ? 'Save' : 'Create area'}
+          </button>
+        </div>
+      </form>
+    </Dialog>
   );
 };
 

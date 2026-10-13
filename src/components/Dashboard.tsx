@@ -5,6 +5,8 @@ import AddTodoModal from './AddTodoModal';
 import PasskeyManagementModal from './PasskeyManagementModal';
 import AccessTokenManagementModal from './AccessTokenManagementModal';
 import AccountMenu from './AccountMenu';
+import PhoneTabBar from './PhoneTabBar';
+import { useTodayOpenCount } from '../hooks/useNavCounts';
 import { PlusIcon } from './ui/Icons';
 import { primaryButton } from './ui/styles';
 import { VIEW_TRANSITION_DURATION_MS } from '../constants';
@@ -23,6 +25,7 @@ const Dashboard: React.FC = () => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [newTodoId, setNewTodoId] = useState<number | null>(null);
   const [isViewTransitioning, setIsViewTransitioning] = useState(false);
+  const todayCount = useTodayOpenCount();
 
   const handleViewChange = (newView: string) => {
     if (newView !== currentView) {
@@ -40,20 +43,20 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-paper">
+      {/* Phones: wordmark, area dot and avatar only; views move to the tab bar, New to the round button */}
       <header className="sticky top-0 z-20 bg-paper/90 backdrop-blur">
-        <div className="max-w-[1120px] mx-auto px-4 sm:px-10 py-3 sm:py-4 flex flex-wrap items-center gap-x-8 gap-y-2">
-          <span className="font-serif font-medium text-[22px] tracking-[-0.01em] text-ink">Yeezles</span>
+        <div className="max-w-[1120px] mx-auto pl-5 pr-3 pt-2.5 pb-1 sm:px-10 sm:py-4 flex items-center sm:gap-x-8">
+          <span className="font-serif font-medium text-xl sm:text-[22px] tracking-[-0.01em] text-ink">Yeezles</span>
 
-          {/* Phones: tabs and area pill wrap to a second row under the wordmark and actions */}
-          <div className="order-last w-full sm:order-none sm:w-auto sm:flex-1 flex min-w-0">
-            <Navigation currentView={currentView} onViewChange={handleViewChange} />
+          <div className="flex flex-1 min-w-0">
+            <Navigation currentView={currentView} onViewChange={handleViewChange} todayCount={todayCount} />
           </div>
 
-          <div className="ml-auto sm:ml-0 flex items-center gap-3">
+          <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => setIsAddModalOpen(true)}
-              className={`${primaryButton} pl-3.5`}
+              className={`${primaryButton} pl-3.5 hidden sm:inline-flex`}
             >
               <PlusIcon className="w-4 h-4" />
               New
@@ -67,8 +70,8 @@ const Dashboard: React.FC = () => {
         </div>
       </header>
 
-      {/* Main content */}
-      <main className="max-w-[1120px] mx-auto px-4 sm:px-10 pt-6 pb-24">
+      {/* Main content (views pad their own scroll above the phone tab bar) */}
+      <main className="max-w-[1120px] mx-auto px-5 sm:px-10 pt-4 sm:pt-6 pb-24">
         <ViewContainer
           currentView={currentView}
           isTransitioning={isViewTransitioning}
@@ -77,6 +80,19 @@ const Dashboard: React.FC = () => {
           onNewTodoAnimationComplete={() => setNewTodoId(null)}
         />
       </main>
+
+      {/* Phones only: round New button above the tab bar */}
+      <button
+        type="button"
+        onClick={() => setIsAddModalOpen(true)}
+        aria-label="New todo"
+        className="sm:hidden fixed right-5 z-20 w-14 h-14 rounded-full bg-ink text-paper inline-flex items-center justify-center shadow-fab hover:bg-ink-2 transition-colors"
+        style={{ bottom: 'calc(74px + max(10px, env(safe-area-inset-bottom)))' }}
+      >
+        <PlusIcon className="w-[22px] h-[22px]" />
+      </button>
+
+      <PhoneTabBar currentView={currentView} onViewChange={handleViewChange} todayCount={todayCount} />
 
       {/* Add Todo Modal */}
       <AddTodoModal

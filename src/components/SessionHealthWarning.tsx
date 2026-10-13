@@ -2,11 +2,17 @@ import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { SESSION_EXPIRY_URGENT_DAYS } from '../constants';
 
+/** Length of a persistent ("Stay signed in") session, for the countdown ring. */
+const SESSION_LENGTH_DAYS = 90;
+const RING_RADIUS = 15;
+const RING_LENGTH = 2 * Math.PI * RING_RADIUS;
+
 /**
- * Fixed-position banner warning the user when their persistent session is
- * approaching expiration. Only renders for authenticated persistent-session users
- * when `sessionHealth.needsRefreshWarning` is true. Uses an amber style for
- * normal warnings and red when under {@link SESSION_EXPIRY_URGENT_DAYS}.
+ * Small floating notice (bottom-left; above the tab bar on phones) when the
+ * persistent session is close to expiring. Only renders for authenticated
+ * persistent-session users when `sessionHealth.needsRefreshWarning` is true.
+ * A ring shows how much of the 90-day session is left, with the days in the
+ * middle; it turns danger red at {@link SESSION_EXPIRY_URGENT_DAYS} or fewer.
  */
 const SessionHealthWarning: React.FC = () => {
   const { sessionHealth, authMethod, isAuthenticated } = useAuth();
@@ -21,34 +27,53 @@ const SessionHealthWarning: React.FC = () => {
 
   const daysLeft = sessionHealth.daysUntilExpiry;
   const isUrgent = daysLeft <= SESSION_EXPIRY_URGENT_DAYS;
+  const fraction = Math.min(Math.max(daysLeft / SESSION_LENGTH_DAYS, 0), 1);
 
   return (
-    <div className={`fixed top-4 right-4 z-50 max-w-sm p-4 rounded-lg shadow-lg border ${
-      isUrgent
-        ? 'bg-danger-soft border-danger/30 text-danger'
-        : 'bg-amber-50 border-amber-200 text-amber-800'
-    }`}>
-      <div className="flex items-start">
-        <div className="flex-shrink-0">
-          {isUrgent ? (
-            <svg className="h-5 w-5 text-danger" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-            </svg>
-          ) : (
-            <svg className="h-5 w-5 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-            </svg>
-          )}
-        </div>
-        <div className="ml-3 flex-1">
-          <h3 className="text-sm font-medium">
-            {isUrgent ? 'Session Expiring Soon' : 'Session Refresh Recommended'}
-          </h3>
-          <p className="mt-1 text-sm">
-            Your session expires in {daysLeft} day{daysLeft !== 1 ? 's' : ''}.
-            {isUrgent ? ' Please sign in again soon.' : ' Consider signing in again to refresh your session.'}
-          </p>
-        </div>
+    <div
+      role="status"
+      className={`fixed left-4 sm:left-6 z-30 w-[calc(100%-2rem)] max-w-[320px] flex gap-3 px-4 py-3.5 rounded-[14px] bg-surface shadow-menu bottom-[calc(84px+env(safe-area-inset-bottom))] sm:bottom-6 ${
+        isUrgent ? 'ring-1 ring-danger/35' : 'ring-1 ring-ink/5'
+      }`}
+    >
+      <span className="relative w-9 h-9 flex-none" aria-hidden="true">
+        <svg width="36" height="36" viewBox="0 0 36 36">
+          <circle
+            cx="18"
+            cy="18"
+            r={RING_RADIUS}
+            fill="none"
+            strokeWidth="3"
+            className={isUrgent ? 'stroke-danger-soft' : 'stroke-line'}
+          />
+          <circle
+            cx="18"
+            cy="18"
+            r={RING_RADIUS}
+            fill="none"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeDasharray={RING_LENGTH}
+            strokeDashoffset={RING_LENGTH * (1 - fraction)}
+            transform="rotate(-90 18 18)"
+            className={isUrgent ? 'stroke-danger' : 'stroke-accent'}
+          />
+        </svg>
+        <span
+          className={`absolute inset-0 flex items-center justify-center font-mono text-xs font-medium ${
+            isUrgent ? 'text-danger' : 'text-ink'
+          }`}
+        >
+          {daysLeft}
+        </span>
+      </span>
+      <div className="min-w-0">
+        <p className={`text-sm font-medium leading-5 ${isUrgent ? 'text-danger' : 'text-ink'}`}>
+          Session ends in <span className="font-mono">{daysLeft}</span> {daysLeft === 1 ? 'day' : 'days'}
+        </p>
+        <p className="mt-0.5 text-[13px] leading-[19px] text-ink-muted">
+          {isUrgent ? 'Sign in again soon.' : 'Sign in again to refresh it.'}
+        </p>
       </div>
     </div>
   );

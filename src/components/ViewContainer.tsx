@@ -101,7 +101,7 @@ const ViewContainer: React.FC<ViewContainerProps> = ({
       {/* All Todos View */}
       <div
         ref={allViewRef}
-        className="absolute inset-0 -mx-3 px-3 overflow-y-auto overflow-x-hidden transition-opacity duration-200"
+        className="absolute inset-0 -mx-3 px-3 pb-36 sm:pb-0 overflow-y-auto overflow-x-hidden transition-opacity duration-200"
         style={{
           opacity: getViewOpacity('all'),
           visibility: getViewVisibility('all'),
@@ -119,7 +119,7 @@ const ViewContainer: React.FC<ViewContainerProps> = ({
       {/* Today View */}
       <div
         ref={todayViewRef}
-        className="absolute inset-0 -mx-3 px-3 overflow-y-auto overflow-x-hidden transition-opacity duration-200"
+        className="absolute inset-0 -mx-3 px-3 pb-36 sm:pb-0 overflow-y-auto overflow-x-hidden transition-opacity duration-200"
         style={{
           opacity: getViewOpacity('today'),
           visibility: getViewVisibility('today'),
@@ -132,7 +132,7 @@ const ViewContainer: React.FC<ViewContainerProps> = ({
       {/* Accomplishments View */}
       <div
         ref={accomplishmentsViewRef}
-        className="absolute inset-0 -mx-3 px-3 overflow-y-auto overflow-x-hidden transition-opacity duration-200"
+        className="absolute inset-0 -mx-3 px-3 pb-36 sm:pb-0 overflow-y-auto overflow-x-hidden transition-opacity duration-200"
         style={{
           opacity: getViewOpacity('accomplishments'),
           visibility: getViewVisibility('accomplishments'),

@@ -21,6 +21,7 @@ vi.mock('../ApiStatus', () => ({ default: () => null }));
 vi.mock('../Navigation', () => ({ default: () => null }));
 vi.mock('../ViewContainer', () => ({ default: () => null }));
 vi.mock('../AddTodoModal', () => ({ default: () => null }));
+vi.mock('../../hooks/useNavCounts', () => ({ useTodayOpenCount: () => null }));
 
 const testUser: User = {
   id: 'user-1',
@@ -63,14 +64,14 @@ describe('Dashboard - passkey management entry point', () => {
     const user = userEvent.setup();
     renderDashboard();
 
-    expect(screen.queryByText(/no passkeys enrolled yet/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/no passkeys yet/i)).not.toBeInTheDocument();
 
     await openAccountMenu(user);
     await user.click(screen.getByRole('menuitem', { name: /manage passkeys/i }));
 
     // Content only PasskeyEnrollment renders confirms the real component
     // (not a stand-in) is mounted inside the modal.
-    expect(await screen.findByText(/no passkeys enrolled yet/i)).toBeInTheDocument();
+    expect(await screen.findByText(/no passkeys yet/i)).toBeInTheDocument();
   });
 
   it('closes the modal when the close control is clicked', async () => {
@@ -79,12 +80,11 @@ describe('Dashboard - passkey management entry point', () => {
 
     await openAccountMenu(user);
     await user.click(screen.getByRole('menuitem', { name: /manage passkeys/i }));
-    expect(await screen.findByText(/no passkeys enrolled yet/i)).toBeInTheDocument();
+    expect(await screen.findByText(/no passkeys yet/i)).toBeInTheDocument();
 
-    // The close (X) button has no accessible text, matching the convention
-    // used by AreaManagementModal / AddTodoModal.
-    await user.click(screen.getByRole('button', { name: '' }));
+    // The shared Dialog shell's close (X) button.
+    await user.click(screen.getByRole('button', { name: 'Close' }));
 
-    expect(screen.queryByText(/no passkeys enrolled yet/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/no passkeys yet/i)).not.toBeInTheDocument();
   });
 });

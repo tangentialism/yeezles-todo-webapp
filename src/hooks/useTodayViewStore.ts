@@ -11,6 +11,9 @@ const QUERY_KEYS = {
     ['todayView', { includeDueToday, daysAhead }],
 } as const;
 
+/** Cache key of the Today view query, for read-only observers such as the tab count. */
+export const todayViewQueryKey = QUERY_KEYS.todayView;
+
 interface UseTodayViewStoreOptions {
   includeDueToday?: boolean;
   daysAhead?: number;

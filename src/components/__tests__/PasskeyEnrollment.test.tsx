@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { formatShortDate } from '../../utils/date';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import PasskeyEnrollment from '../PasskeyEnrollment';
@@ -32,7 +33,7 @@ describe('PasskeyEnrollment', () => {
 
     render(<PasskeyEnrollment />);
 
-    expect(await screen.findByText(/no passkeys enrolled yet/i)).toBeInTheDocument();
+    expect(await screen.findByText(/no passkeys yet/i)).toBeInTheDocument();
   });
 
   it('renders a fetched list showing nickname and last-used information', async () => {
@@ -43,7 +44,7 @@ describe('PasskeyEnrollment', () => {
     render(<PasskeyEnrollment />);
 
     expect(await screen.findByText(/macbook touch id/i)).toBeInTheDocument();
-    expect(screen.getByText(/last used/i)).toBeInTheDocument();
+    expect(screen.getByText(new RegExp(`used ${formatShortDate('2026-01-15T00:00:00.000Z')}`))).toBeInTheDocument();
   });
 
   it('add flow calls enrollPasskey and then refreshes the list', async () => {
@@ -53,7 +54,7 @@ describe('PasskeyEnrollment', () => {
     vi.mocked(passkeyApi.enrollPasskey).mockResolvedValue({ credentialId: 'abc' });
 
     render(<PasskeyEnrollment />);
-    await screen.findByText(/no passkeys enrolled yet/i);
+    await screen.findByText(/no passkeys yet/i);
 
     await userEvent.click(screen.getByRole('button', { name: /add a passkey/i }));
 
@@ -77,7 +78,7 @@ describe('PasskeyEnrollment', () => {
     expect(confirmSpy).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(passkeyApi.deletePasskey).toHaveBeenCalledWith(7));
     expect(passkeyApi.listPasskeys).toHaveBeenCalledTimes(2);
-    expect(await screen.findByText(/no passkeys enrolled yet/i)).toBeInTheDocument();
+    expect(await screen.findByText(/no passkeys yet/i)).toBeInTheDocument();
   });
 
   it('shows error text when the initial list fetch fails', async () => {
@@ -93,7 +94,7 @@ describe('PasskeyEnrollment', () => {
     vi.mocked(passkeyApi.enrollPasskey).mockRejectedValue(new Error('Enrollment declined'));
 
     render(<PasskeyEnrollment />);
-    await screen.findByText(/no passkeys enrolled yet/i);
+    await screen.findByText(/no passkeys yet/i);
 
     await userEvent.click(screen.getByRole('button', { name: /add a passkey/i }));
 

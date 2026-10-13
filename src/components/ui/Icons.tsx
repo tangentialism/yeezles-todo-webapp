@@ -32,6 +32,21 @@ export const SunIcon: React.FC<IconProps> = (p) => (
   </Stroke>
 );
 
+/** Three ruled lines: the "All" list. */
+export const ListIcon: React.FC<IconProps> = (p) => (
+  <Stroke {...p}>
+    <path d="M5 7h14M5 12h14M5 17h9" />
+  </Stroke>
+);
+
+/** Tick in a circle: the "Done" view. */
+export const CircleCheckIcon: React.FC<IconProps> = (p) => (
+  <Stroke {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M8 12.5l3 3 5-6" />
+  </Stroke>
+);
+
 export const CheckIcon: React.FC<IconProps> = (p) => (
   <Stroke strokeWidth={3} {...p}>
     <path d="M5 12.5l4.5 4.5L19 7.5" />
@@ -131,4 +146,47 @@ export const Spinner: React.FC<IconProps> = ({ className = 'w-4 h-4' }) => (
     <circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity="0.2" strokeWidth="2.5" />
     <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
   </svg>
+);
+
+export const AlertTriangleIcon: React.FC<IconProps> = (p) => (
+  <Stroke {...p}>
+    <path d="M12 3.5l9.5 16.5h-19z" />
+    <path d="M12 10v4.5M12 17.5v.01" />
+  </Stroke>
+);
+
+export const AlertCircleIcon: React.FC<IconProps> = (p) => (
+  <Stroke {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 7.5v5.5M12 16.5v.01" />
+  </Stroke>
+);
+
+export const FileIcon: React.FC<IconProps> = (p) => (
+  <Stroke {...p}>
+    <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+    <path d="M14 3v5h5" />
+  </Stroke>
+);
+
+export const CopyIcon: React.FC<IconProps> = (p) => (
+  <Stroke {...p}>
+    <rect x="8" y="8" width="12" height="12" rx="2" />
+    <path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3" />
+  </Stroke>
+);
+
+/** Arrow curling back: "returns to" a host. */
+export const ReturnIcon: React.FC<IconProps> = (p) => (
+  <Stroke {...p}>
+    <path d="M9 14L4 9l5-5" />
+    <path d="M4 9h10a6 6 0 0 1 0 12h-3" />
+  </Stroke>
+);
+
+export const EyeIcon: React.FC<IconProps> = (p) => (
+  <Stroke {...p}>
+    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" />
+    <circle cx="12" cy="12" r="3" />
+  </Stroke>
 );

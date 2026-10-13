@@ -3,6 +3,11 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useTodoStore } from '../hooks/useTodoStore';
 import { useArea } from '../contexts/AreaContext';
 import { logger } from '../utils/logger';
+import PageShell from './ui/PageShell';
+import AreaChips from './ui/AreaChips';
+import Switch from './ui/Switch';
+import { CalendarIcon, FileIcon, LinkIcon, Spinner, SunIcon } from './ui/Icons';
+import { fieldInput, fieldLabel, fieldOptional, ghostButton, pageCard, primaryButton } from './ui/styles';
 
 /**
  * Single-todo creation page for external sources (e.g. Obsidian deep-links).
@@ -65,131 +70,119 @@ const CreateTodoFromExternal: React.FC = () => {
     navigate('/');
   };
 
-  return (
-    <div className="min-h-screen bg-paper py-8">
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white shadow-lg rounded-lg p-6">
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-ink">Create Todo from {source === 'obsidian' ? 'Obsidian' : 'External Source'}</h1>
-            {vault && file && (
-              <p className="text-sm text-ink-muted mt-2">
-                From: <span className="font-mono bg-hover px-2 py-1 rounded">{vault}/{file}</span>
-              </p>
-            )}
-          </div>
+  const sourceLabel = source === 'obsidian' ? 'From Obsidian' : 'From another app';
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+  return (
+    <PageShell homeHref="/">
+      <main className={`mx-4 sm:mx-auto sm:max-w-[560px] mt-2 sm:mt-7 mb-10 ${pageCard}`}>
+        <div className="px-6 sm:px-7 pt-6 pb-1">
+          <h1 className="font-serif font-medium text-2xl tracking-[-0.01em] text-ink">New todo</h1>
+          <p className="mt-3 inline-flex max-w-full items-center gap-2 h-[30px] pl-2.5 pr-3 rounded-full bg-hover text-[12.5px] text-ink-2">
+            <FileIcon className="w-3.5 h-3.5 flex-none" />
+            <span className="flex-none">{sourceLabel}</span>
+            {vault && file && (
+              <span className="font-mono text-ink-muted truncate">
+                {vault}/{file}
+              </span>
+            )}
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div className="px-6 sm:px-7 pt-4 flex flex-col gap-[18px]">
             <div>
-              <label htmlFor="title" className="block text-sm font-medium text-ink-2 mb-2">
-                Title *
+              <label htmlFor="title" className="sr-only">
+                Title
               </label>
               <input
                 type="text"
                 id="title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full px-3 py-2 border border-line-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
-                placeholder="Enter todo title"
+                placeholder="What needs doing?"
+                className="w-full bg-transparent border-0 border-b-[1.5px] border-ink pt-2 pb-2.5 text-[19px] font-medium text-ink placeholder:text-ink-faint placeholder:font-normal focus:outline-none focus:border-accent"
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="description" className="block text-sm font-medium text-ink-2 mb-2">
-                Description
+              <label htmlFor="description" className={fieldLabel}>
+                Notes <span className={fieldOptional}>optional</span>
               </label>
               <textarea
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                rows={4}
-                className="w-full px-3 py-2 border border-line-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
-                placeholder="Enter todo description"
+                rows={3}
+                className={fieldInput}
               />
             </div>
 
             <div>
-              <label htmlFor="referenceUrl" className="block text-sm font-medium text-ink-2 mb-2">
-                Reference URL
+              <label htmlFor="referenceUrl" className={fieldLabel}>
+                Link <span className={fieldOptional}>optional</span>
               </label>
-              <input
-                type="text"
-                id="referenceUrl"
-                value={referenceUrl}
-                onChange={(e) => setReferenceUrl(e.target.value)}
-                className="w-full px-3 py-2 border border-line-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
-                placeholder="e.g., obsidian://open?vault=MyVault&file=Note.md"
-              />
-              <p className="text-xs text-ink-muted mt-1">
-                Link to source note or related content
-              </p>
+              <div className="relative">
+                <LinkIcon className="pointer-events-none absolute left-3 top-[13px] w-4 h-4 text-ink-muted" />
+                <input
+                  type="text"
+                  id="referenceUrl"
+                  value={referenceUrl}
+                  onChange={(e) => setReferenceUrl(e.target.value)}
+                  placeholder="obsidian:// or https://"
+                  className={`${fieldInput} pl-[38px] font-mono text-[13px]`}
+                />
+              </div>
             </div>
 
             <div>
-              <label htmlFor="area" className="block text-sm font-medium text-ink-2 mb-2">
-                Area/Project
-              </label>
-              <select
-                id="area"
-                value={selectedAreaId || ''}
-                onChange={(e) => setSelectedAreaId(e.target.value ? parseInt(e.target.value) : null)}
-                className="w-full px-3 py-2 border border-line-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
-              >
-                <option value="">Select an area (optional)</option>
-                {areas.map((area) => (
-                  <option key={area.id} value={area.id}>
-                    {area.name}
-                  </option>
-                ))}
-              </select>
+              <span id="external-area-label" className={fieldLabel}>
+                Area
+              </span>
+              <AreaChips
+                areas={areas}
+                value={selectedAreaId}
+                onChange={setSelectedAreaId}
+                nullLabel="None"
+                labelId="external-area-label"
+              />
             </div>
 
             <div>
-              <label htmlFor="dueDate" className="block text-sm font-medium text-ink-2 mb-2">
-                Due Date
+              <label htmlFor="dueDate" className={fieldLabel}>
+                Due <span className={fieldOptional}>optional</span>
               </label>
-              <input
-                type="date"
-                id="dueDate"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                className="w-full px-3 py-2 border border-line-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
-              />
+              <div className="relative max-w-[240px]">
+                <CalendarIcon className="pointer-events-none absolute left-3 top-[13px] w-4 h-4 text-ink-muted" />
+                <input
+                  type="date"
+                  id="dueDate"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className={`${fieldInput} pl-[38px] font-mono text-[13.5px]`}
+                />
+              </div>
             </div>
 
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="isToday"
-                checked={isToday}
-                onChange={(e) => setIsToday(e.target.checked)}
-                className="h-4 w-4 text-accent focus:ring-accent border-line-strong rounded"
-              />
-              <label htmlFor="isToday" className="ml-2 block text-sm text-ink">
-                Add to Today's Focus List
-              </label>
-            </div>
+            <label htmlFor="isToday" className="flex items-center gap-3 py-3 border-t border-line cursor-pointer">
+              <SunIcon className={`w-[18px] h-[18px] ${isToday ? 'text-accent' : 'text-ink-faint'}`} />
+              <span className="flex-1 text-sm font-medium text-ink">Add to Today</span>
+              <Switch id="isToday" checked={isToday} onChange={setIsToday} />
+            </label>
+          </div>
 
-            <div className="flex justify-end space-x-3 pt-6 border-t border-line">
-              <button
-                type="button"
-                onClick={handleCancel}
-                className="px-4 py-2 border border-line-strong rounded-md shadow-sm text-sm font-medium text-ink-2 bg-white hover:bg-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isCreating || !title.trim()}
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-ink hover:bg-ink-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent disabled:bg-line-strong disabled:cursor-not-allowed"
-              >
-                {isCreating ? 'Creating...' : 'Create Todo'}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
+          <div className="flex items-center justify-end gap-1.5 pl-7 pr-5 pt-2 pb-5">
+            <button type="button" onClick={handleCancel} className={ghostButton}>
+              Cancel
+            </button>
+            <button type="submit" disabled={isCreating || !title.trim()} className={primaryButton}>
+              {isCreating && <Spinner className="w-4 h-4" />}
+              {isCreating ? 'Adding…' : 'Add todo'}
+            </button>
+          </div>
+        </form>
+      </main>
+    </PageShell>
   );
 };
 

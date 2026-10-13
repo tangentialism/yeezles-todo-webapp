@@ -4,6 +4,7 @@ import { useTodoStore } from '../hooks/useTodoStore';
 import { useArea } from '../contexts/AreaContext';
 import { getDueInfo } from '../utils/dueDate';
 import { stripTags } from '../utils/todoText';
+import { getFocusTodos } from '../utils/todayFocus';
 import EditTodoModal from './EditTodoModal';
 import TodoRow from './TodoRow';
 import { ViewEmpty, ViewError, ViewHeader, ViewLoading } from './ViewChrome';
@@ -60,17 +61,7 @@ const TodayView: React.FC = () => {
   );
 
   // Overdue first, then due today, then picked for today; a todo appears once.
-  const focusTodos = useMemo(() => {
-    if (!todayData) return [];
-    const seen = new Set<number>();
-    return [...todayData.focus.overdue, ...todayData.focus.due_today, ...todayData.focus.today_tagged].filter(
-      (todo) => {
-        if (seen.has(todo.id)) return false;
-        seen.add(todo.id);
-        return true;
-      }
-    );
-  }, [todayData]);
+  const focusTodos = useMemo(() => getFocusTodos(todayData), [todayData]);
 
   const toggleTodo = async (todo: Todo) => {
     await toggleTodoCompletion(todo);
