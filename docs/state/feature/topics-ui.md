@@ -8,7 +8,7 @@ Phase 3a of the topics feature: the webapp topics UI. Spec: workspace
 
 ## Next action
 
-Task 2: topic store, sync and todo-store invalidation.
+Task 3: topic chip on todo rows.
 
 ## Verified
 
@@ -21,6 +21,10 @@ Task 2: topic store, sync and todo-store invalidation.
 - Task 1: apiError 7/7, api.topics 8/8 green (RED first for apiError: unresolved
   import; api.topics RED step not run separately). Full check: `TSC_OK`, tests
   353 total / 353 passed, lint 5 (baseline 5), new failing names empty.
+- Task 2: useTopicStore 7/7, useCrossTabSync.topics 2/2, useTodoStore.topics 3/3,
+  each RED first (unresolved import; missing invalidations). Full check:
+  `TSC_OK`, tests 365 total / 365 passed, lint 5 (baseline 5), new failing
+  names empty.
 
 ## Assumed
 
@@ -40,6 +44,11 @@ Task 2: topic store, sync and todo-store invalidation.
 - `deleteArea` doc comment keeps its existing sentence "Todos in the deleted
   area are reassigned to the default area" (controller ruling) alongside the
   new AREA_HAS_TOPICS line.
+- Task 2: `topicKeys` and the invalidation helpers (`invalidateTopicViews`,
+  `invalidateTodoViews`) live in `src/hooks/topicInvalidation.ts`, re-exported
+  from `useTopicStore`, to avoid an import cycle with `useCrossTabSync`.
+  Rulings M3/M4: todo create/update/delete and the cross-tab TODO_* handler also
+  invalidate `['topic']`; moveToToday/removeFromToday invalidate `['topicTodos']`.
 
 ## Resume
 

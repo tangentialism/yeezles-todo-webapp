@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { SyncMessage, SyncMessageType, SyncMessageData } from '../types/sync';
 import { SYNC_CHANNEL_NAME, generateTabId } from '../types/sync';
 import { logger } from '../utils/logger';
+import { invalidateTodoViews, invalidateTopicViews } from './topicInvalidation';
 
 /**
  * Cross-tab synchronization hook using Broadcast Channel API
@@ -51,17 +52,9 @@ export const useCrossTabSync = () => {
         case 'TODO_COMPLETED':
         case 'TODO_MOVED_TO_TODAY':
         case 'TODO_REMOVED_FROM_TODAY':
-          // Invalidate todos cache to trigger refetch
-          queryClient.invalidateQueries({ 
-            queryKey: ['todos'],
-            refetchType: 'active' // Only refetch active queries
-          });
-          
-          // Also invalidate today view since todos changed
-          queryClient.invalidateQueries({ 
-            queryKey: ['todayView'],
-            refetchType: 'active'
-          });
+          // Todo lists, today view, and (counts move with every todo) topic views
+          invalidateTodoViews(queryClient, { refetchType: 'active' });
+          invalidateTopicViews(queryClient, { refetchType: 'active' });
           break;
 
         case 'AREA_CREATED':
@@ -72,6 +65,14 @@ export const useCrossTabSync = () => {
             queryKey: ['areas'],
             refetchType: 'active'
           });
+          break;
+
+        case 'TOPIC_CREATED':
+        case 'TOPIC_UPDATED':
+        case 'TOPIC_DELETED':
+          // Rows show topic names, so todo lists refetch too
+          invalidateTopicViews(queryClient, { refetchType: 'active' });
+          invalidateTodoViews(queryClient, { refetchType: 'active' });
           break;
 
         default:
