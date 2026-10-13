@@ -1,7 +1,8 @@
-/** The three views, shared by the desktop tabs and the phone tab bar. */
+/** The four views, shared by the desktop tabs and the phone tab bar. */
 export const VIEWS = [
   { id: 'all', label: 'All' },
   { id: 'today', label: 'Today' },
+  { id: 'topics', label: 'Topics' },
   { id: 'accomplishments', label: 'Done' },
 ] as const;
 

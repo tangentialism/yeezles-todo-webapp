@@ -8,7 +8,7 @@ Phase 3a of the topics feature: the webapp topics UI. Spec: workspace
 
 ## Next action
 
-Task 4: Topics view in the navigation.
+Task 5: Topics tab list, cards and New topic.
 
 ## Verified
 
@@ -29,6 +29,9 @@ Task 4: Topics view in the navigation.
   Done-chip test, each RED first (unresolved imports / missing export). Full check:
   `TSC_OK`, tests 383 total / 383 passed, lint 5 (baseline 5), new failing names
   empty.
+- Task 4: Navigation Topics tab, PhoneTabBar Topics tab, Dashboard.topics, each
+  RED first (3 failing tests). Full check: `TSC_OK`, tests 386 total / 386
+  passed, lint 5 (baseline 5), new failing names empty.
 
 ## Assumed
 
@@ -56,6 +59,10 @@ Task 4: Topics view in the navigation.
 - Task 3 (ruling M1): spec §5.3 wants the chip on every row, Done included.
   `DoneItem` in `AccomplishmentsView.tsx` renders the same `TopicChip` (area
   colour, open-topic context); test added in `AccomplishmentsView.test.tsx`.
+- Task 4 (ruling L4/L5): Dashboard's `openTopic` routes through `handleViewChange`
+  (now `useCallback` on `currentView`; `openTopic` is `useCallback` on it), so
+  the fade and scroll save apply. The PhoneTabBar test "renders the three views"
+  is renamed "renders the four views".
 
 ## Resume
 

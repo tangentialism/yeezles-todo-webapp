@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import TodoList from './TodoList';
 import TodayView from './TodayView';
 import AccomplishmentsView from './AccomplishmentsView';
+import TopicsView from './topics/TopicsView';
 
 /** Props for {@link ViewContainer}. */
 interface ViewContainerProps {
@@ -11,10 +12,14 @@ interface ViewContainerProps {
   refreshTrigger: number;
   newTodoId: number | null;
   onNewTodoAnimationComplete: () => void;
+  /** The topic open in the Topics view, or null for its list. */
+  openTopicId: number | null;
+  onOpenTopic: (id: number) => void;
+  onCloseTopic: () => void;
 }
 
 /**
- * Stacked view container that keeps all three views (All Todos, Today,
+ * Stacked view container that keeps all four views (All Todos, Today, Topics,
  * Accomplishments) mounted simultaneously for instant switching.
  *
  * Only the active view is visible; inactive views are hidden with
@@ -27,17 +32,22 @@ const ViewContainer: React.FC<ViewContainerProps> = ({
   isTransitioning,
   refreshTrigger,
   newTodoId,
-  onNewTodoAnimationComplete
+  onNewTodoAnimationComplete,
+  openTopicId,
+  onOpenTopic,
+  onCloseTopic
 }) => {
   // Refs to preserve scroll positions
   const allViewRef = useRef<HTMLDivElement>(null);
   const todayViewRef = useRef<HTMLDivElement>(null);
+  const topicsViewRef = useRef<HTMLDivElement>(null);
   const accomplishmentsViewRef = useRef<HTMLDivElement>(null);
   
   // Store scroll positions when switching views
   const scrollPositions = useRef<Record<string, number>>({
     all: 0,
     today: 0,
+    topics: 0,
     accomplishments: 0
   });
 
@@ -47,6 +57,7 @@ const ViewContainer: React.FC<ViewContainerProps> = ({
       switch (view) {
         case 'all': return allViewRef.current;
         case 'today': return todayViewRef.current;
+        case 'topics': return topicsViewRef.current;
         case 'accomplishments': return accomplishmentsViewRef.current;
         default: return null;
       }
@@ -78,6 +89,7 @@ const ViewContainer: React.FC<ViewContainerProps> = ({
     switch (view) {
       case 'all': return allViewRef.current;
       case 'today': return todayViewRef.current;
+      case 'topics': return topicsViewRef.current;
       case 'accomplishments': return accomplishmentsViewRef.current;
       default: return null;
     }
@@ -127,6 +139,19 @@ const ViewContainer: React.FC<ViewContainerProps> = ({
         }}
       >
         <TodayView />
+      </div>
+
+      {/* Topics View */}
+      <div
+        ref={topicsViewRef}
+        className="absolute inset-0 -mx-3 px-3 pb-36 sm:pb-0 overflow-y-auto overflow-x-hidden transition-opacity duration-200"
+        style={{
+          opacity: getViewOpacity('topics'),
+          visibility: getViewVisibility('topics'),
+          pointerEvents: getViewPointerEvents('topics'),
+        }}
+      >
+        <TopicsView openTopicId={openTopicId} onOpenTopic={onOpenTopic} onCloseTopic={onCloseTopic} />
       </div>
 
       {/* Accomplishments View */}
