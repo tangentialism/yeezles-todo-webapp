@@ -8,6 +8,11 @@ import {
   type CreatedAccessToken,
 } from '../services/accessTokenApi';
 import ConnectedAppsSection from './ConnectedAppsSection';
+import TokenRow from './TokenRow';
+import Dialog from './ui/Dialog';
+import { AlertCircleIcon, CheckIcon, CopyIcon, EyeIcon, ShieldIcon, Spinner } from './ui/Icons';
+import { fieldInput, fieldLabel, outlineButton, primaryButton, sectionCap } from './ui/styles';
+import { formatShortDate } from '../utils/date';
 
 interface AccessTokenManagementModalProps {
   isOpen: boolean;
@@ -20,6 +25,15 @@ const SCOPES = [
   'areas:read', 'areas:create', 'areas:update', 'areas:delete',
   'export:read', 'import:write',
 ] as const;
+
+/** The scopes grouped by resource for the create form: [resource, scopes][]. */
+const SCOPE_GROUPS: [string, string[]][] = Array.from(
+  SCOPES.reduce((groups, scope) => {
+    const resource = scope.split(':')[0];
+    groups.set(resource, [...(groups.get(resource) ?? []), scope]);
+    return groups;
+  }, new Map<string, string[]>())
+);
 
 /**
  * Copy shown when token creation is rejected for lacking a fresh Google
@@ -35,9 +49,8 @@ const STEP_UP_COPY =
  * Management surface for access tokens: lists existing tokens, offers a
  * create form, and reveals a newly minted token's plaintext exactly once.
  *
- * Modal chrome (backdrop, header, X button) is copied from
- * PasskeyManagementModal verbatim -- no escape-key or backdrop-click
- * handling, matching that existing convention.
+ * Rendered in the shared Dialog shell. Closing it by any route (X,
+ * Escape, scrim) only flips `isOpen`; the reveal is cleared on reopen below.
  */
 const AccessTokenManagementModal: React.FC<AccessTokenManagementModalProps> = ({ isOpen, onClose }) => {
   const [tokens, setTokens] = useState<AccessTokenSummary[]>([]);
@@ -164,151 +177,156 @@ const AccessTokenManagementModal: React.FC<AccessTokenManagementModalProps> = ({
   const pats = tokens.filter(t => t.source !== 'oauth');
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-        <div className="px-6 py-4 border-b border-line">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-ink">Access Tokens</h2>
-            <button
-              onClick={onClose}
-              className="text-ink-faint hover:text-ink transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        <div className="px-6 py-4">
-          {revealedToken ? (
-            <div className="space-y-3">
-              <p className="font-mono text-xs break-all bg-hover border border-line rounded-md p-3">
+    <Dialog title="Access tokens & apps" onClose={onClose}>
+      {revealedToken ? (
+        <div>
+          <div className="px-7 pt-4">
+            <p className="flex items-center gap-2.5 text-sm">
+              <span aria-hidden="true" className="w-[22px] h-[22px] rounded-full bg-accent text-white inline-flex items-center justify-center flex-none">
+                <CheckIcon className="w-3 h-3" />
+              </span>
+              <span className="font-medium text-ink truncate">{revealedToken.name}</span>
+              <span className="font-mono text-xs text-ink-faint flex-none">
+                {revealedToken.scopes.length} {revealedToken.scopes.length === 1 ? 'scope' : 'scopes'}
+              </span>
+            </p>
+            <div className="mt-4 rounded-xl border border-line-strong bg-paper">
+              <p className="px-4 py-3.5 font-mono text-[13px] leading-[21px] break-all text-ink select-all">
                 {revealedToken.token}
               </p>
-              <p className="text-sm text-danger">
-                This is the only time you will see this token. Copy it now and store it securely.
-              </p>
-              <div className="flex justify-end space-x-2">
-                <button
-                  type="button"
-                  onClick={handleCopy}
-                  className="py-2 px-4 rounded-md border border-line-strong text-sm text-ink-2 hover:bg-hover"
-                >
+              <div className="flex items-center gap-2.5 pl-4 pr-3 py-2.5 border-t border-line">
+                <EyeIcon className="w-4 h-4 flex-none text-danger" />
+                <span className="flex-1 text-[13px] text-danger">Shown once. Copy it now and store it securely.</span>
+                <button type="button" onClick={handleCopy} className={`${outlineButton} h-9 px-3.5 flex-none`}>
+                  <CopyIcon className="w-[15px] h-[15px]" />
                   Copy
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDone}
-                  className="py-2 px-4 rounded-md bg-ink text-white text-sm hover:bg-ink-2"
-                >
-                  Done
                 </button>
               </div>
             </div>
-          ) : (
-            <div className="space-y-6">
-              <ConnectedAppsSection
-                connections={connections}
-                revokingIds={revokingIds}
-                onRevoke={id => void handleRevoke(id)}
-              />
-
-              <section className="space-y-3 border-t border-line pt-4" aria-labelledby="existing-tokens-heading">
-                <h3 id="existing-tokens-heading" className="text-sm font-semibold text-ink">Existing tokens</h3>
-
-                {pats.length === 0 && (
-                  <p className="text-sm text-ink-muted">No access tokens yet.</p>
-                )}
-
-                <ul className="space-y-3">
-                  {pats.map(t => (
-                    <li key={t.id} className={`text-sm ${t.isRevoked ? 'line-through text-ink-faint' : ''}`}>
-                      <div className="flex items-center justify-between">
-                        <span>{t.name}</span>
-                        {!t.isRevoked && (
-                          <button
-                            type="button"
-                            onClick={() => handleRevoke(t.id)}
-                            disabled={revokingIds.has(t.id)}
-                            className="text-danger hover:underline disabled:opacity-60 disabled:no-underline disabled:cursor-not-allowed"
-                          >
-                            {revokingIds.has(t.id) ? 'Revoking...' : 'Revoke'}
-                          </button>
-                        )}
-                      </div>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {t.scopes.map(scope => (
-                          <span
-                            key={scope}
-                            className="inline-block px-2 py-0.5 rounded-full bg-hover text-xs text-ink-2"
-                          >
-                            {scope}
-                          </span>
-                        ))}
-                      </div>
-                      <div className="text-xs text-ink-muted mt-1">
-                        Created {new Date(t.createdAt).toLocaleDateString()} — last used{' '}
-                        {t.lastUsedAt ? new Date(t.lastUsedAt).toLocaleDateString() : 'never'}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-
-              <section className="space-y-3 border-t border-line pt-4">
-                <h3 className="text-sm font-semibold text-ink">Create a new token</h3>
-
-                <div>
-                  <label htmlFor="access-token-name" className="block text-sm text-ink-2 mb-1">
-                    Name
-                  </label>
-                  <input
-                    id="access-token-name"
-                    type="text"
-                    value={name}
-                    onChange={e => setName(e.target.value)}
-                    className="w-full border border-line-strong rounded-md px-3 py-2 text-sm"
-                  />
-                </div>
-
-                <fieldset className="space-y-1">
-                  <legend className="text-sm text-ink-2 mb-1">Scopes</legend>
-                  {SCOPES.map(scope => {
-                    const [resource, action] = scope.split(':');
-                    return (
-                      <div key={scope} className="flex items-center space-x-2 text-sm">
-                        <input
-                          id={`scope-${scope}`}
-                          type="checkbox"
-                          aria-label={scope}
-                          checked={selectedScopes.has(scope)}
-                          onChange={() => toggleScope(scope)}
-                        />
-                        <span className="text-ink-2">
-                          {resource} &middot; {action}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </fieldset>
-
-                <button
-                  type="button"
-                  onClick={handleCreate}
-                  disabled={isCreating || name.trim().length === 0 || selectedScopes.size === 0}
-                  className="py-2 px-4 rounded-md bg-ink text-white text-sm disabled:opacity-60"
-                >
-                  {isCreating ? 'Creating...' : 'Create token'}
-                </button>
-              </section>
-
-              {error && <p className="text-sm text-danger">{error}</p>}
-            </div>
-          )}
+          </div>
+          <div className="flex justify-end p-5">
+            <button type="button" onClick={handleDone} className={primaryButton}>
+              Done
+            </button>
+          </div>
         </div>
-      </div>
-    </div>
+      ) : (
+        <div className="px-7 pt-4 pb-6 flex flex-col gap-7">
+          <ConnectedAppsSection
+            connections={connections}
+            revokingIds={revokingIds}
+            onRevoke={id => void handleRevoke(id)}
+          />
+
+          <section aria-labelledby="existing-tokens-heading">
+            <h3 id="existing-tokens-heading" className={`${sectionCap} flex items-baseline gap-2.5 mb-0.5`}>
+              Tokens <span className="font-normal tracking-normal text-ink-faint">{pats.length}</span>
+            </h3>
+
+            {pats.length === 0 && (
+              <p className="py-3.5 border-b border-line text-sm text-ink-muted">No tokens yet.</p>
+            )}
+
+            <ul>
+              {pats.map(t => (
+                <TokenRow
+                  key={t.id}
+                  icon={<ShieldIcon className="w-4 h-4" />}
+                  label={t.name}
+                  meta={`created ${formatShortDate(t.createdAt)} · ${t.lastUsedAt ? `used ${formatShortDate(t.lastUsedAt)}` : 'never used'}`}
+                  scopes={t.scopes}
+                  isRevoked={t.isRevoked}
+                  isBusy={revokingIds.has(t.id)}
+                  actionLabel="Revoke"
+                  busyLabel="Revoking…"
+                  onAction={() => handleRevoke(t.id)}
+                />
+              ))}
+            </ul>
+          </section>
+
+          <section aria-labelledby="new-token-heading" className="flex flex-col gap-4">
+            <h3 id="new-token-heading" className={sectionCap}>
+              New token
+            </h3>
+
+            <div>
+              <label htmlFor="access-token-name" className={fieldLabel}>
+                Name
+              </label>
+              <input
+                id="access-token-name"
+                type="text"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="Shortcuts on iPhone"
+                className={fieldInput}
+              />
+            </div>
+
+            <fieldset>
+              <legend className={fieldLabel}>Scopes</legend>
+              <div className="grid grid-cols-[64px_1fr] sm:grid-cols-[72px_1fr] gap-y-2 items-center">
+                {SCOPE_GROUPS.map(([resource, scopes]) => (
+                  <React.Fragment key={resource}>
+                    <span className="font-mono text-[12.5px] text-ink-2">{resource}</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {scopes.map(scope => {
+                        const checked = selectedScopes.has(scope);
+                        return (
+                          <label key={scope} className="relative cursor-pointer">
+                            <input
+                              id={`scope-${scope}`}
+                              type="checkbox"
+                              aria-label={scope}
+                              checked={checked}
+                              onChange={() => toggleScope(scope)}
+                              className="peer absolute inset-0 m-0 opacity-0 cursor-pointer"
+                            />
+                            <span
+                              aria-hidden="true"
+                              className={`inline-flex items-center h-8 px-3 rounded-full border text-[13px] transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-accent peer-focus-visible:ring-offset-2 ${
+                                checked
+                                  ? 'border-ink bg-ink text-paper'
+                                  : 'border-line-strong bg-surface text-ink-2 hover:border-ink-faint'
+                              }`}
+                            >
+                              {scope.split(':')[1]}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </React.Fragment>
+                ))}
+              </div>
+            </fieldset>
+
+            {error && (
+              <p role="alert" className="flex items-start gap-2 text-[13px] text-danger">
+                <AlertCircleIcon className="w-4 h-4 flex-none mt-0.5" />
+                {error}
+              </p>
+            )}
+
+            <div className="flex items-center justify-end gap-3">
+              <span className="mr-auto font-mono text-xs text-ink-faint">
+                {selectedScopes.size} {selectedScopes.size === 1 ? 'scope' : 'scopes'}
+              </span>
+              <button
+                type="button"
+                onClick={handleCreate}
+                disabled={isCreating || name.trim().length === 0 || selectedScopes.size === 0}
+                className={primaryButton}
+              >
+                {isCreating && <Spinner className="w-4 h-4" />}
+                {isCreating ? 'Creating…' : 'Create token'}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+    </Dialog>
   );
 };
 
