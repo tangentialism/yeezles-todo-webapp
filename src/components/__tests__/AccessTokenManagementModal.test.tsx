@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { formatShortDate } from '../../utils/date';
 import AccessTokenManagementModal from '../AccessTokenManagementModal';
 import * as api from '../../services/accessTokenApi';
 
@@ -39,7 +40,7 @@ describe('AccessTokenManagementModal', () => {
     await userEvent.click(screen.getByRole('button', { name: /create token/i }));
 
     expect(await screen.findByText(/yzt_a{10}/)).toBeInTheDocument();
-    expect(screen.getByText(/only time you will see this/i)).toBeInTheDocument();
+    expect(screen.getByText(/shown once/i)).toBeInTheDocument();
   });
 
   it('discards the plaintext when the reveal is dismissed', async () => {
@@ -68,7 +69,7 @@ describe('AccessTokenManagementModal', () => {
     });
 
     const onClose = vi.fn();
-    const { rerender, container } = render(
+    const { rerender } = render(
       <AccessTokenManagementModal isOpen onClose={onClose} />
     );
     await userEvent.type(await screen.findByLabelText(/name/i), 'new');
@@ -77,11 +78,9 @@ describe('AccessTokenManagementModal', () => {
 
     expect(await screen.findByText(/yzt_a{10}/)).toBeInTheDocument();
 
-    // Dismiss via the X button (no accessible name -- same chrome as
-    // PasskeyManagementModal), not Done. The component is never unmounted:
-    // Dashboard mounts this modal unconditionally and only toggles `isOpen`.
-    const closeButton = container.querySelector('svg')?.closest('button');
-    expect(closeButton).not.toBeNull();
+    // Dismiss via the Dialog's X button, not Done. The component is never
+    // unmounted: Dashboard mounts this modal unconditionally and only toggles `isOpen`.
+    const closeButton = screen.getByRole('button', { name: 'Close' });
     await userEvent.click(closeButton!);
     expect(onClose).toHaveBeenCalled();
 
@@ -116,7 +115,7 @@ describe('AccessTokenManagementModal: Connected apps', () => {
 
   const regions = async () => ({
     apps: await screen.findByRole('region', { name: /connected apps/i }),
-    tokens: screen.getByRole('region', { name: /existing tokens/i }),
+    tokens: screen.getByRole('region', { name: /^tokens/i }),
   });
 
   beforeEach(() => {
@@ -140,9 +139,9 @@ describe('AccessTokenManagementModal: Connected apps', () => {
 
     expect(within(apps).getByText('todos:read')).toBeInTheDocument();
     expect(within(apps).getByText('todos:create')).toBeInTheDocument();
-    const d = (iso: string) => new Date(iso).toLocaleDateString();
+    const d = (iso: string) => formatShortDate(iso);
     expect(within(apps).getByText(
-      `Created ${d(claude.createdAt)} — last used ${d(claude.lastUsedAt!)} — expires ${d(claude.expiresAt!)}`
+      `since ${d(claude.createdAt)} · used ${d(claude.lastUsedAt!)} · expires ${d(claude.expiresAt!)}`
     )).toBeInTheDocument();
   });
 
