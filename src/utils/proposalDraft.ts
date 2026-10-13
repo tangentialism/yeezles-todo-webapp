@@ -32,6 +32,8 @@ export interface DraftTopic {
   accepted: boolean;
   /** New topic whose name another topic holds (reported by the server). */
   taken: boolean;
+  /** The name the server reported taken; `taken` holds while the name matches it (ruling L14). */
+  takenName: string | null;
   /** Client validation message after a rename. */
   nameError: string | null;
   /** From a 422. */
@@ -103,6 +105,7 @@ export const draftTopicFromArea = (t: TopicWithCounts): DraftTopic => ({
   openCount: t.open_count,
   accepted: true,
   taken: false,
+  takenName: null,
   nameError: null,
   error: null,
 });
@@ -212,6 +215,7 @@ export const initDraft = (resolved: ResolvedProposal): Draft => {
       openCount: ref.open_count,
       accepted: true,
       taken: ref.is_new && ref.exists,
+      takenName: ref.is_new && ref.exists ? ref.name : null,
       nameError: null,
       error: null,
     };
@@ -225,7 +229,7 @@ export const initDraft = (resolved: ResolvedProposal): Draft => {
     keyByName.set(normalized, key);
     topics.push({
       key, kind: 'unknown', name: name.trim(), description: null, existingId: null, areaId: null,
-      archived: false, openCount: null, accepted: true, taken: false, nameError: null, error: null,
+      archived: false, openCount: null, accepted: true, taken: false, takenName: null, nameError: null, error: null,
     });
     return key;
   };
@@ -279,4 +283,175 @@ export const initDraft = (resolved: ResolvedProposal): Draft => {
     rows: draft.rows.map((r) => ({ ...r, accepted: rowCheckable(draft, r) })),
     notes: draft.notes.map((n) => ({ ...n, accepted: topicUsable(draft, n.key) })),
   };
+};
+
+// ── Reducer ───────────────────────────────────────────────────────────
+
+/** 422 paths map back through this: the draft key at each submitted index. */
+export interface PathIndex {
+  new_topics: string[];
+  assignments: string[];
+  note_edits: string[];
+}
+
+export type DraftAction =
+  | { type: 'toggleRow'; key: string }
+  | { type: 'redirectRow'; key: string; target: string }
+  | { type: 'toggleTopic'; key: string }
+  | { type: 'rejectSection'; key: string }
+  | { type: 'renameTopic'; key: string; name: string }
+  | { type: 'describeTopic'; key: string; description: string }
+  | { type: 'useExisting'; key: string }
+  | { type: 'addTopic'; name: string; rowKey?: string; unassignedTodoId?: number }
+  | { type: 'toggleNote'; key: string }
+  | { type: 'editNote'; key: string; text: string }
+  | { type: 'setUnassigned'; todoId: number; target: string | null }
+  | { type: 'attachErrors'; errors: Array<{ path: string; reason: string }>; pathIndex: PathIndex };
+
+const mapRows = (draft: Draft, fn: (row: DraftRow) => DraftRow): Draft => ({ ...draft, rows: draft.rows.map(fn) });
+const mapNotes = (draft: Draft, fn: (note: DraftNote) => DraftNote): Draft => ({ ...draft, notes: draft.notes.map(fn) });
+const mapTopic = (draft: Draft, key: string, fn: (topic: DraftTopic) => DraftTopic): Draft => ({
+  ...draft,
+  topics: draft.topics.map((t) => (t.key === key ? fn(t) : t)),
+});
+
+/** Adds an area topic (`t:<id>`) to the draft the first time a row is sent to it. */
+const ensureTopic = (draft: Draft, key: string): Draft => {
+  if (findTopic(draft, key)) return draft;
+  const areaTopic = draft.areaTopics.find((t) => `t:${t.id}` === key);
+  return areaTopic ? { ...draft, topics: [...draft.topics, draftTopicFromArea(areaTopic)] } : draft;
+};
+
+const redirect = (draft: Draft, rowKey: string, target: string): Draft => {
+  const next = ensureTopic(draft, target);
+  return mapRows(next, (r) =>
+    r.key === rowKey
+      ? { ...r, target, cascaded: false, error: null, accepted: r.lock === null && topicUsable(next, target) }
+      : r
+  );
+};
+
+const setUnassigned = (draft: Draft, todoId: number, target: string | null): Draft => {
+  const without = { ...draft, rows: draft.rows.filter((r) => !(r.origin === 'unassigned' && r.todoId === todoId)) };
+  if (target === null) return without;
+  const next = ensureTopic(without, target);
+  const todo = draft.unassigned.find((t) => t.id === todoId);
+  if (!todo) return draft;
+  const row: DraftRow = {
+    key: `a:${todoId}`, todoId, title: todo.title, completed: false, currentTopic: null, target,
+    accepted: topicUsable(next, target), lock: null, cascaded: false, origin: 'unassigned', error: null,
+  };
+  return { ...next, rows: [...next.rows, row] };
+};
+
+const toggleTopic = (draft: Draft, key: string): Draft => {
+  const topic = findTopic(draft, key);
+  if (!topic || topic.kind !== 'new') return draft;
+  const keep = !topic.accepted;
+  const next = mapTopic(draft, key, (t) => ({ ...t, accepted: keep, error: null }));
+  // Ruling L9: the cascade touches the item, so its error goes. Only items the
+  // cascade itself unchecked are restored on re-check (spec §6.3 rule 2).
+  const cascade = <T extends { accepted: boolean; cascaded: boolean; error: string | null }>(item: T): T =>
+    keep
+      ? item.cascaded ? { ...item, accepted: true, cascaded: false, error: null } : { ...item, error: null }
+      : item.accepted ? { ...item, accepted: false, cascaded: true, error: null } : { ...item, error: null };
+  return mapNotes(
+    mapRows(next, (r) => (r.target === key ? cascade(r) : r)),
+    (n) => (n.key === key ? cascade(n) : n)
+  );
+};
+
+/** Turns a taken new topic into the existing one it collides with; its rows and note follow. */
+const mergeIntoExisting = (draft: Draft, key: string): Draft => {
+  const topic = findTopic(draft, key);
+  if (!topic || !canUseExisting(draft, topic) || topic.existingId === null) return draft;
+  const newKey = `t:${topic.existingId}`;
+  const areaTopic = draft.areaTopics.find((t) => t.id === topic.existingId);
+  const replacement: DraftTopic = areaTopic
+    ? draftTopicFromArea(areaTopic)
+    : { ...topic, key: newKey, kind: 'existing', description: null, taken: false, takenName: null, nameError: null, error: null, accepted: true };
+  const topics = findTopic(draft, newKey)
+    ? draft.topics.filter((t) => t.key !== key)
+    : draft.topics.map((t) => (t.key === key ? replacement : t));
+  const moved: Draft = { ...draft, topics };
+  return {
+    ...moved,
+    rows: moved.rows.map((r) =>
+      r.target === key ? { ...r, target: newKey, accepted: r.lock === null && (r.accepted || r.cascaded), cascaded: false, error: null } : r
+    ),
+    notes: moved.notes
+      .filter((n) => !(n.key === newKey && moved.notes.some((m) => m.key === key)))
+      .map((n) => (n.key === key ? { ...n, key: newKey, accepted: n.accepted || n.cascaded, cascaded: false, error: null } : n)),
+  };
+};
+
+const addTopic = (draft: Draft, name: string, rowKey?: string, unassignedTodoId?: number): Draft => {
+  if (validateTopicName(draft, name) !== null) return draft;
+  const key = `n:${draft.nextSeq}`;
+  const topic: DraftTopic = {
+    key, kind: 'new', name: name.trim(), description: null, existingId: null, areaId: null,
+    archived: false, openCount: null, accepted: true, taken: false, takenName: null, nameError: null, error: null,
+  };
+  let next: Draft = { ...draft, topics: [...draft.topics, topic], nextSeq: draft.nextSeq + 1 };
+  if (rowKey) next = redirect(next, rowKey, key);
+  if (unassignedTodoId !== undefined) next = setUnassigned(next, unassignedTodoId, key);
+  return next;
+};
+
+/**
+ * The in-place name field is the "Rename" (spec §6.2). A taken topic stays
+ * taken (and keeps Use existing) while its name matches the original taken
+ * name; once it differs, plain name validation applies (ruling L14).
+ */
+const renameTopic = (draft: Draft, key: string, name: string): Draft =>
+  mapTopic(draft, key, (t) => {
+    if (t.kind !== 'new') return t;
+    const stillTaken = t.takenName !== null && normName(name) === normName(t.takenName);
+    return {
+      ...t,
+      name,
+      taken: stillTaken,
+      nameError: stillTaken ? null : validateTopicName(draft, name, key),
+      error: null,
+    };
+  });
+
+/** Applies one user action. Every action clears the error of the item it touches. */
+export const draftReducer = (draft: Draft, action: DraftAction): Draft => {
+  switch (action.type) {
+    case 'toggleRow':
+      return mapRows(draft, (r) =>
+        r.key === action.key && rowCheckable(draft, r) ? { ...r, accepted: !r.accepted, cascaded: false, error: null } : r
+      );
+    case 'redirectRow':
+      return redirect(draft, action.key, action.target);
+    case 'toggleTopic':
+      return toggleTopic(draft, action.key);
+    case 'rejectSection': {
+      const next = mapTopic(draft, action.key, (t) => (t.kind === 'new' ? { ...t, accepted: false, error: null } : t));
+      return mapNotes(
+        mapRows(next, (r) => (r.target === action.key ? { ...r, accepted: false, cascaded: false, error: null } : r)),
+        (n) => (n.key === action.key ? { ...n, accepted: false, cascaded: false, error: null } : n)
+      );
+    }
+    case 'renameTopic':
+      return renameTopic(draft, action.key, action.name);
+    case 'describeTopic':
+      return mapTopic(draft, action.key, (t) => (t.kind === 'new' ? { ...t, description: action.description, error: null } : t));
+    case 'useExisting':
+      return mergeIntoExisting(draft, action.key);
+    case 'addTopic':
+      return addTopic(draft, action.name, action.rowKey, action.unassignedTodoId);
+    case 'toggleNote':
+      return mapNotes(draft, (n) =>
+        n.key === action.key && topicUsable(draft, n.key) ? { ...n, accepted: !n.accepted, cascaded: false, error: null } : n
+      );
+    case 'editNote':
+      // Ruling L11: an edited note is the user's own, so a later re-check of its topic leaves it alone.
+      return mapNotes(draft, (n) => (n.key === action.key ? { ...n, text: action.text, cascaded: false, error: null } : n));
+    case 'setUnassigned':
+      return setUnassigned(draft, action.todoId, action.target);
+    case 'attachErrors':
+      return draft; // implemented in Task 4
+  }
 };

@@ -10,9 +10,14 @@ hand-back. Spec: workspace
 
 ## Next action
 
-Task 3: draft reducer.
+Task 4: serialize and attachErrors.
 
 ## Verified
+
+- Task 3: `proposalDraft.reducer.test.ts` written first and RED (18 failed,
+  `draftReducer` not exported), then GREEN: reducer 18 + init 11 = 29 passed
+  (brief's 14 plus 4 ruling tests). Full check: `TSC_OK`; 497 tests, 497
+  passed, 0 failing names; lint now 5, baseline 5; new failing names empty.
 
 - Task 2: `proposalDraft.init.test.ts` written first and RED (unresolved import
   `../proposalDraft`), then GREEN: 11 passed (brief's 9 plus 2 Ruling L10
@@ -46,6 +51,16 @@ Task 3: draft reducer.
   which is checked through `draft.topics` so the topic may keep its own name; a
   taken new topic (`is_new && exists`) still cannot be renamed to its own name.
   No brief test changed behaviour; two tests added.
+- Ruling H2: the reducer helper is `mergeIntoExisting` (not `useExisting`, which
+  trips rules-of-hooks); the action type string stays `'useExisting'`.
+- Ruling L9: `rejectSection` and the `toggleTopic` cascade set `error: null` on
+  every row, note and topic they touch; tests added for both.
+- Ruling L11: `editNote` sets `cascaded: false`, so re-checking the topic does
+  not re-accept an edited note; test added.
+- Ruling L14: `DraftTopic` gains `takenName: string | null` (set by `initDraft`
+  for a taken new topic). `renameTopic` keeps `taken` (and Use existing) while
+  `normName(name) === normName(takenName)`, else plain validation; round-trip
+  test added. No brief test changed behaviour.
 - Ruling L12: an existing topic section with no rows left is hidden; spec §6.2
   says one section per topic.
 - Ruling L19: `draftTopicFromArea` is the single exported function, no local
