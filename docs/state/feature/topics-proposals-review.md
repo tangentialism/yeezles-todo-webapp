@@ -10,9 +10,17 @@ hand-back. Spec: workspace
 
 ## Next action
 
-Task 6: review page and route.
+Task 7: badge, banner, hand-back and highlight.
 
 ## Verified
+
+- Task 6: `ProposalReview.test.tsx` and the `AppRoutes` describe written first
+  and RED (unresolved import `../ProposalReview`; signed-in
+  `/topics/proposals/7` rendered the dashboard; the signed-out test already
+  passed, as `/*` also renders LoginButton at the same URL), then GREEN:
+  ProposalReview 16 (brief's 10 plus rulings M4 x3, L5, L4 x2), ProposalSections
+  9, AppRoutes 6 = 31 passed. Full check: `TSC_OK`; 532 tests, 532 passed, 0
+  failing names; lint now 5, baseline 5; new failing names empty.
 
 - Task 5: `ProposalSections.test.tsx` written first and RED (unresolved import
   `../ProposalTopicSection`), then GREEN: 9 passed (brief's 8 plus 1 for
@@ -78,6 +86,19 @@ Task 6: review page and route.
   are h2, in `ReadOnlyProposal` too; no Enter-to-add or form on the inline
   new-topic field; duplicate "Topic name" names accepted; Use existing shown
   while `taken`. No brief test changed behaviour.
+- Rulings applied to Task 6: H1 (load-error text is
+  `error instanceof Error ? error.message : 'Please try again.'`); L4 (the
+  "Could not load" view only when `error && !resolved`; tests for both sides);
+  L5 ("Apply 1 change" / "Apply N changes"; brief's `Apply ${n} changes`
+  replaced, test added); L2 (network test asserts one apply call and Apply
+  enabled after, retitled "leaves Apply enabled for a retry"); L21 (409 test's
+  `refetch` flips the mock to `status: 'applied'` and asserts the read-only view
+  and no Apply, besides the banner); M4 (rename taken topic to "Gate" clears the
+  blocker; rejecting every section shows "Nothing accepted. Reject instead.";
+  rejected proposal renders read-only); L26 (title is h1, test asserts level 1);
+  L23 (reject confirm keeps `primaryButton`). A 404 or 400 still shows "Proposal
+  not found" even with data loaded (L4 names only the generic error view). No
+  brief test changed behaviour beyond these.
 - Ruling L12: an existing topic section with no rows left is hidden; spec §6.2
   says one section per topic.
 - Ruling L19: `draftTopicFromArea` is the single exported function, no local

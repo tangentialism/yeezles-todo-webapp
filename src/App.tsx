@@ -10,6 +10,7 @@ import Dashboard from './components/Dashboard';
 import CreateTodoFromExternal from './components/CreateTodoFromExternal';
 import CreateMultipleTodos from './components/CreateMultipleTodos';
 import OAuthConsentPage from './components/OAuthConsentPage';
+import ProposalReview from './components/proposals/ProposalReview';
 import { QUERY_STALE_TIME_MS, MAX_QUERY_RETRIES } from './constants';
 import { retryMutationUnlessClientError } from './services/apiError';
 
@@ -80,6 +81,20 @@ export const AppContent: React.FC = () => {
       */}
       <Route path="/oauth/consent" element={
         isAuthenticated ? <OAuthConsentPage /> : <LoginButton />
+      } />
+      {/*
+        Proposal review (topics spec §5.4, §7.4). The MCP review_url lands
+        here. Signed out, LoginButton renders at this URL, so the id survives
+        sign-in, as on /oauth/consent.
+      */}
+      <Route path="/topics/proposals/:id" element={
+        isAuthenticated ? (
+          <AreaProvider>
+            <ProposalReview />
+          </AreaProvider>
+        ) : (
+          <LoginButton />
+        )
       } />
       <Route path="/*" element={
         isAuthenticated ? (

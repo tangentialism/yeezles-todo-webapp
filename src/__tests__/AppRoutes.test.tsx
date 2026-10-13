@@ -15,6 +15,7 @@ vi.mock('../contexts/AreaContext', () => ({
 vi.mock('../components/LoginButton', () => ({ default: () => <div>login-screen</div> }));
 vi.mock('../components/Dashboard', () => ({ default: () => <div>dashboard</div> }));
 vi.mock('../components/OAuthConsentPage', () => ({ default: () => <div>consent-page</div> }));
+vi.mock('../components/proposals/ProposalReview', () => ({ default: () => <div>proposal-review</div> }));
 
 const LocationProbe = () => {
   const location = useLocation();
@@ -59,5 +60,19 @@ describe('App routes: /oauth/consent', () => {
     renderAt('/', { isAuthenticated: true, isLoading: false });
 
     expect(screen.getByText('dashboard')).toBeInTheDocument();
+  });
+});
+
+describe('App routes: /topics/proposals/:id', () => {
+  it('shows the review page when signed in', () => {
+    renderAt('/topics/proposals/7', { isAuthenticated: true, isLoading: false });
+    expect(screen.getByText('proposal-review')).toBeInTheDocument();
+    expect(screen.queryByText('dashboard')).not.toBeInTheDocument();
+  });
+
+  it('shows the login screen at the same URL when signed out, so the id survives sign-in', () => {
+    renderAt('/topics/proposals/7', { isAuthenticated: false, isLoading: false });
+    expect(screen.getByText('login-screen')).toBeInTheDocument();
+    expect(screen.getByTestId('location')).toHaveTextContent('/topics/proposals/7');
   });
 });
