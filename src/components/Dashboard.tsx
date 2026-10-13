@@ -70,8 +70,8 @@ const Dashboard: React.FC = () => {
         </div>
       </header>
 
-      {/* Main content (extra bottom room on phones for the tab bar and New button) */}
-      <main className="max-w-[1120px] mx-auto px-5 sm:px-10 pt-4 sm:pt-6 pb-40 sm:pb-24">
+      {/* Main content (views pad their own scroll above the phone tab bar) */}
+      <main className="max-w-[1120px] mx-auto px-5 sm:px-10 pt-4 sm:pt-6 pb-24">
         <ViewContainer
           currentView={currentView}
           isTransitioning={isViewTransitioning}

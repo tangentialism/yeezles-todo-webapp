@@ -7,10 +7,10 @@ export const menuPanel =
   'bg-surface border border-line rounded-[14px] shadow-menu p-1.5 animate-dropdown-appear';
 
 export const menuItem =
-  'flex w-full items-center gap-2.5 min-h-[40px] px-2.5 rounded-[9px] text-sm text-left text-ink-2 hover:bg-hover focus:outline-none focus-visible:bg-hover disabled:opacity-50';
+  'flex w-full items-center gap-2.5 min-h-[44px] sm:min-h-[40px] px-2.5 rounded-[9px] text-sm text-left text-ink-2 hover:bg-hover focus:outline-none focus-visible:bg-hover disabled:opacity-50';
 
 export const menuItemDanger =
-  'flex w-full items-center gap-2.5 min-h-[40px] px-2.5 rounded-[9px] text-sm text-left text-danger hover:bg-danger-soft focus:outline-none focus-visible:bg-danger-soft disabled:opacity-50';
+  'flex w-full items-center gap-2.5 min-h-[44px] sm:min-h-[40px] px-2.5 rounded-[9px] text-sm text-left text-danger hover:bg-danger-soft focus:outline-none focus-visible:bg-danger-soft disabled:opacity-50';
 
 export const menuSeparator = 'h-px bg-line my-1.5 mx-1';
 

@@ -45,7 +45,7 @@ export const ViewHeader: React.FC<ViewHeaderProps> = ({
       ruled ? 'border-b-[1.5px] border-ink' : ''
     }`}
   >
-    <h1 className="flex items-center gap-3.5 font-serif font-medium text-4xl leading-[1.1] tracking-[-0.015em] text-ink">
+    <h1 className="flex items-center gap-3.5 font-serif font-medium text-[30px] sm:text-4xl leading-[1.1] tracking-[-0.015em] text-ink">
       {dotColor && <span className="w-2.5 h-2.5 rounded-full flex-none" style={{ backgroundColor: dotColor }} />}
       {title}
     </h1>

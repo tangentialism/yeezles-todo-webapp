@@ -24,6 +24,14 @@ const Count: React.FC<{ value: number; className?: string }> = ({ value, classNa
   </span>
 );
 
+/** Right edge of an area row: the open count, then a fixed slot for the tick, so both line up. */
+const Trailing: React.FC<{ count: number | undefined; selected: boolean }> = ({ count, selected }) => (
+  <>
+    {count !== undefined && <Count value={count} className="min-w-[2ch] text-right" />}
+    <span className="w-4 h-4 flex-none">{selected && <CheckIcon className="w-4 h-4 text-accent" />}</span>
+  </>
+);
+
 /** Props for {@link AreaMenu}. */
 interface AreaMenuProps {
   panelRef: React.RefObject<HTMLDivElement | null>;
@@ -48,19 +56,22 @@ const AreaMenu: React.FC<AreaMenuProps> = ({ panelRef, newlyCreatedAreaId, onPic
       aria-label="Areas"
       className={`absolute right-0 top-[50px] z-30 w-64 ${menuPanel}`}
     >
-      <button
-        type="button"
-        role="menuitemradio"
-        aria-checked={!currentArea}
-        aria-label={`All Areas${countLabel(counts?.total)}`}
-        onClick={() => onPick(null)}
-        className={menuItem}
-      >
-        <span className="w-2 h-2 rounded-full flex-none" style={{ background: ALL_AREAS_SWATCH }} />
-        <span className="flex-1">All Areas</span>
-        {counts && <Count value={counts.total} />}
-        {!currentArea && <CheckIcon className="w-4 h-4 text-accent" />}
-      </button>
+      <div className="flex items-center">
+        <button
+          type="button"
+          role="menuitemradio"
+          aria-checked={!currentArea}
+          aria-label={`All Areas${countLabel(counts?.total)}`}
+          onClick={() => onPick(null)}
+          className={`${menuItem} flex-1`}
+        >
+          <span className="w-2 h-2 rounded-full flex-none" style={{ background: ALL_AREAS_SWATCH }} />
+          <span className="flex-1">All Areas</span>
+          <Trailing count={counts?.total} selected={!currentArea} />
+        </button>
+        {/* Keeps counts and ticks in one column with the area rows' edit buttons */}
+        <span aria-hidden="true" className="ml-0.5 w-8 flex-none" />
+      </div>
 
       <div className={menuSeparator} />
 
@@ -85,8 +96,7 @@ const AreaMenu: React.FC<AreaMenuProps> = ({ panelRef, newlyCreatedAreaId, onPic
             >
               <span className="w-2 h-2 rounded-full flex-none" style={{ backgroundColor: area.color }} />
               <span className="flex-1 truncate">{area.name}</span>
-              {open !== undefined && <Count value={open} />}
-              {isSelected && <CheckIcon className="w-4 h-4 text-accent" />}
+              <Trailing count={open} selected={isSelected} />
             </button>
             <button
               type="button"
