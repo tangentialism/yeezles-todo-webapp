@@ -2,12 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { useApi } from '../hooks/useApi';
 import { logger } from '../utils/logger';
 
+const STATUS = {
+  loading: { label: 'Checking connection…', dot: 'bg-line-strong' },
+  connected: { label: 'Connected', dot: 'bg-ok' },
+  error: { label: 'Disconnected', dot: 'bg-danger' },
+} as const;
+
 /**
- * Small status indicator that pings `GET /health` on mount and shows
- * whether the backend API is reachable. Displayed at the bottom of the dashboard.
+ * Compact status line that pings `GET /health` on mount and shows whether
+ * the backend API is reachable. Shown inside the account menu.
  */
 const ApiStatus: React.FC = () => {
-  const [status, setStatus] = useState<'loading' | 'connected' | 'error'>('loading');
+  const [status, setStatus] = useState<keyof typeof STATUS>('loading');
   const apiClient = useApi();
 
   useEffect(() => {
@@ -25,29 +31,12 @@ const ApiStatus: React.FC = () => {
     checkApiHealth();
   }, [apiClient]);
 
-  const getStatusText = () => {
-    switch (status) {
-      case 'loading': return '⏳ Checking API connection...';
-      case 'connected': return '✅ API Connected';
-      case 'error': return '❌ API Disconnected';
-      default: return '❓ API Status Unknown';
-    }
-  };
-
-  const getStatusColor = () => {
-    switch (status) {
-      case 'loading': return 'text-yellow-600';
-      case 'connected': return 'text-green-600';
-      case 'error': return 'text-red-600';
-      default: return 'text-gray-600';
-    }
-  };
+  const { label, dot } = STATUS[status];
 
   return (
-    <div className="text-center py-1">
-      <p className={`text-xs ${getStatusColor()}`}>
-        {getStatusText()}
-      </p>
+    <div className="flex items-center gap-2 px-2.5 py-1.5 text-[12.5px] text-ink-muted" role="status">
+      <span className={`w-[7px] h-[7px] rounded-full ${dot}`} />
+      {label}
     </div>
   );
 };

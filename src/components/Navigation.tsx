@@ -1,8 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useArea } from '../contexts/AreaContext';
+import { useDismiss } from '../hooks/useDismiss';
 import AreaManagementModal from './AreaManagementModal';
 import type { Area } from '../types/area';
 import { NEW_AREA_HIGHLIGHT_MS } from '../constants';
+import { CheckIcon, ChevronDownIcon, PencilIcon, PlusIcon, Spinner } from './ui/Icons';
+import { menuItem, menuPanel, menuSeparator } from './ui/styles';
 
 /** Props for {@link Navigation}. */
 interface NavigationProps {
@@ -10,234 +13,196 @@ interface NavigationProps {
   onViewChange: (view: string) => void;
 }
 
+const VIEWS = [
+  { id: 'all', label: 'All' },
+  { id: 'today', label: 'Today' },
+  { id: 'accomplishments', label: 'Done' },
+];
+
+/** Multi-colour swatch shown for "All areas". */
+const ALL_AREAS_SWATCH = 'conic-gradient(#1E88E5 0 33%, #43A047 0 66%, #8E24AA 0)';
+
 /**
- * Top navigation bar with view tabs (All Todos, Today, Accomplishments) and
- * an area switcher dropdown. Features a sliding underline indicator that
- * animates between tabs, and highlights newly created areas in the dropdown.
+ * Header navigation: the All / Today / Done view tabs and the area switcher
+ * pill with its dropdown (pick, edit or create an area). Newly created areas
+ * are briefly highlighted in the dropdown.
  */
 const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) => {
   const [isAreaDropdownOpen, setIsAreaDropdownOpen] = useState(false);
   const [isAreaModalOpen, setIsAreaModalOpen] = useState(false);
   const [editingArea, setEditingArea] = useState<Area | null>(null);
   const [newlyCreatedAreaId, setNewlyCreatedAreaId] = useState<number | null>(null);
-  const [tabIndicatorStyle, setTabIndicatorStyle] = useState<{ left: string; width: string }>({ left: '0px', width: '0px' });
-  const tabsContainerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const { areas, currentArea, setCurrentArea, isLoading } = useArea();
 
-  const views = [
-    { id: 'all', label: 'All Todos', icon: '📝' },
-    { id: 'today', label: 'Today', icon: '⭐' },
-    { id: 'accomplishments', label: 'Accomplishments', icon: '🎉' },
-  ];
+  const closeDropdown = useCallback(() => setIsAreaDropdownOpen(false), []);
+  const dismissRefs = useMemo(() => [triggerRef, panelRef], []);
+  useDismiss(dismissRefs, closeDropdown, isAreaDropdownOpen);
 
-  // Track newly created areas for animation
+  // Track newly created areas for the highlight
   const prevAreasLength = useRef(areas.length);
   useEffect(() => {
     if (areas.length > prevAreasLength.current && areas.length > 0) {
-      // New area was added - get the latest one
       const latestArea = areas[areas.length - 1];
       setNewlyCreatedAreaId(latestArea.id);
-      
-      // Clear the animation after 2 seconds
+
       const timer = setTimeout(() => {
         setNewlyCreatedAreaId(null);
       }, NEW_AREA_HIGHLIGHT_MS);
-      
+
       return () => clearTimeout(timer);
     }
     prevAreasLength.current = areas.length;
   }, [areas]);
 
-  // Update tab indicator position
-  useEffect(() => {
-    const updateTabIndicator = () => {
-      if (!tabsContainerRef.current) return;
-      
-      const activeTabButton = tabsContainerRef.current.querySelector(`[data-tab="${currentView}"]`) as HTMLElement;
-      if (activeTabButton) {
-        const containerRect = tabsContainerRef.current.getBoundingClientRect();
-        const buttonRect = activeTabButton.getBoundingClientRect();
-        
-        setTabIndicatorStyle({
-          left: `${buttonRect.left - containerRect.left}px`,
-          width: `${buttonRect.width}px`
-        });
-      }
-    };
-
-    // Update immediately
-    updateTabIndicator();
-    
-    // Update on window resize
-    window.addEventListener('resize', updateTabIndicator);
-    return () => window.removeEventListener('resize', updateTabIndicator);
-  }, [currentView]);
-
   const handleAreaChange = (areaId: number | null) => {
-    const selectedArea = areaId && Array.isArray(areas) 
-      ? areas.find(area => area.id === areaId) || null 
+    const selectedArea = areaId && Array.isArray(areas)
+      ? areas.find(area => area.id === areaId) || null
       : null;
     setCurrentArea(selectedArea);
     setIsAreaDropdownOpen(false);
   };
 
-  return (
-    <nav className="bg-white border-b border-gray-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between">
-          {/* Navigation Views */}
-          <div ref={tabsContainerRef} className="relative flex space-x-4 sm:space-x-8 overflow-x-auto">
-            {/* Sliding Tab Indicator */}
-            <div
-              className="absolute bottom-0 h-0.5 bg-indigo-500 transition-all duration-300 ease-out"
-              style={{
-                left: tabIndicatorStyle.left,
-                width: tabIndicatorStyle.width,
-              }}
-            />
-            
-            {views.map((view) => (
-              <button
-                key={view.id}
-                data-tab={view.id}
-                onClick={() => onViewChange(view.id)}
-                className={`py-4 px-2 sm:px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-all duration-200 ${
-                  currentView === view.id
-                    ? 'border-transparent text-indigo-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <span className="mr-1 sm:mr-2">{view.icon}</span>
-                <span className="hidden sm:inline">{view.label}</span>
-              </button>
-            ))}
-          </div>
+  const openAreaModal = (area: Area | null) => {
+    setEditingArea(area);
+    setIsAreaModalOpen(true);
+    setIsAreaDropdownOpen(false);
+  };
 
-          {/* Area Switcher */}
-          <div className="relative">
+  return (
+    <div className="flex flex-1 flex-wrap items-center gap-x-8 gap-y-3 min-w-0">
+      <nav aria-label="Views" className="flex gap-6">
+        {VIEWS.map((view) => {
+          const isActive = currentView === view.id;
+          return (
             <button
-              onClick={() => setIsAreaDropdownOpen(!isAreaDropdownOpen)}
-              disabled={isLoading}
-              className="flex items-center py-2 px-3 rounded-lg border border-gray-300 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white text-sm"
+              key={view.id}
+              type="button"
+              data-tab={view.id}
+              onClick={() => onViewChange(view.id)}
+              aria-current={isActive ? 'page' : undefined}
+              className={`py-2.5 px-0.5 text-sm border-b-[1.5px] transition-colors ${
+                isActive
+                  ? 'border-ink text-ink'
+                  : 'border-transparent text-ink-muted hover:text-ink'
+              }`}
             >
-              {isLoading ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600"></div>
-              ) : (
-                <>
-                  {/* Current Area Color Indicator */}
-                  <div
-                    className="w-3 h-3 rounded-full mr-2 border border-gray-300"
-                    style={{ backgroundColor: currentArea?.color || '#6B7280' }}
-                  ></div>
-                  <span className="hidden sm:inline mr-2">
-                    {currentArea ? currentArea.name : 'All Areas'}
-                  </span>
-                  <svg
-                    className={`w-4 h-4 transition-transform ${isAreaDropdownOpen ? 'rotate-180' : ''}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </>
-              )}
+              {view.label}
+            </button>
+          );
+        })}
+      </nav>
+
+      <span className="flex-1" />
+
+      {/* Area Switcher */}
+      <div className="relative">
+        <button
+          ref={triggerRef}
+          type="button"
+          onClick={() => setIsAreaDropdownOpen(!isAreaDropdownOpen)}
+          disabled={isLoading}
+          aria-haspopup="menu"
+          aria-expanded={isAreaDropdownOpen}
+          className={`inline-flex items-center gap-2 h-10 px-3.5 rounded-full border bg-surface text-sm text-ink-2 transition-[border-color,box-shadow] ${
+            isAreaDropdownOpen
+              ? 'border-accent ring-[3px] ring-accent/15'
+              : 'border-line-strong hover:border-ink-faint'
+          }`}
+        >
+          {isLoading ? (
+            <Spinner className="w-4 h-4 text-ink-faint" />
+          ) : (
+            <>
+              <span
+                className="w-2 h-2 rounded-full flex-none"
+                style={{ background: currentArea?.color || ALL_AREAS_SWATCH }}
+              />
+              <span>{currentArea ? currentArea.name : 'All Areas'}</span>
+              <ChevronDownIcon
+                className={`w-3.5 h-3.5 transition-transform ${isAreaDropdownOpen ? 'rotate-180' : ''}`}
+              />
+            </>
+          )}
+        </button>
+
+        {isAreaDropdownOpen && (
+          <div
+            ref={panelRef}
+            role="menu"
+            aria-label="Areas"
+            className={`absolute right-0 top-[50px] z-30 w-64 ${menuPanel}`}
+          >
+            <button
+              type="button"
+              role="menuitemradio"
+              aria-checked={!currentArea}
+              onClick={() => handleAreaChange(null)}
+              className={menuItem}
+            >
+              <span className="w-2 h-2 rounded-full flex-none" style={{ background: ALL_AREAS_SWATCH }} />
+              <span className="flex-1">All Areas</span>
+              {!currentArea && <CheckIcon className="w-4 h-4 text-accent" />}
             </button>
 
-            {/* Area Dropdown */}
-            {isAreaDropdownOpen && (
-              <div className="absolute right-0 mt-1 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-10 animate-dropdown-appear">
-                <div className="py-1">
-                  {/* All Areas Option */}
+            <div className={menuSeparator} />
+
+            {Array.isArray(areas) && areas.map((area) => {
+              const isSelected = currentArea?.id === area.id;
+              const isNewlyCreated = newlyCreatedAreaId === area.id;
+              return (
+                <div
+                  key={area.id}
+                  className={`group flex items-center rounded-[9px] transition-colors ${
+                    isNewlyCreated ? 'bg-accent-soft' : ''
+                  }`}
+                >
                   <button
-                    onClick={() => handleAreaChange(null)}
-                    className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center ${
-                      !currentArea ? 'bg-indigo-50 text-indigo-600' : 'text-gray-700'
-                    }`}
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={isSelected}
+                    onClick={() => handleAreaChange(area.id)}
+                    className={`${menuItem} flex-1`}
                   >
-                    <div className="w-3 h-3 rounded-full mr-3 border border-gray-300 bg-gray-200"></div>
-                    All Areas
-                    {!currentArea && (
-                      <svg className="w-4 h-4 ml-auto text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
+                    <span className="w-2 h-2 rounded-full flex-none" style={{ backgroundColor: area.color }} />
+                    <span className="flex-1">{area.name}</span>
+                    {area.is_default && (
+                      <span className="text-xs text-ink-faint">default</span>
                     )}
+                    {isSelected && <CheckIcon className="w-4 h-4 text-accent" />}
                   </button>
-
-                  {/* Individual Areas */}
-                  {Array.isArray(areas) && areas.map((area) => {
-                    const isNewlyCreated = newlyCreatedAreaId === area.id;
-                    return (
-                      <div
-                        key={area.id}
-                        className={`flex items-center px-4 py-2 text-sm hover:bg-gray-50 transition-all duration-200 ${
-                          currentArea?.id === area.id ? 'bg-indigo-50' : ''
-                        } ${isNewlyCreated ? 'animate-pulse bg-green-50 border-l-2 border-green-400' : ''}`}
-                      >
-                        <button
-                          onClick={() => handleAreaChange(area.id)}
-                          className={`flex-1 flex items-center text-left ${
-                            currentArea?.id === area.id ? 'text-indigo-600' : 'text-gray-700'
-                          }`}
-                        >
-                          <div
-                            className="w-3 h-3 rounded-full mr-3 border border-gray-300"
-                            style={{ backgroundColor: area.color }}
-                          ></div>
-                          <span className="flex-1">{area.name}</span>
-                          {area.is_default && (
-                            <span className="text-xs text-gray-400 mr-2">default</span>
-                          )}
-                          {currentArea?.id === area.id && (
-                            <svg className="w-4 h-4 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
-                          )}
-                        </button>
-                        {/* Edit button */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingArea(area);
-                            setIsAreaModalOpen(true);
-                            setIsAreaDropdownOpen(false);
-                          }}
-                          className="ml-2 p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
-                          title="Edit area"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                          </svg>
-                        </button>
-                      </div>
-                    );
-                  })}
-
-                  {/* Divider */}
-                  <div className="border-t border-gray-100 my-1"></div>
-
-                  {/* Create New Area Button */}
                   <button
-                    onClick={() => {
-                      setEditingArea(null); // Ensure we're in create mode
-                      setIsAreaModalOpen(true);
-                      setIsAreaDropdownOpen(false);
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openAreaModal(area);
                     }}
-                    className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center text-gray-700"
+                    className="ml-0.5 w-8 h-8 inline-flex items-center justify-center rounded-[7px] text-ink-faint hover:text-ink hover:bg-hover opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+                    title="Edit area"
+                    aria-label={`Edit ${area.name}`}
                   >
-                    <svg className="w-3 h-3 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                    </svg>
-                    Create New Area...
+                    <PencilIcon className="w-3.5 h-3.5" />
                   </button>
                 </div>
-              </div>
-            )}
+              );
+            })}
+
+            <div className={menuSeparator} />
+
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => openAreaModal(null)}
+              className={`${menuItem} text-ink-muted`}
+            >
+              <PlusIcon className="w-4 h-4" />
+              New area
+            </button>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Area Management Modal */}
       <AreaManagementModal
         isOpen={isAreaModalOpen}
         onClose={() => {
@@ -246,7 +211,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) =>
         }}
         editingArea={editingArea}
       />
-    </nav>
+    </div>
   );
 };
 
