@@ -5,6 +5,8 @@ import type { Todo } from '../types/todo';
 import { logger } from '../utils/logger';
 import Dialog from './ui/Dialog';
 import AreaChips from './ui/AreaChips';
+import TopicPicker from './topics/TopicPicker';
+import { useTopicSelection } from '../hooks/useTopicSelection';
 import Switch from './ui/Switch';
 import { CalendarIcon, CheckIcon, LinkIcon, Spinner, SunIcon } from './ui/Icons';
 import { fieldHint, fieldInput, fieldLabel, fieldOptional, ghostButton, primaryButton } from './ui/styles';
@@ -30,6 +32,7 @@ const EditTodoModal: React.FC<EditTodoModalProps> = ({ todo, isOpen, onClose, on
   const [completed, setCompleted] = useState(false);
   const [isToday, setIsToday] = useState(false);
   const [selectedAreaId, setSelectedAreaId] = useState<number | null>(null);
+  const { topicId, cleared: topicCleared, selectTopic, changeArea, reset: resetTopic } = useTopicSelection(selectedAreaId, setSelectedAreaId);
   const [referenceUrl, setReferenceUrl] = useState('');
   const { updateTodo, isUpdating } = useTodoStore();
   const { areas } = useArea();
@@ -43,6 +46,7 @@ const EditTodoModal: React.FC<EditTodoModalProps> = ({ todo, isOpen, onClose, on
       setCompleted(todo.completed);
       setIsToday(todo.is_today);
       setSelectedAreaId(todo.area_id);
+      resetTopic(todo.topic_id ?? null, todo.topic_id ? todo.area_id : null);
       setReferenceUrl(todo.reference_url || '');
 
       // Format due date for datetime-local input
@@ -54,7 +58,7 @@ const EditTodoModal: React.FC<EditTodoModalProps> = ({ todo, isOpen, onClose, on
         setDueDate('');
       }
     }
-  }, [todo]);
+  }, [todo, resetTopic]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,6 +72,8 @@ const EditTodoModal: React.FC<EditTodoModalProps> = ({ todo, isOpen, onClose, on
         due_date: dueDate ? new Date(dueDate).toISOString() : undefined,
         is_today: isToday,
         area_id: selectedAreaId,
+        // Always sent with area_id, so the server never clears a topic by surprise
+        topic_id: topicId,
         reference_url: referenceUrl.trim() || undefined,
       };
 
@@ -142,12 +148,22 @@ const EditTodoModal: React.FC<EditTodoModalProps> = ({ todo, isOpen, onClose, on
             <AreaChips
               areas={areas}
               value={selectedAreaId}
-              onChange={setSelectedAreaId}
+              onChange={changeArea}
               nullLabel="None"
               disabled={isSubmitting}
               labelId="edit-area-label"
             />
           </div>
+
+          <TopicPicker
+            id="edit-topic"
+            areaId={selectedAreaId}
+            value={topicId}
+            onChange={selectTopic}
+            currentTopic={todo.topic ?? null}
+            showCleared={topicCleared}
+            disabled={isSubmitting}
+          />
 
           <div>
             <label htmlFor="edit-dueDate" className={fieldLabel}>

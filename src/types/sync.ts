@@ -16,7 +16,10 @@ export type SyncMessageType =
   | 'TODO_REMOVED_FROM_TODAY'
   | 'AREA_CREATED'
   | 'AREA_UPDATED'
-  | 'AREA_DELETED';
+  | 'AREA_DELETED'
+  | 'TOPIC_CREATED'
+  | 'TOPIC_UPDATED'
+  | 'TOPIC_DELETED';
 
 /**
  * Data payload for sync messages

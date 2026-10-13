@@ -1,6 +1,6 @@
 import React from 'react';
 import { VIEWS } from './navViews';
-import { CircleCheckIcon, ListIcon, SunIcon } from './ui/Icons';
+import { CircleCheckIcon, FolderIcon, ListIcon, SunIcon } from './ui/Icons';
 
 /** Props for {@link PhoneTabBar}. */
 interface PhoneTabBarProps {
@@ -13,11 +13,12 @@ interface PhoneTabBarProps {
 const ICONS: Record<(typeof VIEWS)[number]['id'], React.FC<{ className?: string }>> = {
   all: ListIcon,
   today: SunIcon,
+  topics: FolderIcon,
   accomplishments: CircleCheckIcon,
 };
 
 /**
- * Bottom tab bar for phones (hidden from `sm` up): All / Today / Done with
+ * Bottom tab bar for phones (hidden from `sm` up): All / Today / Topics / Done with
  * the icon over the label, full-height targets, and padding for the home
  * indicator (`safe-area-inset-bottom`).
  */

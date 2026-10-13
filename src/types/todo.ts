@@ -5,6 +5,8 @@
  * used by the API service, hooks, and components throughout the app.
  */
 
+import type { TopicRef } from './topic';
+
 /** A single todo item as returned by the API. */
 export interface Todo {
   id: number;
@@ -22,6 +24,10 @@ export interface Todo {
   completed_at: string | null;
   /** Inline @tags extracted from the title by the backend. */
   tags?: string[];
+  /** The todo's topic id; the backend always sends it (optional for optimistic rows). */
+  topic_id?: number | null;
+  /** The todo's topic, `{ id, name }`, or null. */
+  topic?: TopicRef | null;
 }
 
 /**
@@ -114,6 +120,8 @@ export interface TodoFilters {
   area_name?: string;
   /** When true, returns todos from all areas regardless of area_id. */
   include_all_areas?: boolean;
+  /** Only todos in this topic (no area filter is applied unless area_id is also sent). */
+  topic_id?: number;
 }
 
 /** Request body for `POST /todos`. */
@@ -123,6 +131,8 @@ export interface CreateTodoRequest {
   due_date?: string;
   is_today?: boolean;
   area_id?: number | null;
+  /** Positive id to assign, null to unassign. Always send area_id with it. */
+  topic_id?: number | null;
   reference_url?: string;
 }
 
@@ -134,5 +144,7 @@ export interface UpdateTodoRequest {
   due_date?: string;
   is_today?: boolean;
   area_id?: number | null;
+  /** Positive id to assign, null to unassign. Always send area_id with it. */
+  topic_id?: number | null;
   reference_url?: string;
 }

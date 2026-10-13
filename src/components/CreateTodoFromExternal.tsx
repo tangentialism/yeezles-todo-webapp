@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTodoStore } from '../hooks/useTodoStore';
 import { useArea } from '../contexts/AreaContext';
 import { logger } from '../utils/logger';
 import PageShell from './ui/PageShell';
 import AreaChips from './ui/AreaChips';
+import TopicPicker from './topics/TopicPicker';
+import { useTopicSelection } from '../hooks/useTopicSelection';
 import Switch from './ui/Switch';
 import { CalendarIcon, FileIcon, LinkIcon, Spinner, SunIcon } from './ui/Icons';
 import { fieldInput, fieldLabel, fieldOptional, ghostButton, pageCard, primaryButton } from './ui/styles';
@@ -38,8 +40,16 @@ const CreateTodoFromExternal: React.FC = () => {
   const [isToday, setIsToday] = useState(false);
   const [selectedAreaId, setSelectedAreaId] = useState<number | null>(null);
 
-  // Initialize with current area when component mounts
+  const { topicId, cleared: topicCleared, selectTopic, changeArea } = useTopicSelection(selectedAreaId, setSelectedAreaId);
+
+  // Read from the effect below without re-running it when the topic changes
+  const topicIdRef = useRef(topicId);
+  topicIdRef.current = topicId;
+
+  // Initialize with current area when it loads. Once a topic is chosen the
+  // topic's area wins, so a late-loading area never disagrees with the topic.
   useEffect(() => {
+    if (topicIdRef.current !== null) return;
     setSelectedAreaId(currentArea?.id || null);
   }, [currentArea]);
 
@@ -55,6 +65,7 @@ const CreateTodoFromExternal: React.FC = () => {
         due_date: dueDate ? new Date(dueDate).toISOString() : undefined,
         is_today: isToday,
         area_id: selectedAreaId,
+        ...(topicId !== null ? { topic_id: topicId } : {}),
       };
 
       await createTodo(todoData);
@@ -142,11 +153,19 @@ const CreateTodoFromExternal: React.FC = () => {
               <AreaChips
                 areas={areas}
                 value={selectedAreaId}
-                onChange={setSelectedAreaId}
+                onChange={changeArea}
                 nullLabel="None"
                 labelId="external-area-label"
               />
             </div>
+
+            <TopicPicker
+              id="external-topic"
+              areaId={selectedAreaId}
+              value={topicId}
+              onChange={selectTopic}
+              showCleared={topicCleared}
+            />
 
             <div>
               <label htmlFor="dueDate" className={fieldLabel}>

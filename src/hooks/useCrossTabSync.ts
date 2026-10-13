@@ -3,6 +3,21 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { SyncMessage, SyncMessageType, SyncMessageData } from '../types/sync';
 import { SYNC_CHANNEL_NAME, generateTabId } from '../types/sync';
 import { logger } from '../utils/logger';
+import { invalidateTodoViews, invalidateTopicViews } from './topicInvalidation';
+
+/**
+ * One id for the whole tab. Every store hook calls useCrossTabSync, and a
+ * BroadcastChannel post reaches every other channel object of the same name,
+ * including those in this tab, so a per-instance id let each instance in the
+ * posting tab handle its own tab's message (the B1 refetch storm).
+ */
+const TAB_ID = generateTabId();
+
+/**
+ * The last message this tab handled. Each hook instance in a receiving tab
+ * gets its own copy of a message; only the first one acts on it.
+ */
+let lastHandledKey = '';
 
 /**
  * Cross-tab synchronization hook using Broadcast Channel API
@@ -20,7 +35,6 @@ import { logger } from '../utils/logger';
  */
 export const useCrossTabSync = () => {
   const queryClient = useQueryClient();
-  const tabIdRef = useRef<string>(generateTabId());
   const channelRef = useRef<BroadcastChannel | null>(null);
 
   useEffect(() => {
@@ -39,9 +53,16 @@ export const useCrossTabSync = () => {
       const message = event.data;
 
       // Ignore messages from the same tab (prevent self-updates)
-      if (message.sourceTabId === tabIdRef.current) {
+      if (message.sourceTabId === TAB_ID) {
         return;
       }
+
+      // Handle each message once per tab, not once per hook instance
+      const key = `${message.sourceTabId}:${message.type}:${message.data?.id}:${message.data?.timestamp}`;
+      if (key === lastHandledKey) {
+        return;
+      }
+      lastHandledKey = key;
 
       // Handle different message types
       switch (message.type) {
@@ -51,17 +72,9 @@ export const useCrossTabSync = () => {
         case 'TODO_COMPLETED':
         case 'TODO_MOVED_TO_TODAY':
         case 'TODO_REMOVED_FROM_TODAY':
-          // Invalidate todos cache to trigger refetch
-          queryClient.invalidateQueries({ 
-            queryKey: ['todos'],
-            refetchType: 'active' // Only refetch active queries
-          });
-          
-          // Also invalidate today view since todos changed
-          queryClient.invalidateQueries({ 
-            queryKey: ['todayView'],
-            refetchType: 'active'
-          });
+          // Todo lists, today view, and (counts move with every todo) topic views
+          invalidateTodoViews(queryClient, { refetchType: 'active' });
+          invalidateTopicViews(queryClient, { refetchType: 'active' });
           break;
 
         case 'AREA_CREATED':
@@ -72,6 +85,14 @@ export const useCrossTabSync = () => {
             queryKey: ['areas'],
             refetchType: 'active'
           });
+          break;
+
+        case 'TOPIC_CREATED':
+        case 'TOPIC_UPDATED':
+        case 'TOPIC_DELETED':
+          // Rows show topic names, so todo lists refetch too
+          invalidateTopicViews(queryClient, { refetchType: 'active' });
+          invalidateTodoViews(queryClient, { refetchType: 'active' });
           break;
 
         default:
@@ -102,7 +123,7 @@ export const useCrossTabSync = () => {
     const message: SyncMessage = {
       type,
       data,
-      sourceTabId: tabIdRef.current,
+      sourceTabId: TAB_ID,
     };
 
     try {
@@ -115,7 +136,7 @@ export const useCrossTabSync = () => {
   return {
     broadcast,
     // Expose tabId for testing purposes (not used in production code)
-    tabId: tabIdRef.current,
+    tabId: TAB_ID,
   };
 };
 

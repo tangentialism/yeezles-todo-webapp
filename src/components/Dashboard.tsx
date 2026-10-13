@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
+import { TopicNavigationContext } from '../hooks/useOpenTopic';
 import Navigation from './Navigation';
 import ViewContainer from './ViewContainer';
 import AddTodoModal from './AddTodoModal';
@@ -14,7 +15,8 @@ import { VIEW_TRANSITION_DURATION_MS } from '../constants';
 /**
  * Main authenticated layout: a single header (wordmark, view tabs, area
  * switcher, New button, account menu) above the multi-view container.
- * Manages view switching with a fade transition and coordinates the
+ * Manages view switching with a fade transition, owns the topic open in the
+ * Topics view (chips open it through TopicNavigationContext), and coordinates the
  * "Add Todo" modal with entrance animation for new todos.
  */
 const Dashboard: React.FC = () => {
@@ -27,22 +29,32 @@ const Dashboard: React.FC = () => {
   const [isViewTransitioning, setIsViewTransitioning] = useState(false);
   const todayCount = useTodayOpenCount();
 
-  const handleViewChange = (newView: string) => {
+  const [openTopicId, setOpenTopicId] = useState<number | null>(null);
+
+  const handleViewChange = useCallback((newView: string) => {
     if (newView !== currentView) {
       setIsViewTransitioning(true);
-      
+
       // Immediate view change with smooth transition
       setCurrentView(newView);
-      
+
       // End transition after animation completes
       setTimeout(() => {
         setIsViewTransitioning(false);
       }, VIEW_TRANSITION_DURATION_MS); // Match ViewContainer transition duration
     }
-  };
+  }, [currentView]);
+
+  // A topic chip anywhere in the dashboard opens that topic in the Topics view,
+  // through the same path as a tab click (fade transition, scroll save)
+  const openTopic = useCallback((topicId: number) => {
+    setOpenTopicId(topicId);
+    handleViewChange('topics');
+  }, [handleViewChange]);
 
   return (
     <div className="min-h-screen bg-paper">
+      <TopicNavigationContext.Provider value={openTopic}>
       {/* Phones: wordmark, area dot and avatar only; views move to the tab bar, New to the round button */}
       <header className="sticky top-0 z-20 bg-paper/90 backdrop-blur">
         <div className="max-w-[1120px] mx-auto pl-5 pr-3 pt-2.5 pb-1 sm:px-10 sm:py-4 flex items-center sm:gap-x-8">
@@ -78,6 +90,9 @@ const Dashboard: React.FC = () => {
           refreshTrigger={refreshTrigger}
           newTodoId={newTodoId}
           onNewTodoAnimationComplete={() => setNewTodoId(null)}
+          openTopicId={openTopicId}
+          onOpenTopic={openTopic}
+          onCloseTopic={() => setOpenTopicId(null)}
         />
       </main>
 
@@ -93,6 +108,7 @@ const Dashboard: React.FC = () => {
       </button>
 
       <PhoneTabBar currentView={currentView} onViewChange={handleViewChange} todayCount={todayCount} />
+      </TopicNavigationContext.Provider>
 
       {/* Add Todo Modal */}
       <AddTodoModal

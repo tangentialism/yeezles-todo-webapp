@@ -3,6 +3,7 @@ import { useCallback, useMemo } from 'react';
 import { useApi } from './useApi';
 import { useCrossTabSync } from './useCrossTabSync';
 import { useToast } from '../contexts/ToastContext';
+import { isApiError } from '../services/apiError';
 import type { Area, AreaWithStats, CreateAreaRequest, UpdateAreaRequest } from '../types/area';
 import { BACKGROUND_SYNC_INTERVAL_MS, ANIMATION_DELAY_MS } from '../constants';
 
@@ -270,8 +271,14 @@ export const useAreaStore = (options: UseAreaStoreOptions = {}) => {
       if (context?.previousAreas) {
         queryClient.setQueryData(QUERY_KEYS.areas(includeStats), context.previousAreas);
       }
+      // An ApiError carries the server's message, which already says
+      // "Failed to delete area: …"; only other errors get the prefix here.
       showToast({
-        message: `Failed to delete area: ${err.message}`,
+        message: isApiError(err, 'AREA_HAS_TOPICS')
+          ? "Move or delete this area's topics first."
+          : isApiError(err)
+            ? err.message
+            : `Failed to delete area: ${err.message}`,
         type: 'error'
       });
     },

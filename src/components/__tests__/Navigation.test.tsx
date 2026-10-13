@@ -40,6 +40,15 @@ describe('Navigation', () => {
   });
 
   describe('Tab Rendering', () => {
+    it('renders a Topics tab between Today and Done', async () => {
+      const user = userEvent.setup();
+      render(<Navigation currentView="all" onViewChange={mockOnViewChange} />);
+      const labels = screen.getAllByRole('button').map((b) => b.textContent).filter((t) => ['All', 'Today', 'Topics', 'Done'].includes(t ?? ''));
+      expect(labels).toEqual(['All', 'Today', 'Topics', 'Done']);
+      await user.click(screen.getByRole('button', { name: 'Topics' }));
+      expect(mockOnViewChange).toHaveBeenCalledWith('topics');
+    });
+
     it('should render all tab options', () => {
       render(<Navigation currentView="all" onViewChange={mockOnViewChange} />);
 
