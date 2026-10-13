@@ -1,3 +1,5 @@
+<!-- verified-at: HEAD -->
+
 # chore/green-suite (webapp)
 
 Branch from origin/master b52ba1d. Part of the workspace test suite cleanup.
