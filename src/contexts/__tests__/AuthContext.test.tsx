@@ -383,6 +383,8 @@ describe('AuthContext', () => {
   describe('Token Management', () => {
     // KNOWN-FAILURE yeezles-todo-webapp#21: expects pre-passkey auth state shape
     it.fails('should return valid token when not expired', async () => {
+      const mockCredentialResponse = createMockGoogleCredentialResponse();
+      
       renderWithProviders(
         <AuthProvider>
           <AuthTestComponent />
