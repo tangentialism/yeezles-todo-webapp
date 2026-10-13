@@ -419,7 +419,9 @@ A topic is a named group of todos inside one area, with a status note
 - **Forms.** Add, edit and external-create forms have a Topic select. Choosing a topic sets the area; changing the area clears the topic.
 - **Chips.** Todo rows show the topic; clicking it opens the topic.
 - **Area delete** is refused while the area has topics ("Move or delete this area's topics first.").
-- Claude's proposals and their review screen are phase 3b.
+- **Proposals.** Claude proposes topic changes over MCP (`propose_topic_changes`); nothing applies until reviewed here. A count on the Topics tab and a banner above the topics list link to `/topics/proposals/:id`, where the proposal is shown by topic.
+  - Each item can be unchecked or redirected to another topic, new topics renamed (or merged into an existing topic of the same name), proposed notes edited, and open topic-less todos added from the Unassigned tab.
+  - Apply is all or nothing. Rows the server refuses are marked in place, and a proposal resolved in another tab turns read-only.
 
 ---
 

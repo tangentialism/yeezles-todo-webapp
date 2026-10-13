@@ -10,9 +10,73 @@ hand-back. Spec: workspace
 
 ## Next action
 
-Task 8: docs, browser check, final check.
+PR review; then the workspace pin bump to the merge commit; then phase 4
+(remove dead tags). Push and `gh pr create --base master` are gated on David.
 
 ## Verified
+
+### Run by the Task 8 session (2026-10-13)
+
+- Final full check (the steps of
+  `/Users/davidyee/Code/yeezles-todo-webapp-wt/topics-proposals-review-check.sh`
+  run from a copy without its temp-dir cleanup, as the session's permission
+  classifier refused the script itself): `TSC_OK`; 547 tests, 547 passed, 0
+  failing names; lint now 5, baseline 5; new failing names empty.
+- Named suites (the brief's list plus Ruling L16's Dashboard, useNavCounts,
+  TodoForms.topics and all of `src/components/topics/__tests__`): 25 files,
+  176 tests passed.
+- `npm run build` (`tsc -b && vite build`): succeeded, 245 modules, no errors.
+- Ruling T7-M1: two edit-flow tests added to `TodoForms.topics.test.tsx`
+  (13 passed). (a) The ruling's test: a todo with topic 7 in area 1, area
+  changed to Work, save sends `area_id: 2, topic_id: null`. It passes, and it
+  still passes with `topicCleared ||` deleted from `EditTodoModal.tsx`: an
+  area change sets `topicId` to null, which already differs from the loaded 7.
+  (b) Added so the clause is pinned: a todo with no topic, Kitchen reno picked,
+  area changed to Work, save sends `area_id: 2, topic_id: null`. With
+  `topicCleared ||` deleted it FAILS (payload has `area_id: 2` and no
+  `topic_id`); restored, it passes.
+- Browser walkthrough (Claude in Chrome, local backend `yeezles-todo` at
+  `e53b2eb` with `src` compiled to a scratch dir, separate database
+  `yeezles_topics_review_check`, fake user signed in with a minted
+  persistent-session `remember_token` cookie). Proposals were created with
+  `POST /proposals` and the session cookie (201; no token needed). Tab
+  viewport 606 px; the tab reported `visibilityState: hidden` throughout.
+  1. SEEN: "Topics 3 (3 pending)" on the tab bar and a "3 proposals waiting"
+     banner above the topics list, one link per proposal.
+  2. SEEN: banner link opens `/topics/proposals/1`, "4 of 4 accepted", topics
+     as sections.
+  3. SEEN: unchecking the new topic unchecks its row and note ("1 of 4
+     accepted", row shows "needs a topic"); re-checking restores 4 of 4.
+  4. SEEN: redirecting "Fix sink" from Kitchen reno to Garden moves the row
+     under a Garden section.
+  5. SEEN: renaming "Review test" to "Pantry" renames the rows' topic select.
+  6. SEEN: Unassigned (2) tab, "Hang shelf" set to Pantry; By topic shows it
+     under Pantry, "5 of 5 accepted", "Apply 5 changes".
+  7. SEEN (landing); highlight SEEN on the Review Focus 5 run only: after
+     Apply the app landed on the Topics tab with Pantry (2 open, note
+     "First."), Garden 1 open, badge "Topics 2". The 2 s highlight had ended
+     before the first settled screenshot here; it was recorded on the
+     proposal 3 run below.
+  8. SEEN: reopening `/topics/proposals/1` shows the read-only view ("Applied
+     just now"). The added Unassigned todo reads "Todo #4": the server
+     resolves only the original payload's todos (plan discrepancy 5,
+     documented in `ReadOnlyProposal`).
+  9. SEEN: proposal 2 open in two tabs, applied in one; the other turned
+     read-only ("Applied just now", no Apply) without a reload, within the
+     3 s wait (MutationObserver timestamp, hidden tab).
+  - Review Focus 5 SEEN: with Home selected, applying proposal 3 (Work)
+    switched the area to Work (stored area id 3 to 4, blue area dot), opened
+    the Topics tab, and gave the "Work review" card `bg-accent-soft` for about
+    1.9 s (observer log t=17248 to 19130 ms). Router state was null after.
+  - Hand-back consumed once SEEN: reloading after landing showed the All view
+    (not Topics), no highlighted card polled from 0.2 s to 2.7 s after load,
+    router state null.
+  - Screenshots (uncommitted) under
+    `/Users/davidyee/.claude/jobs/291300d3/tmp/shots/3b/`: 390 px and 1280 px
+    of the review page (same-origin iframes), plus 606 px shots of items 1, 2,
+    5, 7, 8, 9 and Review Focus 5.
+
+### Reported by earlier task sessions
 
 - Task 7: the brief's tests written first and RED (6 files, 6 failed:
   unresolved import `../ProposalBanner`; `useTopicsHandoff is not a function`
@@ -27,7 +91,6 @@ Task 8: docs, browser check, final check.
   known topic sends no topic_id" test RED (`topic_id` present), then GREEN:
   TodoForms.topics 11 passed. Full check: `TSC_OK`; 545 tests, 545 passed, 0
   failing names; lint now 5, baseline 5; new failing names empty.
-
 - Task 6: `ProposalReview.test.tsx` and the `AppRoutes` describe written first
   and RED (unresolved import `../ProposalReview`; signed-in
   `/topics/proposals/7` rendered the dashboard; the signed-out test already
@@ -40,29 +103,24 @@ Task 8: docs, browser check, final check.
   ProposalReview 17 + AppRoutes 6 = 23 passed. Full check: `TSC_OK`; 533
   tests, 533 passed, 0 failing names; lint now 5, baseline 5; new failing
   names empty.
-
 - Task 5: `ProposalSections.test.tsx` written first and RED (unresolved import
   `../ProposalTopicSection`), then GREEN: 9 passed (brief's 8 plus 1 for
   Ruling L25). Full check: `TSC_OK`; 514 tests, 514 passed, 0 failing names;
   lint now 5, baseline 5; new failing names empty.
-
 - Task 4: `proposalDraft.serialize.test.ts` written first and RED (8 failed,
   `serialize`/`summarizeAccepted` not functions), then GREEN: serialize 8 +
   reducer 18 + init 11 = 37 passed (brief's 6 plus 2 added: takenName absent
   from the payload; second serialize rebuilds pathIndex after partial fixes).
   Full check: `TSC_OK`; 505 tests, 505 passed, 0 failing names; lint now 5,
   baseline 5; new failing names empty.
-
 - Task 3: `proposalDraft.reducer.test.ts` written first and RED (18 failed,
   `draftReducer` not exported), then GREEN: reducer 18 + init 11 = 29 passed
   (brief's 14 plus 4 ruling tests). Full check: `TSC_OK`; 497 tests, 497
   passed, 0 failing names; lint now 5, baseline 5; new failing names empty.
-
 - Task 2: `proposalDraft.init.test.ts` written first and RED (unresolved import
   `../proposalDraft`), then GREEN: 11 passed (brief's 9 plus 2 Ruling L10
   tests). Full check: `TSC_OK`; 479 tests, 479 passed, 0 failing names; lint now 5,
   baseline 5; new failing names empty.
-
 - Task 1: tests written first and RED (client methods "is not a function",
   store module unresolved, sync logged unknown type; 6 failed, 3 files), then
   GREEN: api.proposals 5, useProposalStore 6, useCrossTabSync.proposals 1 (12
@@ -78,11 +136,30 @@ Task 8: docs, browser check, final check.
 
 ## Assumed
 
+- Not run: the hosted connector (`propose_topic_changes` over MCP from Claude)
+  and the deployed app and backend. Proposals in the walkthrough came from
+  REST with a session cookie.
 - The backend at `yeezles-todo` `4db2fab` or later serves the Proposals API as
-  documented in its `docs/api/API.md`.
+  documented in its `docs/api/API.md`; the walkthrough ran at `e53b2eb`.
+- Google sign-in is not exercised; the walkthrough used the persistent-session
+  cookie path.
+- Visible-tab behaviour: the tab was hidden throughout, so the timings (cross
+  tab read-only within 3 s, 1.9 s highlight) are from a throttled tab.
+- The new-topic highlight after a same-area apply (item 7, proposal 1) was not
+  seen on screen; only the cross-area run (proposal 3) recorded it.
+- Layout at 390 px and 1280 px was seen for the review page only (iframes);
+  the badge, banner and landing were seen at 606 px.
+- In the automation, the first Apply click after a page navigation sent no
+  request (no `POST /apply` in the backend log); a second click applied. Taken
+  as a harness artifact of the hidden tab, not reproduced by hand.
 
 ## Deviations
 
+- Task 8: FEATURES.md's Topics section is extended as briefed; README's Topics
+  bullet under "Completed Features" gains a clause on proposal review (Ruling
+  L17). The named-suite run includes Ruling L16's extra suites.
+- Ruling T7-M1: the ruling's test cannot fail with `topicCleared ||` deleted
+  (see Verified); a second test that does is added beside it.
 - Ruling M3: `useProposal` also sets `gcTime: 0`; added a test asserting it.
 - Ruling L10: `validateTopicName` refuses a name matching any `resolved.topics`
   or `area_topics` name, whatever the `is_new`/`exists` flags (a Ghost topic is
@@ -159,7 +236,6 @@ Task 8: docs, browser check, final check.
   dropped, harmless at `/`).
 - Added beyond the brief: two `usePendingProposalCount` tests in
   `useNavCounts.test.tsx` (null while unknown; counts the list).
-
 - The checkout is the workspace worktree's own submodule,
   `/Users/davidyee/Code/yeezles-todo-workspace/.claude/worktrees/topics-phase3/yeezles-todo-webapp`,
   not `/Users/davidyee/Code/yeezles-todo-webapp-wt/topics-proposals-review`
@@ -173,8 +249,9 @@ Task 8: docs, browser check, final check.
 
 Branch `feature/topics-proposals-review` in
 `/Users/davidyee/Code/yeezles-todo-workspace/.claude/worktrees/topics-phase3/yeezles-todo-webapp`.
-Continue at the task named under Next action. Every git command uses `-C`
-with that path. Run
+Tasks 0-8 are done and the final check is green. Continue at Next action:
+push and open the PR against `master` only once David says so. Every git
+command uses `-C` with that path. Run
 `/Users/davidyee/Code/yeezles-todo-webapp-wt/topics-proposals-review-check.sh`
 for the full check; pass is `TSC_OK`, a lint total not above the baseline, and
 nothing between the comm markers.
