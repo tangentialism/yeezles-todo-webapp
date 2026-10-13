@@ -61,7 +61,7 @@ describe('AddTodoModal', () => {
       refetchTodos: vi.fn(),
       updateTodo: vi.fn(),
       deleteTodo: vi.fn(),
-    } as any);
+    } as never);
     
     // Mock AreaContext
     vi.spyOn(AreaContextModule, 'useArea').mockReturnValue({
@@ -74,7 +74,7 @@ describe('AddTodoModal', () => {
       createArea: vi.fn(),
       updateArea: vi.fn(),
       deleteArea: vi.fn(),
-    } as any);
+    } as never);
     
     mockCreateTodo.mockResolvedValue({
       id: 1,

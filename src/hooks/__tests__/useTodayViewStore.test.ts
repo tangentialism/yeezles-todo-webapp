@@ -83,7 +83,7 @@ describe('useTodayViewStore', () => {
       },
     });
 
-    mockUseApi.mockReturnValue(mockApiClient as any);
+    mockUseApi.mockReturnValue(mockApiClient as never);
     mockUseTodoStore.mockReturnValue({
       toggleTodoCompletion: mockToggleTodoCompletion,
       updateTodo: mockUpdateTodo,
@@ -103,7 +103,7 @@ describe('useTodayViewStore', () => {
       isMovingToToday: false,
       isRemovingFromToday: false,
       queryKey: ['todos', {}],
-    } as any);
+    } as never);
   });
 
   const wrapper = ({ children }: { children: React.ReactNode }) =>

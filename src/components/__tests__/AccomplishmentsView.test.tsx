@@ -27,7 +27,7 @@ describe('AccomplishmentsView', () => {
       updateTodo: vi.fn(),
       deleteTodo: vi.fn(),
       createTodo: vi.fn(),
-    } as any);
+    } as never);
 
     render(<AccomplishmentsView />);
     
@@ -46,7 +46,7 @@ describe('AccomplishmentsView', () => {
       updateTodo: vi.fn(),
       deleteTodo: vi.fn(),
       createTodo: vi.fn(),
-    } as any);
+    } as never);
 
     render(<AccomplishmentsView />);
     
@@ -96,7 +96,7 @@ describe('AccomplishmentsView', () => {
       updateTodo: vi.fn(),
       deleteTodo: vi.fn(),
       createTodo: vi.fn(),
-    } as any);
+    } as never);
 
     render(<AccomplishmentsView />);
     
@@ -122,7 +122,7 @@ describe('AccomplishmentsView', () => {
       updateTodo: vi.fn(),
       deleteTodo: vi.fn(),
       createTodo: vi.fn(),
-    } as any);
+    } as never);
 
     render(<AccomplishmentsView />);
     

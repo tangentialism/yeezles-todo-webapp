@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useSessionStore } from '../useSessionStore';
 import { useApi } from '../useApi';
 import { useToast } from '../../contexts/ToastContext';
-import type { UserSession, SessionsResponse } from '../../services/api';
+import type { UserSession } from '../../services/api';
 import {
   SESSION_SYNC_INTERVAL_MS,
   SESSION_STALE_TIME_MS,
@@ -73,7 +73,7 @@ describe('useSessionStore', () => {
       },
     });
 
-    mockUseApi.mockReturnValue(mockApiClient as any);
+    mockUseApi.mockReturnValue(mockApiClient as never);
     mockShowToast.mockReturnValue('toast-123');
     mockUseToast.mockReturnValue({
       showToast: mockShowToast,

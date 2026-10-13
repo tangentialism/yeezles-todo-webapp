@@ -184,6 +184,7 @@ export const AreaProvider: React.FC<AreaProviderProps> = ({ children }) => {
  * Access the area context. Must be called within an {@link AreaProvider}.
  * @returns Area list, current area, CRUD actions, and display-state helpers.
  */
+// eslint-disable-next-line react-refresh/only-export-components -- context module exports its hook
 export const useArea = (): AreaContextType => {
   const context = useContext(AreaContext);
   if (context === undefined) {

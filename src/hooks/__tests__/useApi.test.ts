@@ -47,7 +47,7 @@ describe('useApi', () => {
     });
 
     // Setup API client mock
-    mockCreateAuthenticatedApiClient.mockReturnValue(mockApiClient as any);
+    mockCreateAuthenticatedApiClient.mockReturnValue(mockApiClient as never);
   });
 
   describe('API Client Creation', () => {

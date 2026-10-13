@@ -32,7 +32,6 @@ interface TodoListProps {
  */
 const TodoList: React.FC<TodoListProps> = ({
   view, 
-  refreshTrigger: _, // Unused with new store but kept for API compatibility
   newTodoId, 
   onNewTodoAnimationComplete 
 }) => {

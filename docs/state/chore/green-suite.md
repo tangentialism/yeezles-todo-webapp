@@ -34,13 +34,31 @@ markers in edited files: 45
 ## Verified
 - Baseline 45/45/45 across 3 runs; failure-to-cluster mapping totals 45.
 - Probe: it.fails passes on a timeout.
-- Dry run: 6 files, 45 markers, no UNMATCHED.
+- Dry run: `files edited: 6 (dry run)`, `markers in edited files: 45`, no UNMATCHED. Apply: `files edited: 6`, 45 markers.
+- `grep -rn KNOWN-FAILURE src | wc -l` = 45.
+- Lint before: 52 errors, 5 warnings. After: `npx eslint .` exit 0, 0 errors, 5 react-hooks/exhaustive-deps warnings left untouched (fixing them changes behaviour).
+- `npx tsc -b` exit 0; `npx eslint .` exit 0; `npx vitest run` exit 0; `npm run build` exit 0.
+- Three further `npx vitest run`: each `Test Files 36 passed (36)`, `Tests 338 passed (338)`. No flaky marked test.
+- No eslint-disable for no-explicit-any was used, so no lint-debt issue was filed.
 
 ## Assumed
-- Markers not yet applied; lint, types and Node 22 not yet checked on this branch.
+- Node 22 not run locally: local `node -v` is v26.7.0. `engines` is 22.x, nixpacks uses nodejs_22, CI uses node 22; none of that was exercised here.
+- The CI workflow has not run yet; it first runs on the PR.
+- `tsc -b` does not appear to typecheck test files (it passed while an edit broke tests at runtime), so `as never` casts in tests are checked only by vitest/esbuild, not by tsc.
+- Railway picks up nixpacks.toml for the Node 22 build: not verified.
 
 ## Next action
-Task 5: apply markers, lint, Node 22 (D1 decided by David 2026-10-13), CI, docs, then ask David to open the PR
+Ask David to open the PR (Task 5 Step 8)
+
+## PR body notes
+Clusters (all `it.fails`, marker count):
+- W2 #20 AuthContext cannot stub window.google: 12
+- W3 #21 AuthContext expects pre-passkey state shape: 13
+- W4 #22 ToastContext auto-dismiss test times out: 1
+- W5 #23 useCrossTabSync old invalidateQueries: 5
+- W6 #24 useTodoCompletion times out: 8
+- W7 #25 api service axios.create mock: 6
+Total 45. Also: lint fixed mechanically, Node 22 (D1, David 2026-10-13), CI check workflow added. No tests deleted, no behaviour-changing updates.
 
 ## Resume
-Worktree /Users/davidyee/Code/yeezles-todo-wt/webapp-green-suite on chore/green-suite. Cluster file at /Users/davidyee/Code/yeezles-todo-wt/webapp-clusters.json (outside repo). Run the marking script without --dry-run against webapp-loc.json (regenerate with --includeTaskLocation), then do Task 5. Do not push until David approves.
+Worktree /Users/davidyee/Code/yeezles-todo-wt/webapp-green-suite on chore/green-suite, pushed. Only remaining step: David approves opening the PR, then `gh pr checks <n> --watch`.
