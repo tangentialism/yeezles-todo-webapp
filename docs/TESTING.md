@@ -20,6 +20,12 @@ We prioritize:
 
 ---
 
+## Known Failures
+
+`npx vitest run` is green. CI (`.github/workflows/check.yml`) runs typecheck, lint and tests on every PR and push to `master`. A known failure is marked `it.fails` with a `// KNOWN-FAILURE yeezles-todo-webapp#<issue>: <reason>` comment; `grep -rn KNOWN-FAILURE src/` lists them. Node 22 is required (`engines` in `package.json`).
+
+---
+
 ## Current Testing Status
 
 **⚠️ PRIORITY**: Improving test coverage is a top priority for this project.

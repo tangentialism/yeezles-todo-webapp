@@ -22,6 +22,7 @@ const ToastContext = createContext<ToastContextType | undefined>(undefined);
  * Access toast notification actions. Must be called within a {@link ToastProvider}.
  * @returns `showToast` (returns toast ID), `hideToast`, and `clearAllToasts`.
  */
+// eslint-disable-next-line react-refresh/only-export-components -- context module exports its hook
 export const useToast = () => {
   const context = useContext(ToastContext);
   if (!context) {

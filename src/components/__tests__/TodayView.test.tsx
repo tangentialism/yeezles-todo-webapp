@@ -88,7 +88,7 @@ describe('TodayView', () => {
       syncWithMainTodoStore: vi.fn(),
       queryKey: ['todayView', {}],
       ...overrides,
-    } as any);
+    } as never);
   };
 
   describe('Loading State', () => {

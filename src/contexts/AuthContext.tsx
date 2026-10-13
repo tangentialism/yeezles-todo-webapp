@@ -54,12 +54,14 @@ interface AuthContextType extends AuthState {
  * Supports two auth methods: Google OAuth (short-lived ID tokens) and persistent
  * sessions (httpOnly cookie validated by the backend).
  */
+// eslint-disable-next-line react-refresh/only-export-components -- context module exports its hook
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 /**
  * Access the authentication context. Must be called within an {@link AuthProvider}.
  * @returns Auth state (user, loading, session health) and actions (login, logout, token refresh).
  */
+// eslint-disable-next-line react-refresh/only-export-components -- context module exports its hook
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {

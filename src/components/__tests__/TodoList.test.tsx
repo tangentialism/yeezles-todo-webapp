@@ -61,7 +61,7 @@ describe('TodoList', () => {
       deleteArea: vi.fn(),
       getAreaStats: vi.fn(),
       getAreaDisplayState: vi.fn().mockReturnValue({ isPending: false, isDeleting: false, isCreating: false }),
-    } as any);
+    } as never);
   });
 
   const setupTodoStore = (overrides: Record<string, unknown> = {}) => {
@@ -90,7 +90,7 @@ describe('TodoList', () => {
       isRemovingFromToday: false,
       queryKey: ['todos', {}],
       ...overrides,
-    } as any);
+    } as never);
   };
 
   describe('Loading State', () => {

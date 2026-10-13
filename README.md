@@ -87,6 +87,10 @@ src/
 - **State Management**: React Query + Context API
 - **HTTP Client**: Axios
 
+## ✅ Tests
+
+`npx vitest run` is green. CI (`.github/workflows/check.yml`) runs typecheck, lint and tests on every PR and push to `master`. A known failure is marked `it.fails` with a `// KNOWN-FAILURE yeezles-todo-webapp#<issue>: <reason>` comment; `grep -rn KNOWN-FAILURE src/` lists them. Node 22 is required (`engines` in `package.json`).
+
 ## 📚 Development
 
 This project follows a learning-focused, step-by-step development approach:

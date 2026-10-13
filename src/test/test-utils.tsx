@@ -1,12 +1,11 @@
 import React from 'react';
 import { render, type RenderOptions } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider, AuthContext } from '../contexts/AuthContext';
+import { AuthContext } from '../contexts/AuthContext';
 import { ToastProvider } from '../contexts/ToastContext';
 import { AreaProvider } from '../contexts/AreaContext';
 import type { User } from '../contexts/AuthContext';
 import type { Area } from '../types/area';
-import type { Todo } from '../types/todo';
 
 /**
  * Custom render options for testing
@@ -52,6 +51,7 @@ const createTestQueryClient = () => new QueryClient({
 /**
  * Mock AuthContext Provider for testing
  */
+// eslint-disable-next-line react-refresh/only-export-components -- test helper module also exports non-components
 const MockAuthProvider: React.FC<{
   children: React.ReactNode;
   initialUser?: User | null;
@@ -81,6 +81,7 @@ const MockAuthProvider: React.FC<{
 /**
  * All Providers Wrapper - includes all context providers
  */
+// eslint-disable-next-line react-refresh/only-export-components -- test helper module also exports non-components
 const AllProvidersWrapper: React.FC<{
   children: React.ReactNode;
   options: CustomRenderOptions;
@@ -88,8 +89,6 @@ const AllProvidersWrapper: React.FC<{
   const {
     initialUser,
     initialAuthState,
-    initialAreas,
-    initialCurrentArea,
     includeAuth = true,
     includeToast = true,
     includeArea = true,
@@ -253,5 +252,6 @@ export const waitForQueryToSettle = async (queryClient: QueryClient) => {
 };
 
 // Re-export everything from React Testing Library
+// eslint-disable-next-line react-refresh/only-export-components -- re-export of testing-library
 export * from '@testing-library/react';
 export { userEvent } from '@testing-library/user-event';

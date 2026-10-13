@@ -1,5 +1,5 @@
 import { vi, type MockedFunction } from 'vitest';
-import type { Todo, ApiResponse, TodayView, TodoFilters } from '../types/todo';
+import type { Todo, TodayView } from '../types/todo';
 import type { Area, AreaWithStats } from '../types/area';
 import { createMockApiResponse, createMockApiError } from './factories';
 
