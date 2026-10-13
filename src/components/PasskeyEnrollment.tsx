@@ -5,6 +5,9 @@ import {
   deletePasskey,
   type PasskeySummary,
 } from '../services/passkeyApi';
+import { formatShortDate } from '../utils/date';
+import { AlertCircleIcon, KeyIcon, PlusIcon, Spinner, TrashIcon } from './ui/Icons';
+import { iconButton, primaryButton } from './ui/styles';
 
 /**
  * Enroll and manage passkeys for the signed-in user. Multiple credentials
@@ -73,50 +76,68 @@ const PasskeyEnrollment: React.FC = () => {
   };
 
   return (
-    <section className="space-y-3">
-      <h2 className="text-lg font-semibold">Passkeys</h2>
-
-      {passkeys.length === 0 && (
-        <p className="text-sm text-ink-muted">No passkeys enrolled yet.</p>
-      )}
-
-      <ul className="space-y-2">
-        {passkeys.map(p => {
-          const label = p.nickname || p.credentialId.slice(0, 12);
-          const isRemoving = removingIds.has(p.id);
-          return (
-            <li key={p.id} className="flex items-center justify-between text-sm">
-              <span>
-                {label}
-                {p.lastUsedAt && (
-                  <span className="text-ink-muted">
-                    {' '}— last used {new Date(p.lastUsedAt).toLocaleDateString()}
+    <section aria-label="Passkeys">
+      <div className="px-7 pt-2">
+        {passkeys.length === 0 ? (
+          <div className="flex items-center gap-3.5 py-4 border-b border-line text-sm text-ink-muted">
+            <span aria-hidden="true" className="w-9 h-9 rounded-full bg-hover text-ink-faint flex items-center justify-center flex-none">
+              <KeyIcon className="w-4 h-4" />
+            </span>
+            No passkeys yet.
+          </div>
+        ) : (
+          <ul>
+            {passkeys.map(p => {
+              const label = p.nickname || p.credentialId.slice(0, 12);
+              const isRemoving = removingIds.has(p.id);
+              return (
+                <li
+                  key={p.id}
+                  className={`flex items-center gap-3.5 py-3.5 border-b border-line transition-opacity ${isRemoving ? 'opacity-55' : ''}`}
+                >
+                  <span aria-hidden="true" className="w-9 h-9 rounded-full bg-hover text-ink-2 flex items-center justify-center flex-none">
+                    <KeyIcon className="w-4 h-4" />
                   </span>
-                )}
-              </span>
-              <button
-                type="button"
-                onClick={() => handleRemove(p.id, label)}
-                disabled={isRemoving}
-                className="text-danger hover:underline disabled:opacity-60 disabled:no-underline disabled:cursor-not-allowed"
-              >
-                {isRemoving ? 'Removing...' : 'Remove'}
-              </button>
-            </li>
-          );
-        })}
-      </ul>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[15px] font-medium leading-[22px] text-ink truncate">{label}</div>
+                    <div className="font-mono text-xs text-ink-faint">
+                      added {formatShortDate(p.createdAt)} · {p.lastUsedAt ? `used ${formatShortDate(p.lastUsedAt)}` : 'never used'}
+                    </div>
+                  </div>
+                  {isRemoving && <span className="flex-none text-[13px] text-ink-muted">Removing…</span>}
+                  <button
+                    type="button"
+                    onClick={() => handleRemove(p.id, label)}
+                    disabled={isRemoving}
+                    aria-label={`Remove ${label}`}
+                    title="Remove"
+                    className={`${iconButton} flex-none hover:text-danger hover:bg-danger-soft disabled:hover:bg-transparent disabled:hover:text-ink-faint`}
+                  >
+                    {isRemoving ? <Spinner className="w-4 h-4" /> : <TrashIcon className="w-4 h-4" />}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
 
-      <button
-        type="button"
-        onClick={handleAdd}
-        disabled={isBusy}
-        className="py-2 px-4 rounded-md bg-ink text-white disabled:opacity-60"
-      >
-        {isBusy ? 'Waiting for passkey...' : 'Add a passkey'}
-      </button>
+        {error && (
+          <p role="alert" className="mt-3 flex items-start gap-2 text-[13px] text-danger">
+            <AlertCircleIcon className="w-4 h-4 flex-none mt-0.5" />
+            {error}
+          </p>
+        )}
+      </div>
 
-      {error && <p className="text-sm text-danger">{error}</p>}
+      <div className="flex items-center gap-1.5 pl-7 pr-5 pt-5 pb-5">
+        <span className="mr-auto font-mono text-xs text-ink-faint">
+          {passkeys.length} {passkeys.length === 1 ? 'passkey' : 'passkeys'}
+        </span>
+        <button type="button" onClick={handleAdd} disabled={isBusy} className={`${primaryButton} pl-3.5`}>
+          {isBusy ? <Spinner className="w-4 h-4" /> : <PlusIcon className="w-4 h-4" />}
+          {isBusy ? 'Waiting for passkey…' : 'Add a passkey'}
+        </button>
+      </div>
     </section>
   );
 };
