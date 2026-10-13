@@ -134,8 +134,9 @@ const AreaManagementModal: React.FC<AreaManagementModalProps> = ({
 
     if (window.confirm(`Are you sure you want to delete "${editingArea.name}"? This action cannot be undone.`)) {
       try {
-        await deleteArea(editingArea.id);
-        onClose();
+        // AreaContext.deleteArea returns false when the store refused it (and toasted why)
+        const deleted = await deleteArea(editingArea.id);
+        if (deleted) onClose();
       } catch (error) {
         logger.error('Error deleting area:', error);
         // Error handling is done in the store with toast notifications

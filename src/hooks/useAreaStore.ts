@@ -3,6 +3,7 @@ import { useCallback, useMemo } from 'react';
 import { useApi } from './useApi';
 import { useCrossTabSync } from './useCrossTabSync';
 import { useToast } from '../contexts/ToastContext';
+import { isApiError } from '../services/apiError';
 import type { Area, AreaWithStats, CreateAreaRequest, UpdateAreaRequest } from '../types/area';
 import { BACKGROUND_SYNC_INTERVAL_MS, ANIMATION_DELAY_MS } from '../constants';
 
@@ -271,7 +272,9 @@ export const useAreaStore = (options: UseAreaStoreOptions = {}) => {
         queryClient.setQueryData(QUERY_KEYS.areas(includeStats), context.previousAreas);
       }
       showToast({
-        message: `Failed to delete area: ${err.message}`,
+        message: isApiError(err, 'AREA_HAS_TOPICS')
+          ? "Move or delete this area's topics first."
+          : `Failed to delete area: ${err.message}`,
         type: 'error'
       });
     },

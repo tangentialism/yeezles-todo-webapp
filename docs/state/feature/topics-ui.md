@@ -8,7 +8,7 @@ Phase 3a of the topics feature: the webapp topics UI. Spec: workspace
 
 ## Next action
 
-Task 9: AREA_HAS_TOPICS on area delete.
+Task 10: docs, browser check, final check.
 
 ## Verified
 
@@ -58,6 +58,10 @@ Task 9: AREA_HAS_TOPICS on area delete.
   EditTodoModal/CreateTodoFromExternal have no other suites. Full check:
   `TSC_OK`, tests 442 total / 442 passed, lint 5 (baseline 5), new failing
   names empty.
+- Task 9: useAreaStore.delete 1/1 and AreaManagementModal.delete 1/1, both RED
+  first (toast read the generic text; onClose was called). Modal test also
+  asserts deleteArea called with 2 (ruling L3). Full check: `TSC_OK`, tests
+  444 total / 444 passed, lint 5 (baseline 5), new failing names empty.
 
 ## Assumed
 
