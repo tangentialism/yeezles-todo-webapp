@@ -10,6 +10,7 @@ import { outlineButton, sectionCap } from '../ui/styles';
 import TopicCard from './TopicCard';
 import TopicDetail from './TopicDetail';
 import NewTopicDialog from './NewTopicDialog';
+import ProposalBanner from './ProposalBanner';
 
 /** Props for {@link TopicsView}. */
 export interface TopicsViewProps {
@@ -17,7 +18,11 @@ export interface TopicsViewProps {
   openTopicId: number | null;
   onOpenTopic: (id: number) => void;
   onCloseTopic: () => void;
+  /** Topics just created by an applied proposal, briefly highlighted. */
+  highlightTopicIds?: number[];
 }
+
+const NO_HIGHLIGHTS: number[] = [];
 
 const GRID = 'grid grid-cols-1 sm:grid-cols-2 gap-3';
 
@@ -27,7 +32,7 @@ const GRID = 'grid grid-cols-1 sm:grid-cols-2 gap-3';
  * collapsed section. Detail replaces the list in place and loads by id, so it
  * survives an area switch.
  */
-const TopicsView: React.FC<TopicsViewProps> = ({ openTopicId, onOpenTopic, onCloseTopic }) => {
+const TopicsView: React.FC<TopicsViewProps> = ({ openTopicId, onOpenTopic, onCloseTopic, highlightTopicIds = NO_HIGHLIGHTS }) => {
   const { areas, currentArea } = useArea();
   const { data: topics = [], isLoading, error, refetch, isRefetching } = useTopics({
     areaId: currentArea?.id ?? null,
@@ -52,7 +57,14 @@ const TopicsView: React.FC<TopicsViewProps> = ({ openTopicId, onOpenTopic, onClo
   }
 
   const card = (topic: TopicWithCounts) => (
-    <TopicCard key={topic.id} topic={topic} color={areaById.get(topic.area_id)?.color} now={now} onOpen={onOpenTopic} />
+    <TopicCard
+      key={topic.id}
+      topic={topic}
+      color={areaById.get(topic.area_id)?.color}
+      now={now}
+      highlighted={highlightTopicIds.includes(topic.id)}
+      onOpen={onOpenTopic}
+    />
   );
 
   const sections: Array<{ area: Area; topics: TopicWithCounts[] }> = currentArea
@@ -72,6 +84,8 @@ const TopicsView: React.FC<TopicsViewProps> = ({ openTopicId, onOpenTopic, onClo
         isRefreshing={isRefetching}
         refreshLabel="Refresh topics"
       />
+
+      <ProposalBanner />
 
       <div className="flex justify-end pt-4">
         <button type="button" onClick={() => setIsNewOpen(true)} className={outlineButton}>

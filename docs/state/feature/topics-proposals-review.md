@@ -10,9 +10,23 @@ hand-back. Spec: workspace
 
 ## Next action
 
-Task 7: badge, banner, hand-back and highlight.
+Task 8: docs, browser check, final check.
 
 ## Verified
+
+- Task 7: the brief's tests written first and RED (6 files, 6 failed:
+  unresolved import `../ProposalBanner`; `useTopicsHandoff is not a function`
+  x2; no "Topics (2 pending)" / "(3 pending)" button; hand-back left the view
+  on `all`; no `proposal-banner`). Ruling M1: with everything else in place the
+  TopicsView highlight test was RED on `.not.toHaveClass('bg-surface')`
+  against the 3a TopicCard, then GREEN after the fix. GREEN: ProposalBanner 3,
+  useTopicsHandoff 2, Navigation 15, PhoneTabBar 5, TopicsView 10,
+  Dashboard.topics 2, Dashboard 3 = 40 passed. Two `usePendingProposalCount`
+  tests in `useNavCounts.test.tsx` (7 passed) were written after the hook,
+  not RED-first. Step 5b (Ruling M2): the "untouched save of a todo with no
+  known topic sends no topic_id" test RED (`topic_id` present), then GREEN:
+  TodoForms.topics 11 passed. Full check: `TSC_OK`; 545 tests, 545 passed, 0
+  failing names; lint now 5, baseline 5; new failing names empty.
 
 - Task 6: `ProposalReview.test.tsx` and the `AppRoutes` describe written first
   and RED (unresolved import `../ProposalReview`; signed-in
@@ -117,6 +131,34 @@ Task 7: badge, banner, hand-back and highlight.
   assert the same keys via `objectContaining({ queryKey })`, plus
   `refetchType: 'active'` for the cross-tab test. The brief's "does not retry"
   test is split into apply-once and reject-once tests.
+- Ruling M1 (deferred from 3a): `TopicCard` applies
+  `highlighted ? 'bg-accent-soft' : 'bg-surface'` instead of both classes;
+  the TopicsView highlight test also asserts `.not.toHaveClass('bg-surface')`.
+- Ruling M2 (deferred from the 3a final review, done as Task 7 Step 5b):
+  `EditTodoModal` sends `topic_id` only when it differs from the value loaded
+  into the form (`todo.topic_id ?? null`, what the effect passes to
+  `resetTopic`) or an area change cleared it. An untouched save no longer
+  sends `topic_id: null` for a todo whose `topic_id` is undefined (stale
+  cache). `area_id` is still always sent. Tests changed deliberately: "always
+  sends area_id with topic_id" retitled "sends a changed topic with area_id"
+  (it changes the topic, so still sends it); "archived current topic ... kept
+  on save" now expects no `topic_id` key (the server keeps the topic while
+  `area_id` is unchanged, spec §2.1 item 4). New test for the undefined case.
+- Ruling L15: `TopicsView`'s `highlightTopicIds` is optional, default `[]`
+  (a module-level constant); `ViewContainer`'s stays required.
+- Ruling L20: `Dashboard.topics.test.tsx` had no `useTopicsHandoff` mock; the
+  controllable one was added, not replaced. Both Dashboard suites' `useNavCounts`
+  mocks gained `usePendingProposalCount`.
+- Ruling L3: the hoisted hand-back value is reset in an `afterEach`.
+- Ruling L7: the Navigation badge test sits inside `describe('Navigation')`
+  (in its `Counts` block).
+- Ruling L13: `ProposalBanner` is `src/components/topics/ProposalBanner.tsx`;
+  spec §4.2 lists it under `components/proposals/`.
+- Ruling L22: `useTopicsHandoff` clears the hand-back with
+  `navigate(location.pathname, { replace: true, state: null })` (search/hash
+  dropped, harmless at `/`).
+- Added beyond the brief: two `usePendingProposalCount` tests in
+  `useNavCounts.test.tsx` (null while unknown; counts the list).
 
 - The checkout is the workspace worktree's own submodule,
   `/Users/davidyee/Code/yeezles-todo-workspace/.claude/worktrees/topics-phase3/yeezles-todo-webapp`,

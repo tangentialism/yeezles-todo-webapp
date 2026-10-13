@@ -222,5 +222,10 @@ describe('Navigation', () => {
       expect(screen.getByRole('menuitemradio', { name: 'Work, 5 open' })).toHaveAttribute('aria-checked', 'true');
       expect(screen.getByRole('menuitemradio', { name: 'Home, 2 open' })).toBeInTheDocument();
     });
+
+    it('shows the pending-proposal count on the Topics tab', () => {
+      render(<Navigation currentView="all" onViewChange={mockOnViewChange} topicsCount={2} />);
+      expect(screen.getByRole('button', { name: 'Topics (2 pending)' })).toBeInTheDocument();
+    });
   });
 });

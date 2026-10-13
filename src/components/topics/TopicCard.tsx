@@ -25,8 +25,8 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, color, now, highlighted = 
     <button
       type="button"
       onClick={() => onOpen(topic.id)}
-      className={`w-full text-left rounded-[14px] border border-line bg-surface px-4 py-3.5 hover:border-ink-faint transition-colors ${
-        highlighted ? 'bg-accent-soft' : ''
+      className={`w-full text-left rounded-[14px] border border-line px-4 py-3.5 hover:border-ink-faint transition-colors ${
+        highlighted ? 'bg-accent-soft' : 'bg-surface'
       }`}
     >
       <span className="flex items-baseline gap-2">

@@ -2,13 +2,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
-import { useAreaOpenCounts, useTodayOpenCount } from '../useNavCounts';
+import { useAreaOpenCounts, usePendingProposalCount, useTodayOpenCount } from '../useNavCounts';
 import { todayViewQueryKey } from '../useTodayViewStore';
+import * as ProposalStore from '../useProposalStore';
 import type { TodayView, Todo } from '../../types/todo';
 
 const getAreas = vi.fn();
 const getTodayView = vi.fn();
 vi.mock('../useApi', () => ({ useApi: () => ({ getAreas, getTodayView }) }));
+vi.mock('../useProposalStore');
 
 const todo = (id: number, completed = false) => ({ id, completed }) as Todo;
 
@@ -108,5 +110,22 @@ describe('useAreaOpenCounts', () => {
 
     await waitFor(() => expect(getAreas).toHaveBeenCalled());
     expect(result.current).toBeNull();
+  });
+});
+
+describe('usePendingProposalCount', () => {
+  const pending = (data: unknown) =>
+    vi.mocked(ProposalStore.usePendingProposals).mockReturnValue({ data } as unknown as ReturnType<typeof ProposalStore.usePendingProposals>);
+
+  it('is null while the pending list is unknown, so the badge stays hidden', () => {
+    pending(undefined);
+    const { result } = renderHook(() => usePendingProposalCount());
+    expect(result.current).toBeNull();
+  });
+
+  it('counts pending proposals across all areas', () => {
+    pending([{ id: 1 }, { id: 2 }]);
+    const { result } = renderHook(() => usePendingProposalCount());
+    expect(result.current).toBe(2);
   });
 });

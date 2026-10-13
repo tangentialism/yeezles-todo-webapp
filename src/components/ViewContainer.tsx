@@ -16,6 +16,8 @@ interface ViewContainerProps {
   openTopicId: number | null;
   onOpenTopic: (id: number) => void;
   onCloseTopic: () => void;
+  /** Topics just created by an applied proposal, highlighted in the Topics view. */
+  highlightTopicIds: number[];
 }
 
 /**
@@ -35,7 +37,8 @@ const ViewContainer: React.FC<ViewContainerProps> = ({
   onNewTodoAnimationComplete,
   openTopicId,
   onOpenTopic,
-  onCloseTopic
+  onCloseTopic,
+  highlightTopicIds
 }) => {
   // Refs to preserve scroll positions
   const allViewRef = useRef<HTMLDivElement>(null);
@@ -151,7 +154,12 @@ const ViewContainer: React.FC<ViewContainerProps> = ({
           pointerEvents: getViewPointerEvents('topics'),
         }}
       >
-        <TopicsView openTopicId={openTopicId} onOpenTopic={onOpenTopic} onCloseTopic={onCloseTopic} />
+        <TopicsView
+          openTopicId={openTopicId}
+          onOpenTopic={onOpenTopic}
+          onCloseTopic={onCloseTopic}
+          highlightTopicIds={highlightTopicIds}
+        />
       </div>
 
       {/* Accomplishments View */}

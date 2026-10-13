@@ -22,6 +22,7 @@ vi.mock('../TopicDetail', () => ({
 vi.mock('../NewTopicDialog', () => ({
   default: ({ defaultAreaId }: { defaultAreaId: number | null }) => <div>new-topic-dialog area={String(defaultAreaId)}</div>,
 }));
+vi.mock('../ProposalBanner', () => ({ default: () => <div>proposal-banner</div> }));
 
 const home = makeArea({ id: 1, name: 'Home', color: '#43A047' });
 const work = makeArea({ id: 2, name: 'Work', color: '#1E88E5' });
@@ -40,7 +41,7 @@ const mockTopics = (data = topics) =>
     data, isLoading: false, error: null, refetch: vi.fn(), isRefetching: false,
   } as unknown as ReturnType<typeof TopicStore.useTopics>);
 
-const props = { openTopicId: null, onOpenTopic: vi.fn(), onCloseTopic: vi.fn() };
+const props = { openTopicId: null, onOpenTopic: vi.fn(), onCloseTopic: vi.fn(), highlightTopicIds: [] as number[] };
 
 describe('TopicsView', () => {
   beforeEach(() => {
@@ -137,5 +138,16 @@ describe('TopicsView', () => {
     render(<TopicsView {...props} />);
     await userEvent.click(screen.getByRole('button', { name: 'New topic' }));
     expect(screen.getByText('new-topic-dialog area=null')).toBeInTheDocument();
+  });
+
+  it('shows the proposal banner and highlights topics handed back from a review', () => {
+    vi.spyOn(AreaContextModule, 'useArea').mockReturnValue(areaContextValue({ areas: [home], currentArea: home }));
+    render(<TopicsView {...props} highlightTopicIds={[1]} />);
+    expect(screen.getByText('proposal-banner')).toBeInTheDocument();
+    const garden = screen.getByRole('button', { name: /Garden/ });
+    expect(garden).toHaveClass('bg-accent-soft');
+    // The highlight replaces the card surface rather than stacking on it (ruling M1)
+    expect(garden).not.toHaveClass('bg-surface');
+    expect(screen.getByRole('button', { name: /Kitchen reno/ })).not.toHaveClass('bg-accent-soft');
   });
 });
