@@ -166,12 +166,12 @@ const AccessTokenManagementModal: React.FC<AccessTokenManagementModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-        <div className="px-6 py-4 border-b border-gray-200">
+        <div className="px-6 py-4 border-b border-line">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">Access Tokens</h2>
+            <h2 className="text-lg font-semibold text-ink">Access Tokens</h2>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-ink-faint hover:text-ink transition-colors"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -183,24 +183,24 @@ const AccessTokenManagementModal: React.FC<AccessTokenManagementModalProps> = ({
         <div className="px-6 py-4">
           {revealedToken ? (
             <div className="space-y-3">
-              <p className="font-mono text-xs break-all bg-gray-100 border border-gray-200 rounded-md p-3">
+              <p className="font-mono text-xs break-all bg-hover border border-line rounded-md p-3">
                 {revealedToken.token}
               </p>
-              <p className="text-sm text-red-600">
+              <p className="text-sm text-danger">
                 This is the only time you will see this token. Copy it now and store it securely.
               </p>
               <div className="flex justify-end space-x-2">
                 <button
                   type="button"
                   onClick={handleCopy}
-                  className="py-2 px-4 rounded-md border border-gray-300 text-sm text-gray-700 hover:bg-gray-50"
+                  className="py-2 px-4 rounded-md border border-line-strong text-sm text-ink-2 hover:bg-hover"
                 >
                   Copy
                 </button>
                 <button
                   type="button"
                   onClick={handleDone}
-                  className="py-2 px-4 rounded-md bg-indigo-600 text-white text-sm hover:bg-indigo-700"
+                  className="py-2 px-4 rounded-md bg-ink text-white text-sm hover:bg-ink-2"
                 >
                   Done
                 </button>
@@ -214,16 +214,16 @@ const AccessTokenManagementModal: React.FC<AccessTokenManagementModalProps> = ({
                 onRevoke={id => void handleRevoke(id)}
               />
 
-              <section className="space-y-3 border-t border-gray-200 pt-4" aria-labelledby="existing-tokens-heading">
-                <h3 id="existing-tokens-heading" className="text-sm font-semibold text-gray-900">Existing tokens</h3>
+              <section className="space-y-3 border-t border-line pt-4" aria-labelledby="existing-tokens-heading">
+                <h3 id="existing-tokens-heading" className="text-sm font-semibold text-ink">Existing tokens</h3>
 
                 {pats.length === 0 && (
-                  <p className="text-sm text-gray-600">No access tokens yet.</p>
+                  <p className="text-sm text-ink-muted">No access tokens yet.</p>
                 )}
 
                 <ul className="space-y-3">
                   {pats.map(t => (
-                    <li key={t.id} className={`text-sm ${t.isRevoked ? 'line-through text-gray-400' : ''}`}>
+                    <li key={t.id} className={`text-sm ${t.isRevoked ? 'line-through text-ink-faint' : ''}`}>
                       <div className="flex items-center justify-between">
                         <span>{t.name}</span>
                         {!t.isRevoked && (
@@ -231,7 +231,7 @@ const AccessTokenManagementModal: React.FC<AccessTokenManagementModalProps> = ({
                             type="button"
                             onClick={() => handleRevoke(t.id)}
                             disabled={revokingIds.has(t.id)}
-                            className="text-red-600 hover:underline disabled:opacity-60 disabled:no-underline disabled:cursor-not-allowed"
+                            className="text-danger hover:underline disabled:opacity-60 disabled:no-underline disabled:cursor-not-allowed"
                           >
                             {revokingIds.has(t.id) ? 'Revoking...' : 'Revoke'}
                           </button>
@@ -241,13 +241,13 @@ const AccessTokenManagementModal: React.FC<AccessTokenManagementModalProps> = ({
                         {t.scopes.map(scope => (
                           <span
                             key={scope}
-                            className="inline-block px-2 py-0.5 rounded-full bg-gray-100 text-xs text-gray-700"
+                            className="inline-block px-2 py-0.5 rounded-full bg-hover text-xs text-ink-2"
                           >
                             {scope}
                           </span>
                         ))}
                       </div>
-                      <div className="text-xs text-gray-500 mt-1">
+                      <div className="text-xs text-ink-muted mt-1">
                         Created {new Date(t.createdAt).toLocaleDateString()} — last used{' '}
                         {t.lastUsedAt ? new Date(t.lastUsedAt).toLocaleDateString() : 'never'}
                       </div>
@@ -256,11 +256,11 @@ const AccessTokenManagementModal: React.FC<AccessTokenManagementModalProps> = ({
                 </ul>
               </section>
 
-              <section className="space-y-3 border-t border-gray-200 pt-4">
-                <h3 className="text-sm font-semibold text-gray-900">Create a new token</h3>
+              <section className="space-y-3 border-t border-line pt-4">
+                <h3 className="text-sm font-semibold text-ink">Create a new token</h3>
 
                 <div>
-                  <label htmlFor="access-token-name" className="block text-sm text-gray-700 mb-1">
+                  <label htmlFor="access-token-name" className="block text-sm text-ink-2 mb-1">
                     Name
                   </label>
                   <input
@@ -268,12 +268,12 @@ const AccessTokenManagementModal: React.FC<AccessTokenManagementModalProps> = ({
                     type="text"
                     value={name}
                     onChange={e => setName(e.target.value)}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                    className="w-full border border-line-strong rounded-md px-3 py-2 text-sm"
                   />
                 </div>
 
                 <fieldset className="space-y-1">
-                  <legend className="text-sm text-gray-700 mb-1">Scopes</legend>
+                  <legend className="text-sm text-ink-2 mb-1">Scopes</legend>
                   {SCOPES.map(scope => {
                     const [resource, action] = scope.split(':');
                     return (
@@ -285,7 +285,7 @@ const AccessTokenManagementModal: React.FC<AccessTokenManagementModalProps> = ({
                           checked={selectedScopes.has(scope)}
                           onChange={() => toggleScope(scope)}
                         />
-                        <span className="text-gray-700">
+                        <span className="text-ink-2">
                           {resource} &middot; {action}
                         </span>
                       </div>
@@ -297,13 +297,13 @@ const AccessTokenManagementModal: React.FC<AccessTokenManagementModalProps> = ({
                   type="button"
                   onClick={handleCreate}
                   disabled={isCreating || name.trim().length === 0 || selectedScopes.size === 0}
-                  className="py-2 px-4 rounded-md bg-indigo-600 text-white text-sm disabled:opacity-60"
+                  className="py-2 px-4 rounded-md bg-ink text-white text-sm disabled:opacity-60"
                 >
                   {isCreating ? 'Creating...' : 'Create token'}
                 </button>
               </section>
 
-              {error && <p className="text-sm text-red-600">{error}</p>}
+              {error && <p className="text-sm text-danger">{error}</p>}
             </div>
           )}
         </div>

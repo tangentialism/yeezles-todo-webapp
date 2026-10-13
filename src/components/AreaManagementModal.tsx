@@ -145,14 +145,14 @@ const AreaManagementModal: React.FC<AreaManagementModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-        <div className="px-6 py-4 border-b border-gray-200">
+        <div className="px-6 py-4 border-b border-line">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-lg font-semibold text-ink">
               {editingArea ? 'Edit Area' : 'Create New Area'}
             </h2>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-ink-faint hover:text-ink transition-colors"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -164,7 +164,7 @@ const AreaManagementModal: React.FC<AreaManagementModalProps> = ({
         <form onSubmit={handleSubmit} className="px-6 py-4">
           {/* Area Name */}
           <div className="mb-4">
-            <label htmlFor="area-name" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="area-name" className="block text-sm font-medium text-ink-2 mb-2">
               Area Name
             </label>
             <input
@@ -172,30 +172,30 @@ const AreaManagementModal: React.FC<AreaManagementModalProps> = ({
               id="area-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                errors.name ? 'border-red-300' : 'border-gray-300'
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent ${
+                errors.name ? 'border-danger/40' : 'border-line-strong'
               }`}
               placeholder="e.g., Work, Personal, Side Projects"
               maxLength={100}
               disabled={isSubmitting}
             />
             {errors.name && (
-              <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+              <p className="mt-1 text-sm text-danger">{errors.name}</p>
             )}
           </div>
 
           {/* Description for AI Categorization */}
           <div className="mb-4">
-            <label htmlFor="area-description" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="area-description" className="block text-sm font-medium text-ink-2 mb-2">
               Description
-              <span className="ml-1 text-xs text-gray-500 font-normal">(helps AI categorize todos)</span>
+              <span className="ml-1 text-xs text-ink-muted font-normal">(helps AI categorize todos)</span>
             </label>
             <textarea
               id="area-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none ${
-                errors.description ? 'border-red-300' : 'border-gray-300'
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent resize-none ${
+                errors.description ? 'border-danger/40' : 'border-line-strong'
               }`}
               placeholder="e.g., Work projects, professional tasks, and career-related items"
               rows={2}
@@ -204,19 +204,19 @@ const AreaManagementModal: React.FC<AreaManagementModalProps> = ({
             />
             <div className="flex justify-between mt-1">
               {errors.description ? (
-                <p className="text-sm text-red-600">{errors.description}</p>
+                <p className="text-sm text-danger">{errors.description}</p>
               ) : (
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-ink-muted">
                   Describe what types of todos belong in this area
                 </p>
               )}
-              <span className="text-xs text-gray-400">{description.length}/500</span>
+              <span className="text-xs text-ink-faint">{description.length}/500</span>
             </div>
           </div>
 
           {/* Color Selection */}
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-3">
+            <label className="block text-sm font-medium text-ink-2 mb-3">
               Choose Color
             </label>
             <div className="grid grid-cols-4 gap-3">
@@ -227,8 +227,8 @@ const AreaManagementModal: React.FC<AreaManagementModalProps> = ({
                   onClick={() => setSelectedColor(color)}
                   className={`w-12 h-12 rounded-lg border-2 transition-all ${
                     selectedColor === color
-                      ? 'border-gray-800 scale-110'
-                      : 'border-gray-300 hover:border-gray-400'
+                      ? 'border-ink scale-110'
+                      : 'border-line-strong hover:border-ink-faint'
                   }`}
                   style={{ backgroundColor: color }}
                   disabled={isSubmitting}
@@ -242,18 +242,18 @@ const AreaManagementModal: React.FC<AreaManagementModalProps> = ({
               ))}
             </div>
             {errors.color && (
-              <p className="mt-2 text-sm text-red-600">{errors.color}</p>
+              <p className="mt-2 text-sm text-danger">{errors.color}</p>
             )}
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+          <div className="flex items-center justify-between pt-4 border-t border-line">
             {editingArea && !editingArea.is_default && (
               <button
                 type="button"
                 onClick={handleDelete}
                 disabled={isSubmitting}
-                className="px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 text-sm font-medium text-danger hover:text-danger hover:bg-danger-soft rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Delete Area
               </button>
@@ -264,14 +264,14 @@ const AreaManagementModal: React.FC<AreaManagementModalProps> = ({
                 type="button"
                 onClick={onClose}
                 disabled={isSubmitting}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 text-sm font-medium text-ink-2 bg-hover hover:bg-line rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                className="px-4 py-2 text-sm font-medium text-white bg-ink hover:bg-ink-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
                 {isSubmitting && (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>

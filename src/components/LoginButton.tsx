@@ -59,30 +59,30 @@ const LoginButton: React.FC = () => {
   }, [isGoogleReady, rememberMe]); // Re-run when Google becomes ready or remember me changes
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
-      <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full mx-4">
-        <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Yeezles Todo</h1>
-          <p className="text-gray-600 mb-2">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-paper">
+      <div className="bg-surface p-8 rounded-[18px] shadow-dialog max-w-md w-full mx-4">
+        <div className="text-center mb-7">
+          <h1 className="font-serif font-medium text-4xl tracking-[-0.015em] text-ink mb-2">Yeezles</h1>
+          <p className="text-sm text-ink-muted">
             Sign in with your authorized Google account
           </p>
-          <p className="text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded-md">
-            🔒 Access restricted to authorized users only
+          <p className="mt-1 text-xs text-ink-faint">
+            Access restricted to authorized users only
           </p>
         </div>
         
         <div className="mb-4">
           <PasskeyLoginButton onSuccess={() => window.location.reload()} />
         </div>
-        <div className="text-center text-xs text-gray-400 mb-4">or</div>
+        <div className="text-center text-xs text-ink-faint mb-4">or</div>
 
         <div className="flex justify-center">
           {isGoogleReady && !isLoading ? (
             <div ref={buttonRef}></div>
           ) : (
-            <div className="flex items-center justify-center py-3 px-6 border border-gray-300 rounded-md">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-600 mr-3"></div>
-              <span className="text-gray-600">
+            <div className="flex items-center justify-center py-3 px-6 border border-line-strong rounded-[10px]">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-ink mr-3"></div>
+              <span className="text-ink-muted">
                 {isLoading ? 'Signing In...' : 'Loading Sign In...'}
               </span>
             </div>
@@ -92,23 +92,23 @@ const LoginButton: React.FC = () => {
         {/* Remember Me Checkbox */}
         {isGoogleReady && !isLoading && (
           <div className="mt-4 flex items-center justify-center">
-            <label className="flex items-center space-x-2 text-sm text-gray-600 cursor-pointer">
+            <label className="flex items-center space-x-2 text-sm text-ink-muted cursor-pointer">
               <input
                 type="checkbox"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
-                className="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                className="rounded border-line-strong text-accent shadow-sm focus:border-accent focus:ring focus:ring-accent/20 focus:ring-opacity-50"
               />
               <span>Remember me for 90 days</span>
             </label>
           </div>
         )}
         
-        <div className="mt-6 text-xs text-gray-500 text-center">
+        <div className="mt-6 text-xs text-ink-muted text-center">
           <p>Secure authentication with Google OAuth 2.0</p>
           {rememberMe && (
-            <p className="mt-1 text-indigo-600">
-              🔒 Persistent session will be created for secure access
+            <p className="mt-1 text-accent">
+              Persistent session will be created for secure access
             </p>
           )}
         </div>

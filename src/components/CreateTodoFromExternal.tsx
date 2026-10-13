@@ -66,21 +66,21 @@ const CreateTodoFromExternal: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-paper py-8">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white shadow-lg rounded-lg p-6">
           <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">Create Todo from {source === 'obsidian' ? 'Obsidian' : 'External Source'}</h1>
+            <h1 className="text-2xl font-bold text-ink">Create Todo from {source === 'obsidian' ? 'Obsidian' : 'External Source'}</h1>
             {vault && file && (
-              <p className="text-sm text-gray-600 mt-2">
-                From: <span className="font-mono bg-gray-100 px-2 py-1 rounded">{vault}/{file}</span>
+              <p className="text-sm text-ink-muted mt-2">
+                From: <span className="font-mono bg-hover px-2 py-1 rounded">{vault}/{file}</span>
               </p>
             )}
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="title" className="block text-sm font-medium text-ink-2 mb-2">
                 Title *
               </label>
               <input
@@ -88,14 +88,14 @@ const CreateTodoFromExternal: React.FC = () => {
                 id="title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-line-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
                 placeholder="Enter todo title"
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="description" className="block text-sm font-medium text-ink-2 mb-2">
                 Description
               </label>
               <textarea
@@ -103,13 +103,13 @@ const CreateTodoFromExternal: React.FC = () => {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-line-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
                 placeholder="Enter todo description"
               />
             </div>
 
             <div>
-              <label htmlFor="referenceUrl" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="referenceUrl" className="block text-sm font-medium text-ink-2 mb-2">
                 Reference URL
               </label>
               <input
@@ -117,23 +117,23 @@ const CreateTodoFromExternal: React.FC = () => {
                 id="referenceUrl"
                 value={referenceUrl}
                 onChange={(e) => setReferenceUrl(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-line-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
                 placeholder="e.g., obsidian://open?vault=MyVault&file=Note.md"
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-ink-muted mt-1">
                 Link to source note or related content
               </p>
             </div>
 
             <div>
-              <label htmlFor="area" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="area" className="block text-sm font-medium text-ink-2 mb-2">
                 Area/Project
               </label>
               <select
                 id="area"
                 value={selectedAreaId || ''}
                 onChange={(e) => setSelectedAreaId(e.target.value ? parseInt(e.target.value) : null)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-line-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
               >
                 <option value="">Select an area (optional)</option>
                 {areas.map((area) => (
@@ -145,7 +145,7 @@ const CreateTodoFromExternal: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="dueDate" className="block text-sm font-medium text-ink-2 mb-2">
                 Due Date
               </label>
               <input
@@ -153,7 +153,7 @@ const CreateTodoFromExternal: React.FC = () => {
                 id="dueDate"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-line-strong rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"
               />
             </div>
 
@@ -163,25 +163,25 @@ const CreateTodoFromExternal: React.FC = () => {
                 id="isToday"
                 checked={isToday}
                 onChange={(e) => setIsToday(e.target.checked)}
-                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                className="h-4 w-4 text-accent focus:ring-accent border-line-strong rounded"
               />
-              <label htmlFor="isToday" className="ml-2 block text-sm text-gray-900">
+              <label htmlFor="isToday" className="ml-2 block text-sm text-ink">
                 Add to Today's Focus List
               </label>
             </div>
 
-            <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+            <div className="flex justify-end space-x-3 pt-6 border-t border-line">
               <button
                 type="button"
                 onClick={handleCancel}
-                className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                className="px-4 py-2 border border-line-strong rounded-md shadow-sm text-sm font-medium text-ink-2 bg-white hover:bg-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={isCreating || !title.trim()}
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-ink hover:bg-ink-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent disabled:bg-line-strong disabled:cursor-not-allowed"
               >
                 {isCreating ? 'Creating...' : 'Create Todo'}
               </button>

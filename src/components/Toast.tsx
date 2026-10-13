@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { TOAST_ENTRANCE_DELAY_MS, TOAST_EXIT_ANIMATION_MS } from '../constants';
+import { CloseIcon } from './ui/Icons';
 
 /** Data model for a single toast notification. */
 export interface Toast {
@@ -23,8 +24,8 @@ interface ToastProps {
 
 /**
  * Individual toast notification with entrance/exit animations.
- * Renders a type-colored card with an icon, message, optional action button,
- * and a close button. Auto-dismisses after the configured duration.
+ * Renders a compact ink pill (success/info) or a tinted card (error/warning)
+ * with the message, an optional action button, and a dismiss button. Auto-dismisses after the configured duration.
  */
 const ToastComponent: React.FC<ToastProps> = ({ toast, onClose }) => {
   const [isVisible, setIsVisible] = useState(false);
@@ -50,66 +51,46 @@ const ToastComponent: React.FC<ToastProps> = ({ toast, onClose }) => {
     setTimeout(() => onClose(toast.id), TOAST_EXIT_ANIMATION_MS); // Match exit animation duration
   };
 
-  const getToastStyles = () => {
-    const baseStyles = "flex items-center justify-between p-4 rounded-lg shadow-lg border transition-all duration-200 ease-in-out";
-    
-    if (isExiting) {
-      return `${baseStyles} transform translate-y-2 opacity-0`;
-    }
-    
-    if (!isVisible) {
-      return `${baseStyles} transform translate-y-2 opacity-0`;
-    }
-
-    const typeStyles = {
-      success: "bg-green-50 border-green-200 text-green-800",
-      error: "bg-red-50 border-red-200 text-red-800",
-      warning: "bg-yellow-50 border-yellow-200 text-yellow-800",
-      info: "bg-blue-50 border-blue-200 text-blue-800"
-    };
-
-    return `${baseStyles} transform translate-y-0 opacity-100 ${typeStyles[toast.type || 'info']}`;
-  };
-
-  const getIconForType = () => {
-    switch (toast.type) {
-      case 'success':
-        return '✅';
-      case 'error':
-        return '❌';
-      case 'warning':
-        return '⚠️';
-      case 'info':
-      default:
-        return 'ℹ️';
-    }
-  };
+  const TYPE_STYLES = {
+    success: 'bg-ink text-paper',
+    info: 'bg-ink text-paper',
+    error: 'bg-surface text-danger border border-danger/30',
+    warning: 'bg-amber-50 text-amber-900 border border-amber-200',
+  } as const;
+  const type = toast.type || 'info';
+  const isDark = type === 'success' || type === 'info';
+  const shown = isVisible && !isExiting;
 
   return (
-    <div className={getToastStyles()}>
-      <div className="flex items-center space-x-3">
-        <span className="text-lg">{getIconForType()}</span>
-        <span className="font-medium">{toast.message}</span>
-      </div>
-      
-      <div className="flex items-center space-x-2">
-        {toast.action && (
-          <button
-            onClick={toast.action.onClick}
-            className="px-3 py-1 text-sm font-medium bg-white rounded border border-current hover:bg-gray-50 transition-colors"
-          >
-            {toast.action.label}
-          </button>
-        )}
+    <div
+      data-testid="toast"
+      role={type === 'error' ? 'alert' : 'status'}
+      className={`flex items-center gap-3 pl-4 pr-1.5 py-1.5 min-h-[48px] rounded-[14px] shadow-menu text-sm transition-all duration-200 ease-in-out ${
+        TYPE_STYLES[type]
+      } ${shown ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'}`}
+    >
+      <span className="flex-1 font-medium">{toast.message}</span>
+      {toast.action && (
         <button
-          onClick={handleClose}
-          className="p-1 hover:bg-black hover:bg-opacity-10 rounded transition-colors"
+          type="button"
+          onClick={toast.action.onClick}
+          className={`h-8 px-3 rounded-full text-sm font-medium transition-colors ${
+            isDark ? 'text-[#A9BEFF] hover:bg-white/10 hover:text-white' : 'text-accent hover:bg-accent-soft'
+          }`}
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          {toast.action.label}
         </button>
-      </div>
+      )}
+      <button
+        type="button"
+        onClick={handleClose}
+        aria-label="Dismiss"
+        className={`w-8 h-8 inline-flex items-center justify-center rounded-full transition-colors ${
+          isDark ? 'text-paper/70 hover:text-paper hover:bg-white/10' : 'opacity-70 hover:opacity-100 hover:bg-black/5'
+        }`}
+      >
+        <CloseIcon className="w-4 h-4" />
+      </button>
     </div>
   );
 };

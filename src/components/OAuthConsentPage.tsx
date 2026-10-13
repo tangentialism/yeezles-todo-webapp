@@ -66,7 +66,7 @@ const toCode = (err: unknown): OAuthConsentErrorCode =>
   err instanceof OAuthConsentError ? err.code : 'UNKNOWN';
 
 const Shell: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
+  <div className="flex flex-col items-center justify-center min-h-screen bg-paper">
     <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full mx-4 space-y-4">
       {children}
     </div>
@@ -189,7 +189,7 @@ const OAuthConsentPage: React.FC = () => {
   if (!requestId) {
     return (
       <Shell>
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-danger">
           This link is missing its request. Start again from Claude.
         </p>
       </Shell>
@@ -199,7 +199,7 @@ const OAuthConsentPage: React.FC = () => {
   if (errorCode && !ERROR_COPY[errorCode].retry) {
     return (
       <Shell>
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-danger">
           {ERROR_COPY[errorCode].message}
         </p>
         {errorCode === 'UNAUTHENTICATED' && (
@@ -214,20 +214,20 @@ const OAuthConsentPage: React.FC = () => {
       <Shell>
         {errorCode ? (
           <>
-            <p role="alert" className="text-sm text-red-600">
+            <p role="alert" className="text-sm text-danger">
               {ERROR_COPY[errorCode].message}
             </p>
             <button
               type="button"
               onClick={handleRetryLoad}
-              className="py-2 px-4 rounded-md border border-gray-300 text-sm text-gray-700 hover:bg-gray-50"
+              className="py-2 px-4 rounded-md border border-line-strong text-sm text-ink-2 hover:bg-hover"
             >
               Try again
             </button>
           </>
         ) : (
-          <div className="flex items-center space-x-3 text-gray-600">
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-600"></div>
+          <div className="flex items-center space-x-3 text-ink-muted">
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-accent"></div>
             <span>Loading request...</span>
           </div>
         )}
@@ -240,11 +240,11 @@ const OAuthConsentPage: React.FC = () => {
 
   return (
     <Shell>
-      <h1 className="text-xl font-semibold text-gray-900">
+      <h1 className="text-xl font-semibold text-ink">
         {details.clientName} wants to access your Yeezles Todo account
       </h1>
-      <p className="text-sm text-gray-600">
-        Will redirect to <span className="font-mono text-gray-900">{details.redirectHost}</span>
+      <p className="text-sm text-ink-muted">
+        Will redirect to <span className="font-mono text-ink">{details.redirectHost}</span>
       </p>
 
       {details.isLoopback && (
@@ -264,7 +264,7 @@ const OAuthConsentPage: React.FC = () => {
 
       {hasPasskey ? (
         <fieldset className="space-y-2">
-          <legend className="text-sm font-semibold text-gray-900 mb-1">Permissions</legend>
+          <legend className="text-sm font-semibold text-ink mb-1">Permissions</legend>
           {details.requestedScopes.map(scope => (
             <label key={scope} className="flex items-start space-x-2 text-sm cursor-pointer">
               <input
@@ -272,37 +272,37 @@ const OAuthConsentPage: React.FC = () => {
                 checked={selected.has(scope)}
                 onChange={() => toggle(scope)}
                 disabled={busy}
-                className="mt-1 rounded border-gray-300 text-indigo-600"
+                className="mt-1 rounded border-line-strong text-accent"
               />
               <span>
-                <span className="text-gray-900">{details.scopeDescriptions[scope] ?? scope}</span>
-                <span className="block font-mono text-xs text-gray-500">{scope}</span>
+                <span className="text-ink">{details.scopeDescriptions[scope] ?? scope}</span>
+                <span className="block font-mono text-xs text-ink-muted">{scope}</span>
               </span>
             </label>
           ))}
         </fieldset>
       ) : (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-danger">
           You have no passkey on this account yet. Add one under Passkeys in the app, then start
           again from Claude.
         </p>
       )}
 
       {errorCode && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-danger">
           {ERROR_COPY[errorCode].message}
         </p>
       )}
 
       {phase === 'leaving' ? (
-        <p className="text-sm text-gray-600">Returning to {details.clientName}...</p>
+        <p className="text-sm text-ink-muted">Returning to {details.clientName}...</p>
       ) : (
         <div className="flex justify-end space-x-2">
           <button
             type="button"
             onClick={handleDeny}
             disabled={busy}
-            className="py-2 px-4 rounded-md border border-gray-300 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+            className="py-2 px-4 rounded-md border border-line-strong text-sm text-ink-2 hover:bg-hover disabled:opacity-60"
           >
             {phase === 'denying' ? 'Denying...' : 'Deny'}
           </button>
@@ -311,7 +311,7 @@ const OAuthConsentPage: React.FC = () => {
               type="button"
               onClick={handleApprove}
               disabled={busy || selected.size === 0}
-              className="py-2 px-4 rounded-md bg-indigo-600 text-white text-sm hover:bg-indigo-700 disabled:opacity-60"
+              className="py-2 px-4 rounded-md bg-ink text-white text-sm hover:bg-ink-2 disabled:opacity-60"
             >
               {phase === 'approving' ? 'Waiting for passkey...' : 'Approve with passkey'}
             </button>

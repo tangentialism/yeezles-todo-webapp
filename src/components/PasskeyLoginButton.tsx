@@ -32,11 +32,11 @@ const PasskeyLoginButton: React.FC<PasskeyLoginButtonProps> = ({ onSuccess }) =>
         type="button"
         onClick={handleClick}
         disabled={isBusy}
-        className="w-[280px] py-3 px-6 rounded-md bg-indigo-600 text-white font-medium hover:bg-indigo-700 disabled:opacity-60"
+        className="w-[280px] py-3 px-6 rounded-md bg-ink text-white font-medium hover:bg-ink-2 disabled:opacity-60"
       >
         {isBusy ? 'Waiting for passkey...' : 'Sign in with a passkey'}
       </button>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
     </div>
   );
 };

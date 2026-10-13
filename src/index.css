@@ -115,7 +115,7 @@
 }
 
 .animate-strikethrough {
-  background-image: linear-gradient(to right, #9CA3AF, #9CA3AF);
+  background-image: linear-gradient(to right, rgb(var(--ink-faint)), rgb(var(--ink-faint)));
   background-repeat: no-repeat;
   background-position: left center;
   background-size: 0% 2px;
