@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ApiError, isApiError, retryUnlessClientError, toApiError } from '../apiError';
+import { ApiError, isApiError, retryMutationUnlessClientError, retryUnlessClientError, toApiError } from '../apiError';
 
 /** Shape axios's isAxiosError() recognizes, without a real request. */
 const axiosError = (status?: number, data?: unknown) =>
@@ -79,5 +79,22 @@ describe('retryUnlessClientError', () => {
     expect(retryUnlessClientError(0, new ApiError(500, 'HTTP_500', 'x'))).toBe(true);
     expect(retryUnlessClientError(2, new ApiError(0, 'NETWORK_ERROR', 'x'))).toBe(true);
     expect(retryUnlessClientError(3, new ApiError(0, 'NETWORK_ERROR', 'x'))).toBe(false);
+  });
+});
+
+// B3: the app-wide mutation retry. A refusal (4xx) will not change on retry,
+// and retrying it sent a second DELETE and delayed the error toast.
+describe('retryMutationUnlessClientError', () => {
+  it('never retries a 4xx ApiError', () => {
+    expect(retryMutationUnlessClientError(0, new ApiError(400, 'BUSINESS_RULE_VIOLATION', 'x'))).toBe(false);
+    expect(retryMutationUnlessClientError(0, new ApiError(409, 'AREA_HAS_TOPICS', 'x'))).toBe(false);
+    expect(retryMutationUnlessClientError(0, new ApiError(499, 'HTTP_499', 'x'))).toBe(false);
+  });
+
+  it('retries a network error, a 5xx or a non-ApiError once', () => {
+    for (const error of [new ApiError(0, 'NETWORK_ERROR', 'x'), new ApiError(500, 'HTTP_500', 'x'), new Error('x')]) {
+      expect(retryMutationUnlessClientError(0, error)).toBe(true);
+      expect(retryMutationUnlessClientError(1, error)).toBe(false);
+    }
   });
 });

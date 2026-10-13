@@ -4,7 +4,7 @@
  * parsing axios internals.
  */
 import { isAxiosError } from 'axios';
-import { MAX_QUERY_RETRIES } from '../constants';
+import { MAX_MUTATION_RETRIES, MAX_QUERY_RETRIES } from '../constants';
 
 /** One per-item problem from a 400 or 422; `path` indexes into the submitted payload. */
 export interface ApiFieldError {
@@ -68,8 +68,21 @@ export const toApiError = (error: unknown): ApiError => {
 export const isApiError = (error: unknown, code?: string): error is ApiError =>
   error instanceof ApiError && (code === undefined || error.code === code);
 
+const isClientError = (error: unknown): boolean =>
+  error instanceof ApiError && error.status >= 400 && error.status < 500;
+
 /** react-query `retry`: a 4xx will not change on retry; anything else retries like the app default. */
 export const retryUnlessClientError = (failureCount: number, error: unknown): boolean => {
-  if (error instanceof ApiError && error.status >= 400 && error.status < 500) return false;
+  if (isClientError(error)) return false;
   return failureCount < MAX_QUERY_RETRIES;
+};
+
+/**
+ * The app-wide mutation `retry`: a 4xx refusal is final (retrying it repeats
+ * the request and delays the error toast); a network error, a 5xx or any
+ * other failure retries up to `MAX_MUTATION_RETRIES` times.
+ */
+export const retryMutationUnlessClientError = (failureCount: number, error: unknown): boolean => {
+  if (isClientError(error)) return false;
+  return failureCount < MAX_MUTATION_RETRIES;
 };

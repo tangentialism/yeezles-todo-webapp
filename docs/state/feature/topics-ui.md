@@ -8,7 +8,7 @@ Phase 3a of the topics feature: the webapp topics UI. Spec: workspace
 
 ## Next action
 
-Final whole-branch review fix wave (browser bugs B1–B4 plus review findings); then PR review (gated on David); then the workspace pin bump; then plan 3b (workspace `docs/superpowers/plans/2026-10-13-topics-webapp-proposals.md`).
+PR review (gated on David); then the workspace pin bump to the merge commit; then plan 3b (workspace docs/superpowers/plans/2026-10-13-topics-webapp-proposals.md).
 
 ## Verified
 
@@ -87,16 +87,56 @@ Final whole-branch review fix wave (browser bugs B1–B4 plus review findings); 
   Caveat: the tab was hidden throughout, so the 3-8 s update lag was NOT
   verified as app or browser behaviour, and item 8's toast was seen only after
   forcing React Query focus, never in a screenshot.
+- Final-review fix wave (the commit after `0ad693c`, "Fix wave: ..."): B1-B4,
+  I5 and the note-trim minor, each with a test run RED before the fix (see
+  "Known issues (fixed in the final-review fix wave)"). Full check:
+  `TSC_OK`, tests 456 total / 456 passed, 0 failing names, lint 5 (baseline
+  5), new failing names empty. Named suites plus every touched suite: 28
+  files, 163 tests passed. `npm run build` (tsc -b && vite build) succeeded,
+  234 modules. Not re-checked in a browser.
 
-## Known issues (to be fixed before PR)
+## Known issues (fixed in the final-review fix wave)
 
-Found in the browser walkthrough; a later fix wave handles them.
+Found in the browser walkthrough; all fixed in the fix-wave commit after
+`0ad693c`. Each fix has a unit test that failed before it and passes after; none
+was re-checked in a browser.
 
-- B1: every topic or todo mutation causes a refetch storm (13-14 refetches per list); `useCrossTabSync()` per store instance opens its own BroadcastChannel, so same-tab hooks hear each other.
-- B2: `skipToken` console error on every mutation (22 each): `useTodayOpenCount` observes `['todayView']` with `queryFn: skipToken` and invalidation refetches it.
-- B3: a refused area delete (400/409) is retried once (`mutations.retry = 1`), so a second DELETE is sent and the toast is delayed, or withheld in a background tab.
-- B4: the incomplete-todos delete toast has a doubled prefix ("Failed to delete area: Failed to delete area: ..."), and an area with topics and open todos shows the todos error because the backend checks todos first.
-- Possible B5 (unverified, may be the hidden tab): UI took 3-8 s to reflect stored changes; re-check in a visible tab.
+- B1 (fixed): every topic or todo mutation caused a refetch storm (13-14
+  refetches per list), because each `useCrossTabSync()` instance had its own
+  tab id, so instances in one tab handled each other's posts. Now one
+  module-level `TAB_ID` per tab, plus a one-key guard so a receiving tab handles
+  each message once, not once per instance. Test:
+  `src/hooks/__tests__/useCrossTabSync.sameTab.test.tsx` (4 tests; RED: tab ids
+  differed, a local broadcast caused 5 invalidations, another tab's message was
+  handled twice).
+- B2 (fixed): `useTodayOpenCount` observed `['todayView']` with `skipToken`, so
+  an invalidation refetch could run with its options and fail with "Missing
+  queryFn". It now carries the real function (`fetchTodayView`, shared with
+  `useTodayViewStore`) with `enabled: false`. Test: `useNavCounts.test.tsx`
+  "lets an invalidation refetch the Today view without a missing-queryFn error"
+  (RED: the real fetch ran once, not twice).
+- B3 (fixed): the global mutation `retry: 1` repeated 4xx refusals. App.tsx now
+  uses `retryMutationUnlessClientError` (`src/services/apiError.ts`): no retry
+  for an ApiError with status 400-499, one retry for network, 5xx and other
+  errors. Test: `apiError.test.ts` "retryMutationUnlessClientError" (RED: not a
+  function).
+- B4 (fixed): the delete toast doubled its prefix. An ApiError's server message
+  now shows as is; AREA_HAS_TOPICS keeps "Move or delete this area's topics
+  first."; other errors keep the "Failed to delete area: " prefix. Tests:
+  `useAreaStore.delete.test.tsx` generic-ApiError toast (RED: doubled prefix)
+  and non-ApiError toast (guard; passed before and after). The other half of
+  B4, an area with topics and open todos getting the todos error, is backend
+  check order and stays as is.
+- Possible B5 (unverified): the 3-8 s lag was probably B1 plus the hidden tab.
+  It has not been re-checked in a browser since the B1 fix.
+- I5 (fixed, from the final review): TopicDetail had no key, so opening topic B
+  while A's detail was mounted kept A's unsaved note draft and Save wrote it to
+  B. Now `key={openTopicId}`. Test: `TopicsView.switchTopic.test.tsx` (RED: B's
+  box held "Bulbs in. Draft for A.").
+- Minor (fixed, from the final review): after a save that the backend trimmed
+  (surrounding whitespace, or blank to null), Save stayed enabled. The editor
+  now sets its text from the saved note (null to ''). Tests:
+  `TopicNoteEditor.test.tsx`, two new (RED: the box kept the untrimmed text).
 
 ## Assumed
 
@@ -105,6 +145,9 @@ Found in the browser walkthrough; a later fix wave handles them.
 - Not run: the deployed app, the hosted backend, Google sign-in (the walkthrough
   used a minted persistent-session cookie), the update lag in a visible tab,
   and the toast in a visible tab (item 8 toast timing).
+- The fix wave's fixes behave in the browser as their unit tests show: no
+  browser re-check was run after them (refetch counts, console errors, toast
+  timing and B5 are all unobserved since).
 
 ## Deviations
 
@@ -183,12 +226,19 @@ Found in the browser walkthrough; a later fix wave handles them.
 - Ruling (Task 7): TopicPicker's "optional" hint sits beside the label, not inside it.
 - Ruling (Task 10): the walkthrough ran against a local backend at `4db2fab`, separate
   database, signed in by minted persistent-session cookie.
+- Final-review ruling: the "Topic not found" flash after a topic delete is
+  accepted as is. `onBack` runs before the refetch, so no flash shows; the cost
+  is one wasted `GET /topics/:id` 404 per delete.
+- Final-review ruling: EditTodoModal sending `topic_id: null` (when the todo's
+  `topic_id` is undefined, or from a stale cached todo) is deferred to 3b.
+- Final-review ruling: the TopicCard `highlighted` background clash
+  (`bg-surface` with `bg-accent-soft`) is deferred to 3b, its first user.
 
 ## Resume
 
 Branch `feature/topics-ui` in
 `/Users/davidyee/Code/yeezles-todo-workspace/.claude/worktrees/topics-phase3/yeezles-todo-webapp`.
-Tasks 0-10 are done and the final check is green. Continue at the task named under Next action (the fix wave starts from Known issues B1-B4). Every git command uses
+Tasks 0-10 and the final-review fix wave are done and the final check is green. Continue at the task named under Next action. Every git command uses
 `-C` with that path. Run
 `/Users/davidyee/Code/yeezles-todo-webapp-wt/topics-ui-check.sh` for the full
 check; pass is `TSC_OK`, a lint total not above the baseline, and nothing

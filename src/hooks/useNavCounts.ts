@@ -1,6 +1,6 @@
-import { skipToken, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useApi } from './useApi';
-import { todayViewQueryKey } from './useTodayViewStore';
+import { fetchTodayView, todayViewQueryKey } from './useTodayViewStore';
 import { countOpenFocusTodos } from '../utils/todayFocus';
 import type { TodayView } from '../types/todo';
 import type { Area, AreaWithStats } from '../types/area';
@@ -10,16 +10,21 @@ import type { Area, AreaWithStats } from '../types/area';
  *
  * A passive observer of the Today view query that `TodayView` (always mounted
  * by `ViewContainer`) already fetches and keeps fresh, including its
- * optimistic updates. It never fetches itself (`skipToken`), so the count
- * costs no extra request. The key must match the Today view's defaults
- * (`includeDueToday: true`, no `daysAhead`).
+ * optimistic updates. It never fetches itself (`enabled: false`), so the
+ * count costs no extra request. It still carries the real query function:
+ * observers share one query, and with `skipToken` an invalidation refetch
+ * could run with this observer's options and fail with "Missing queryFn"
+ * (B2). The key must match the Today view's defaults (`includeDueToday:
+ * true`, no `daysAhead`).
  *
  * @returns The open count, or `null` until the Today view has loaded.
  */
 export const useTodayOpenCount = (): number | null => {
+  const apiClient = useApi();
   const { data } = useQuery<TodayView>({
     queryKey: todayViewQueryKey(true, undefined),
-    queryFn: skipToken,
+    queryFn: () => fetchTodayView(apiClient, true, undefined),
+    enabled: false,
   });
   return data ? countOpenFocusTodos(data) : null;
 };

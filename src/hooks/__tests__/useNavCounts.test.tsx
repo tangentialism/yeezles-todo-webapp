@@ -1,13 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
-import { renderHook, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { act, renderHook, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { useAreaOpenCounts, useTodayOpenCount } from '../useNavCounts';
 import { todayViewQueryKey } from '../useTodayViewStore';
 import type { TodayView, Todo } from '../../types/todo';
 
 const getAreas = vi.fn();
-vi.mock('../useApi', () => ({ useApi: () => ({ getAreas }) }));
+const getTodayView = vi.fn();
+vi.mock('../useApi', () => ({ useApi: () => ({ getAreas, getTodayView }) }));
 
 const todo = (id: number, completed = false) => ({ id, completed }) as Todo;
 
@@ -44,6 +45,38 @@ describe('useTodayOpenCount', () => {
     );
 
     await waitFor(() => expect(result.current).toBe(3));
+  });
+
+  // B2: the count observer shares the Today view's query. Its options are
+  // written to that query after the view's (effects run in order), so an
+  // invalidation refetch must still find a real queryFn there.
+  it('lets an invalidation refetch the Today view without a missing-queryFn error', async () => {
+    getTodayView.mockReset();
+    getTodayView.mockResolvedValue({ success: true, data: today({ overdue: [todo(1)] }) });
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { wrapper, client } = setup();
+    const { result } = renderHook(
+      () => {
+        // Stand-in for TodayView's own observer, mounted first
+        useQuery({
+          queryKey: todayViewQueryKey(true, undefined),
+          queryFn: async () => (await getTodayView(true, undefined)).data as TodayView,
+        });
+        return useTodayOpenCount();
+      },
+      { wrapper }
+    );
+    await waitFor(() => expect(result.current).toBe(1));
+    expect(getTodayView).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await client.invalidateQueries({ queryKey: ['todayView'] });
+    });
+
+    expect(getTodayView).toHaveBeenCalledTimes(2);
+    expect(client.getQueryState(todayViewQueryKey(true, undefined))?.status).toBe('success');
+    expect(errors).not.toHaveBeenCalled();
+    errors.mockRestore();
   });
 });
 

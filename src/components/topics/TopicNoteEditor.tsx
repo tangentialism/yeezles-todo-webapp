@@ -35,7 +35,10 @@ const TopicNoteEditor: React.FC<TopicNoteEditorProps> = ({ topic }) => {
   const handleSave = async () => {
     setError(null);
     try {
-      await setTopicNote(topic.id, text.trim() ? text : null);
+      const updated = await setTopicNote(topic.id, text.trim() ? text : null);
+      // The backend trims the note (and stores blank as null), so show what
+      // it saved; otherwise the box stays "changed" and Save stays enabled.
+      setText(updated?.status_note ?? '');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save the note.');
     }

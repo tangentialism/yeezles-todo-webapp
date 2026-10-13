@@ -45,6 +45,30 @@ describe('TopicNoteEditor', () => {
     expect(screen.getByLabelText('Status note')).toHaveValue('Two');
   });
 
+  // The backend trims every note, so the saved text can differ from what was typed
+  it('after saving text with surrounding whitespace, shows the saved note and disables Save', async () => {
+    setTopicNote.mockResolvedValue(makeTopic({ id: 4, status_note: 'Countertop ordered.' }));
+    const { rerender } = render(<TopicNoteEditor topic={makeTopic({ id: 4, status_note: 'Old' })} />);
+    await userEvent.clear(screen.getByLabelText('Status note'));
+    await userEvent.type(screen.getByLabelText('Status note'), '  Countertop ordered.{enter}');
+    await userEvent.click(screen.getByRole('button', { name: 'Save note' }));
+    // The mutation writes the saved topic to the cache, which re-renders with it
+    rerender(<TopicNoteEditor topic={makeTopic({ id: 4, status_note: 'Countertop ordered.' })} />);
+    expect(screen.getByLabelText('Status note')).toHaveValue('Countertop ordered.');
+    expect(screen.getByRole('button', { name: 'Save note' })).toBeDisabled();
+  });
+
+  it('after saving a blank note, empties the box and disables Save', async () => {
+    setTopicNote.mockResolvedValue(makeTopic({ id: 4, status_note: null }));
+    const { rerender } = render(<TopicNoteEditor topic={makeTopic({ id: 4, status_note: 'Old' })} />);
+    await userEvent.clear(screen.getByLabelText('Status note'));
+    await userEvent.type(screen.getByLabelText('Status note'), '   ');
+    await userEvent.click(screen.getByRole('button', { name: 'Save note' }));
+    rerender(<TopicNoteEditor topic={makeTopic({ id: 4, status_note: null })} />);
+    expect(screen.getByLabelText('Status note')).toHaveValue('');
+    expect(screen.getByRole('button', { name: 'Save note' })).toBeDisabled();
+  });
+
   it('shows a counter from 9,000 characters', () => {
     render(<TopicNoteEditor topic={makeTopic({ status_note: 'x'.repeat(9_001) })} />);
     expect(screen.getByText('9,001 / 10,000')).toBeInTheDocument();

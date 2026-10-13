@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 import { useApi } from './useApi';
+import type TokenAwareApiClient from '../services/api';
 import { useTodoStore } from './useTodoStore';
 import type { TodayView as TodayViewData, Todo, UpdateTodoRequest } from '../types/todo';
 import { TODAY_VIEW_SYNC_INTERVAL_MS, TODAY_VIEW_STALE_TIME_MS, MUTATION_SETTLE_DELAY_MS } from '../constants';
@@ -13,6 +14,26 @@ const QUERY_KEYS = {
 
 /** Cache key of the Today view query, for read-only observers such as the tab count. */
 export const todayViewQueryKey = QUERY_KEYS.todayView;
+
+/**
+ * Fetches the Today view. Shared by the view's own query and every passive
+ * observer of its key: each observer writes its options onto the shared
+ * query, so each must carry this real function for invalidation refetches.
+ */
+export const fetchTodayView = async (
+  apiClient: Pick<TokenAwareApiClient, 'getTodayView'>,
+  includeDueToday?: boolean,
+  daysAhead?: number
+): Promise<OptimisticTodayData> => {
+  const response = await apiClient.getTodayView(includeDueToday, daysAhead);
+  if (!response.success) {
+    throw new Error(response.message || 'Failed to load today view');
+  }
+  return {
+    ...response.data,
+    _lastUpdated: new Date().toISOString()
+  } as OptimisticTodayData;
+};
 
 interface UseTodayViewStoreOptions {
   includeDueToday?: boolean;
@@ -59,16 +80,7 @@ export const useTodayViewStore = (options: UseTodayViewStoreOptions = {}) => {
     isRefetching
   } = useQuery({
     queryKey: QUERY_KEYS.todayView(includeDueToday, daysAhead),
-    queryFn: async () => {
-      const response = await apiClient.getTodayView(includeDueToday, daysAhead);
-      if (!response.success) {
-        throw new Error(response.message || 'Failed to load today view');
-      }
-      return {
-        ...response.data,
-        _lastUpdated: new Date().toISOString()
-      } as OptimisticTodayData;
-    },
+    queryFn: () => fetchTodayView(apiClient, includeDueToday, daysAhead),
     staleTime: TODAY_VIEW_STALE_TIME_MS,
     refetchInterval: enableBackgroundSync ? syncInterval : false,
     refetchIntervalInBackground: true,

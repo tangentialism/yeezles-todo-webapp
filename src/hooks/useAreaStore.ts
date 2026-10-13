@@ -271,10 +271,14 @@ export const useAreaStore = (options: UseAreaStoreOptions = {}) => {
       if (context?.previousAreas) {
         queryClient.setQueryData(QUERY_KEYS.areas(includeStats), context.previousAreas);
       }
+      // An ApiError carries the server's message, which already says
+      // "Failed to delete area: …"; only other errors get the prefix here.
       showToast({
         message: isApiError(err, 'AREA_HAS_TOPICS')
           ? "Move or delete this area's topics first."
-          : `Failed to delete area: ${err.message}`,
+          : isApiError(err)
+            ? err.message
+            : `Failed to delete area: ${err.message}`,
         type: 'error'
       });
     },

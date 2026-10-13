@@ -10,7 +10,8 @@ import Dashboard from './components/Dashboard';
 import CreateTodoFromExternal from './components/CreateTodoFromExternal';
 import CreateMultipleTodos from './components/CreateMultipleTodos';
 import OAuthConsentPage from './components/OAuthConsentPage';
-import { QUERY_STALE_TIME_MS, MAX_QUERY_RETRIES, MAX_MUTATION_RETRIES } from './constants';
+import { QUERY_STALE_TIME_MS, MAX_QUERY_RETRIES } from './constants';
+import { retryMutationUnlessClientError } from './services/apiError';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -27,7 +28,8 @@ const queryClient = new QueryClient({
       },
     },
     mutations: {
-      retry: MAX_MUTATION_RETRIES,
+      // A 4xx refusal is final; network errors and 5xx retry once
+      retry: retryMutationUnlessClientError,
     },
   },
 });

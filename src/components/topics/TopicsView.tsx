@@ -46,7 +46,9 @@ const TopicsView: React.FC<TopicsViewProps> = ({ openTopicId, onOpenTopic, onClo
   const staleCount = active.filter((t) => isStale(t, now)).length;
 
   if (openTopicId !== null) {
-    return <TopicDetail topicId={openTopicId} onBack={onCloseTopic} />;
+    // Keyed by id: opening another topic starts a fresh detail, so a draft
+    // note, open menu or Done toggle never carries over to it.
+    return <TopicDetail key={openTopicId} topicId={openTopicId} onBack={onCloseTopic} />;
   }
 
   const card = (topic: TopicWithCounts) => (
