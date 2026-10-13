@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { loginWithPasskey } from '../services/passkeyApi';
+import { KeyIcon, Spinner } from './ui/Icons';
 
 interface PasskeyLoginButtonProps {
   onSuccess: () => void;
@@ -27,16 +28,21 @@ const PasskeyLoginButton: React.FC<PasskeyLoginButtonProps> = ({ onSuccess }) =>
   };
 
   return (
-    <div className="flex flex-col items-center space-y-2">
+    <div className="flex flex-col gap-2">
       <button
         type="button"
         onClick={handleClick}
         disabled={isBusy}
-        className="w-[280px] py-3 px-6 rounded-md bg-ink text-white font-medium hover:bg-ink-2 disabled:opacity-60"
+        className="inline-flex w-full items-center justify-center gap-2.5 h-11 px-5 rounded-full bg-ink text-paper text-[14.5px] font-medium hover:bg-ink-2 disabled:opacity-70 disabled:cursor-wait transition-colors"
       >
-        {isBusy ? 'Waiting for passkey...' : 'Sign in with a passkey'}
+        {isBusy ? <Spinner className="w-4 h-4" /> : <KeyIcon className="w-4 h-4" />}
+        {isBusy ? 'Waiting for passkey…' : 'Sign in with a passkey'}
       </button>
-      {error && <p className="text-sm text-danger">{error}</p>}
+      {error && (
+        <p role="alert" className="text-[12.5px] text-danger">
+          {error}
+        </p>
+      )}
     </div>
   );
 };
