@@ -21,9 +21,15 @@ interface DialogProps {
 const Dialog: React.FC<DialogProps> = ({ title, titleDotColor, onClose, closeDisabled = false, children }) => {
   const titleId = React.useId();
 
+  const panelRef = React.useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const handleKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && !closeDisabled) onClose();
+      if (event.key !== 'Escape' || closeDisabled) return;
+      // Nested dialogs (New topic… over a todo form): only the topmost closes.
+      const open = document.querySelectorAll('[role="dialog"]');
+      if (open.length > 0 && open[open.length - 1] !== panelRef.current) return;
+      onClose();
     };
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
@@ -39,6 +45,7 @@ const Dialog: React.FC<DialogProps> = ({ title, titleDotColor, onClose, closeDis
       }}
     >
       <div
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
