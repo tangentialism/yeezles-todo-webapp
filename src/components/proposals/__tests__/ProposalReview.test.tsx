@@ -210,6 +210,13 @@ describe('ProposalReview', () => {
     expect(screen.getByText('8 of 11 accepted')).toBeInTheDocument();
   });
 
+  it('keeps a loaded draft when a background refetch returns 404', () => {
+    mockProposal(makeResolved(), new ApiError(404, 'PROPOSAL_NOT_FOUND', 'Proposal not found'));
+    renderAt();
+    expect(screen.queryByText('Proposal not found')).not.toBeInTheDocument();
+    expect(screen.getByText('8 of 11 accepted')).toBeInTheDocument();
+  });
+
   it('shows the load error with its message when nothing is loaded', () => {
     mockProposal(undefined, new ApiError(500, 'HTTP_500', 'Server error'));
     renderAt();

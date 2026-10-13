@@ -70,7 +70,9 @@ const ProposalReview: React.FC = () => {
     </PageShell>
   );
 
-  const notFound = !validId || (isApiError(error) && (error.status === 404 || error.status === 400));
+  // Ruling L4b: like the load error, a 404/400 replaces the page only when
+  // nothing is loaded; a background refetch error keeps the draft on screen.
+  const notFound = !validId || (!resolved && isApiError(error) && (error.status === 404 || error.status === 400));
   if (notFound) {
     return page(
       <>
@@ -81,7 +83,7 @@ const ProposalReview: React.FC = () => {
       </>
     );
   }
-  // Ruling L4: a failed background refetch keeps the loaded proposal on screen.
+  // Ruling L4: likewise for any other load error.
   if (error && !resolved) {
     return page(
       <ViewError

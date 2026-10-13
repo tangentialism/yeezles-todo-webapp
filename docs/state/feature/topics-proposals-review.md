@@ -21,6 +21,11 @@ Task 7: badge, banner, hand-back and highlight.
   ProposalReview 16 (brief's 10 plus rulings M4 x3, L5, L4 x2), ProposalSections
   9, AppRoutes 6 = 31 passed. Full check: `TSC_OK`; 532 tests, 532 passed, 0
   failing names; lint now 5, baseline 5; new failing names empty.
+  Fix (Ruling L4b): test "keeps a loaded draft when a background refetch
+  returns 404" written first and RED (found "Proposal not found"), then GREEN:
+  ProposalReview 17 + AppRoutes 6 = 23 passed. Full check: `TSC_OK`; 533
+  tests, 533 passed, 0 failing names; lint now 5, baseline 5; new failing
+  names empty.
 
 - Task 5: `ProposalSections.test.tsx` written first and RED (unresolved import
   `../ProposalTopicSection`), then GREEN: 9 passed (brief's 8 plus 1 for
@@ -96,9 +101,12 @@ Task 7: badge, banner, hand-back and highlight.
   and no Apply, besides the banner); M4 (rename taken topic to "Gate" clears the
   blocker; rejecting every section shows "Nothing accepted. Reject instead.";
   rejected proposal renders read-only); L26 (title is h1, test asserts level 1);
-  L23 (reject confirm keeps `primaryButton`). A 404 or 400 still shows "Proposal
-  not found" even with data loaded (L4 names only the generic error view). No
-  brief test changed behaviour beyond these.
+  L23 (reject confirm keeps `primaryButton`). No brief test changed behaviour
+  beyond these.
+- Ruling L4b: the "Proposal not found" view for a 404/400 ApiError also shows
+  only when no proposal data is loaded; a background refetch error of any kind
+  keeps the draft. A malformed id still shows not found (no query runs). Test
+  added.
 - Ruling L12: an existing topic section with no rows left is hidden; spec §6.2
   says one section per topic.
 - Ruling L19: `draftTopicFromArea` is the single exported function, no local
