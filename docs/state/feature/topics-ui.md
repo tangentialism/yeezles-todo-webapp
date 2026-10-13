@@ -8,7 +8,7 @@ Phase 3a of the topics feature: the webapp topics UI. Spec: workspace
 
 ## Next action
 
-Task 10: docs, browser check, final check.
+Final whole-branch review fix wave (browser bugs B1–B4 plus review findings); then PR review (gated on David); then the workspace pin bump; then plan 3b.
 
 ## Verified
 
@@ -63,10 +63,44 @@ Task 10: docs, browser check, final check.
   asserts deleteArea called with 2 (ruling L3). Full check: `TSC_OK`, tests
   444 total / 444 passed, lint 5 (baseline 5), new failing names empty.
 
+- Task 10: README "Completed Features" and docs/FEATURES.md document Topics.
+  Final check: `TSC_OK`, tests 444 total / 444 passed, 0 failing names, lint 5
+  (baseline 5), new failing names empty. Named-suite vitest run: 22 files,
+  121 tests passed. `npm run build` (tsc -b && vite build) succeeded, 234
+  modules, no errors.
+- Browser walkthrough (2026-10-13, Claude in Chrome, local backend at
+  `yeezles-todo` `4db2fab`, fake user, signed in by a minted persistent-session
+  `remember_token` cookie, not Google sign-in). SEEN: (1) Topics tab with one
+  area, then All areas (one section per area that has topics); (2) create topic
+  and case-only duplicate gives the inline message; (3) open, save note,
+  archive, unarchive; (4) todo with a topic under Auto, area follows the topic;
+  (5) edit todo, change area, "Topic cleared" hint; (6) topic chip in All opens
+  topic detail on the Topics tab; (7) completing a todo in detail moves it to
+  Done (n) and counts update; (8) area delete refused, dialog stays open, toast
+  confirmed in the DOM after forcing focus (see B3/B4); extra: Escape in
+  "New topic..." from the add-todo form closes only that dialog. Screenshots at
+  390 px and 1280 px (via same-origin iframes) were taken.
+  Caveat: the tab was hidden throughout, so the 3-8 s update lag was NOT
+  verified as app or browser behaviour, and item 8's toast was seen only after
+  forcing React Query focus, never in a screenshot.
+
+## Known issues (to be fixed before PR)
+
+Found in the browser walkthrough; a later fix wave handles them.
+
+- B1: every topic or todo mutation causes a refetch storm (13-14 refetches per list); `useCrossTabSync()` per store instance opens its own BroadcastChannel, so same-tab hooks hear each other.
+- B2: `skipToken` console error on every mutation (22 each): `useTodayOpenCount` observes `['todayView']` with `queryFn: skipToken` and invalidation refetches it.
+- B3: a refused area delete (400/409) is retried once (`mutations.retry = 1`), so a second DELETE is sent and the toast is delayed, or withheld in a background tab.
+- B4: the incomplete-todos delete toast has a doubled prefix ("Failed to delete area: Failed to delete area: ..."), and an area with topics and open todos shows the todos error because the backend checks todos first.
+- Possible B5 (unverified, may be the hidden tab): UI took 3-8 s to reflect stored changes; re-check in a visible tab.
+
 ## Assumed
 
 - The backend at `yeezles-todo` `4db2fab` serves the topics API as documented
   in its `docs/api/API.md`.
+- Not run: the deployed app, the hosted backend, Google sign-in (the walkthrough
+  used a minted persistent-session cookie), the update lag in a visible tab,
+  and the toast in a visible tab (item 8 toast timing).
 
 ## Deviations
 
@@ -119,11 +153,39 @@ Task 10: docs, browser check, final check.
   effect skips the overwrite once a topic is chosen (topic id read via a ref so
   the effect still depends only on currentArea).
 
+- Controller rulings (executed): base is origin/master `e2ba5db`, not `b52ba1d`; the
+  webapp worktree is the submodule here; the workspace dirty submodule line is
+  never staged (pin bump is separate); esbuild install scripts left unapproved.
+- Ruling H1: NewTopicDialog stops submit and Cmd+Enter propagation so it cannot submit an enclosing todo form.
+- Ruling H2: TopicsView filters by the selected area; All areas shows one section per area.
+- Ruling H3: forms destructure `resetTopic` from useTopicSelection so lint stays at 5.
+- Ruling M1: the Done view's DoneItem also renders the topic chip.
+- Ruling M2: AddTodoModal.test gets a QueryClient/useTopicStore mock.
+- Ruling M3: cross-tab TODO_* and todo create/update/delete invalidate `['topic']` too.
+- Ruling M4: moveToToday/removeFromToday invalidate `['topicTodos']`.
+- Ruling M5: done todos in topic detail render via DoneItem, no "Completing..."/Undo.
+- Ruling M6: Archive/Unarchive awaited in try/catch, failure shown by toast.
+- Ruling M7: paths and check script translated (see first two bullets).
+- Ruling L1/L2/L3: vacuous or misnamed assertions strengthened.
+- Ruling L4: openTopic goes through handleViewChange.
+- Ruling L5: PhoneTabBar test renamed "renders the four views".
+- Ruling L6: duplicated logic blocks extracted into one shared helper.
+- Ruling L7: topicKeys used in the invalidation helper; no unused exports.
+- Ruling L8: deleteArea doc comment keeps the "reassigned to the default area" sentence.
+- Ruling L9: Topics bullet under README "Completed Features"; Node 22 left as master declares it.
+- Ruling L10: topic-detail error state branches on `TOPIC_NOT_FOUND`.
+- Ruling L11: CreateTodoFromExternal's area effect does not overwrite once a topic is chosen.
+- Ruling L12: blank select after "New topic..." until refetch is cosmetic, deferred to final review.
+- Ruling (Task 6): done todos in detail have no "mark incomplete" control.
+- Ruling (Task 7): TopicPicker's "optional" hint sits beside the label, not inside it.
+- Ruling (Task 10): the walkthrough ran against a local backend at `4db2fab`, separate
+  database, signed in by minted persistent-session cookie.
+
 ## Resume
 
 Branch `feature/topics-ui` in
 `/Users/davidyee/Code/yeezles-todo-workspace/.claude/worktrees/topics-phase3/yeezles-todo-webapp`.
-Continue the plan at the task named under Next action. Every git command uses
+Tasks 0-10 are done and the final check is green. Continue at the task named under Next action (the fix wave starts from Known issues B1-B4). Every git command uses
 `-C` with that path. Run
 `/Users/davidyee/Code/yeezles-todo-webapp-wt/topics-ui-check.sh` for the full
 check; pass is `TSC_OK`, a lint total not above the baseline, and nothing

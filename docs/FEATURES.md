@@ -409,6 +409,20 @@ This document describes the feature requirements and specifications for the Yeez
 
 ---
 
+## Topics
+
+A topic is a named group of todos inside one area, with a status note
+(workspace spec `docs/superpowers/specs/2026-10-13-topics-webapp-design.md`).
+
+- **Topics tab.** Cards per topic for the selected area, or one section per area on All areas. Each card shows open/done counts, the first two lines of the note and its age. "stale" marks a note older than 14 days on a topic with open todos. Archived topics are collapsed at the bottom.
+- **Topic detail.** Edit, Archive/Unarchive, Delete (todos keep existing without a topic), the status note with Save, and the topic's open todos with a collapsed Done list.
+- **Forms.** Add, edit and external-create forms have a Topic select. Choosing a topic sets the area; changing the area clears the topic.
+- **Chips.** Todo rows show the topic; clicking it opens the topic.
+- **Area delete** is refused while the area has topics ("Move or delete this area's topics first.").
+- Claude's proposals and their review screen are phase 3b.
+
+---
+
 ## User Interface Features
 
 ### Responsive Design
