@@ -21,7 +21,8 @@ vi.mock('../ApiStatus', () => ({ default: () => null }));
 vi.mock('../Navigation', () => ({ default: () => null }));
 vi.mock('../ViewContainer', () => ({ default: () => null }));
 vi.mock('../AddTodoModal', () => ({ default: () => null }));
-vi.mock('../../hooks/useNavCounts', () => ({ useTodayOpenCount: () => null }));
+vi.mock('../../hooks/useNavCounts', () => ({ useTodayOpenCount: () => null, usePendingProposalCount: () => null }));
+vi.mock('../../hooks/useTopicsHandoff', () => ({ useTopicsHandoff: () => {} }));
 
 const testUser: User = {
   id: 'user-1',

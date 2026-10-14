@@ -15,6 +15,8 @@ interface NavigationProps {
   onViewChange: (view: string) => void;
   /** Open todos in today's focus, shown beside the Today tab. Hidden when 0 or unknown. */
   todayCount?: number | null;
+  /** Pending proposals, shown beside the Topics tab. Hidden when 0 or unknown. */
+  topicsCount?: number | null;
 }
 
 /** Small mono figure used for counts in tabs and menus. */
@@ -135,7 +137,7 @@ const AreaMenu: React.FC<AreaMenuProps> = ({ panelRef, newlyCreatedAreaId, onPic
  * edit or create an area, with open counts). On phones the switcher shrinks
  * to its colour dot. Newly created areas are briefly highlighted.
  */
-const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange, todayCount }) => {
+const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange, todayCount, topicsCount }) => {
   const [isAreaDropdownOpen, setIsAreaDropdownOpen] = useState(false);
   const [isAreaModalOpen, setIsAreaModalOpen] = useState(false);
   const [editingArea, setEditingArea] = useState<Area | null>(null);
@@ -183,7 +185,9 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange, toda
       <nav aria-label="Views" className="hidden sm:flex gap-6">
         {VIEWS.map((view) => {
           const isActive = currentView === view.id;
-          const count = view.id === 'today' && todayCount ? todayCount : null;
+          const count =
+            view.id === 'today' && todayCount ? todayCount : view.id === 'topics' && topicsCount ? topicsCount : null;
+          const countLabel = view.id === 'topics' ? 'pending' : 'open';
           return (
             <button
               key={view.id}
@@ -201,7 +205,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange, toda
               {count !== null && (
                 <>
                   <Count value={count} />
-                  <span className="sr-only">({count} open)</span>
+                  <span className="sr-only">({count} {countLabel})</span>
                 </>
               )}
             </button>

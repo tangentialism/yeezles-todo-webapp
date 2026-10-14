@@ -32,4 +32,9 @@ describe('PhoneTabBar', () => {
 
     expect(screen.getByRole('button', { name: 'Today (3 open)' })).toBeInTheDocument();
   });
+
+  it('shows the pending-proposal count on the Topics tab', () => {
+    render(<PhoneTabBar currentView="all" onViewChange={vi.fn()} topicsCount={3} />);
+    expect(screen.getByRole('button', { name: /Topics.*\(3 pending\)/ })).toBeInTheDocument();
+  });
 });

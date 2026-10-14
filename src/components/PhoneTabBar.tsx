@@ -8,6 +8,8 @@ interface PhoneTabBarProps {
   onViewChange: (view: string) => void;
   /** Open todos in today's focus, shown beside the Today label. Hidden when 0 or unknown. */
   todayCount?: number | null;
+  /** Pending proposals, shown beside the Topics label. Hidden when 0 or unknown. */
+  topicsCount?: number | null;
 }
 
 const ICONS: Record<(typeof VIEWS)[number]['id'], React.FC<{ className?: string }>> = {
@@ -22,7 +24,7 @@ const ICONS: Record<(typeof VIEWS)[number]['id'], React.FC<{ className?: string 
  * the icon over the label, full-height targets, and padding for the home
  * indicator (`safe-area-inset-bottom`).
  */
-const PhoneTabBar: React.FC<PhoneTabBarProps> = ({ currentView, onViewChange, todayCount }) => (
+const PhoneTabBar: React.FC<PhoneTabBarProps> = ({ currentView, onViewChange, todayCount, topicsCount }) => (
   <nav
     aria-label="Views"
     className="sm:hidden fixed inset-x-0 bottom-0 z-20 flex px-2 pt-0.5 bg-paper/95 backdrop-blur border-t border-line-strong"
@@ -31,7 +33,9 @@ const PhoneTabBar: React.FC<PhoneTabBarProps> = ({ currentView, onViewChange, to
     {VIEWS.map((view) => {
       const isActive = currentView === view.id;
       const Icon = ICONS[view.id];
-      const count = view.id === 'today' && todayCount ? todayCount : null;
+      const count =
+        view.id === 'today' && todayCount ? todayCount : view.id === 'topics' && topicsCount ? topicsCount : null;
+      const countLabel = view.id === 'topics' ? 'pending' : 'open';
       return (
         <button
           key={view.id}
@@ -51,7 +55,7 @@ const PhoneTabBar: React.FC<PhoneTabBarProps> = ({ currentView, onViewChange, to
                 <span aria-hidden="true" className="font-mono text-[10.5px] font-normal tabular-nums text-ink-faint">
                   {count}
                 </span>
-                <span className="sr-only">({count} open)</span>
+                <span className="sr-only">({count} {countLabel})</span>
               </>
             )}
           </span>

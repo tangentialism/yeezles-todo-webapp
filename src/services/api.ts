@@ -27,6 +27,14 @@ import type {
   CreateTopicRequest,
   UpdateTopicRequest
 } from '../types/topic';
+import type {
+  ApplyResult,
+  ProposalRecord,
+  ProposalRow,
+  ProposalStatus,
+  ResolvedProposal,
+  TopicChangesPayload
+} from '../types/proposal';
 import { toApiError } from './apiError';
 import { logger } from '../utils/logger';
 
@@ -566,6 +574,35 @@ class TokenAwareApiClient {
   /** `DELETE /topics/:id` -- its todos survive with no topic. */
   async deleteTopic(id: number): Promise<void> {
     await this.unwrap<{ message: string; topic_id: number }>(this.api.delete(`/topics/${id}`));
+  }
+
+  // ── Proposal Methods (session only) ─────────────────────────────────
+
+  /** `GET /proposals?status=` -- newest first, without payloads. */
+  async listProposals(status?: ProposalStatus): Promise<ProposalRow[]> {
+    const query = status ? `?status=${status}` : '';
+    const data = await this.unwrap<{ proposals: ProposalRow[]; count: number }>(this.api.get(`/proposals${query}`));
+    return data.proposals;
+  }
+
+  /** `GET /proposals/:id` -- the proposal resolved against live data, for review. */
+  async getProposal(id: number): Promise<ResolvedProposal> {
+    return this.unwrap<ResolvedProposal>(this.api.get(`/proposals/${id}`));
+  }
+
+  /**
+   * `POST /proposals/:id/apply` -- applies `accepted` as submitted, all or
+   * nothing. 422 `PROPOSAL_INVALID` carries `errors[]` indexed into `accepted`;
+   * 409 `PROPOSAL_RESOLVED` when it is no longer pending.
+   */
+  async applyProposal(id: number, accepted: TopicChangesPayload): Promise<ApplyResult> {
+    return this.unwrap<ApplyResult>(this.api.post(`/proposals/${id}/apply`, { accepted }));
+  }
+
+  /** `POST /proposals/:id/reject` -- 409 `PROPOSAL_RESOLVED` when not pending. */
+  async rejectProposal(id: number): Promise<ProposalRecord> {
+    const data = await this.unwrap<{ proposal: ProposalRecord }>(this.api.post(`/proposals/${id}/reject`));
+    return data.proposal;
   }
 }
 

@@ -65,6 +65,12 @@ const EditTodoModal: React.FC<EditTodoModalProps> = ({ todo, isOpen, onClose, on
     if (!todo || !title.trim()) return;
 
     try {
+      // topic_id goes only when the user changed it, or an area change cleared
+      // it. An untouched save omits it, so a todo whose topic the form never
+      // knew (topic_id undefined, a stale cache) is not cleared by sending null;
+      // the server keeps the topic while area_id is unchanged (spec §2.1 item 4).
+      const loadedTopicId = todo.topic_id ?? null; // what the effect passed to resetTopic
+      const topicChanged = topicCleared || topicId !== loadedTopicId;
       const updateData = {
         title: title.trim(),
         description: description.trim() || undefined,
@@ -72,8 +78,7 @@ const EditTodoModal: React.FC<EditTodoModalProps> = ({ todo, isOpen, onClose, on
         due_date: dueDate ? new Date(dueDate).toISOString() : undefined,
         is_today: isToday,
         area_id: selectedAreaId,
-        // Always sent with area_id, so the server never clears a topic by surprise
-        topic_id: topicId,
+        ...(topicChanged ? { topic_id: topicId } : {}),
         reference_url: referenceUrl.trim() || undefined,
       };
 

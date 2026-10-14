@@ -19,7 +19,8 @@ export type SyncMessageType =
   | 'AREA_DELETED'
   | 'TOPIC_CREATED'
   | 'TOPIC_UPDATED'
-  | 'TOPIC_DELETED';
+  | 'TOPIC_DELETED'
+  | 'PROPOSAL_RESOLVED';
 
 /**
  * Data payload for sync messages

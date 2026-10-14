@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useApi } from './useApi';
 import { fetchTodayView, todayViewQueryKey } from './useTodayViewStore';
+import { usePendingProposals } from './useProposalStore';
 import { countOpenFocusTodos } from '../utils/todayFocus';
 import type { TodayView } from '../types/todo';
 import type { Area, AreaWithStats } from '../types/area';
@@ -75,4 +76,13 @@ export const useAreaOpenCounts = (): AreaOpenCounts | null => {
     total += n;
   });
   return { byArea, total };
+};
+
+/**
+ * Pending proposals across all areas, for the Topics tab badge (spec §7.3).
+ * Null while unknown, so the badge stays hidden instead of showing 0.
+ */
+export const usePendingProposalCount = (): number | null => {
+  const { data } = usePendingProposals();
+  return data ? data.length : null;
 };

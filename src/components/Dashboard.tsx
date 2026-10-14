@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { TopicNavigationContext } from '../hooks/useOpenTopic';
 import Navigation from './Navigation';
 import ViewContainer from './ViewContainer';
@@ -7,10 +7,12 @@ import PasskeyManagementModal from './PasskeyManagementModal';
 import AccessTokenManagementModal from './AccessTokenManagementModal';
 import AccountMenu from './AccountMenu';
 import PhoneTabBar from './PhoneTabBar';
-import { useTodayOpenCount } from '../hooks/useNavCounts';
+import { usePendingProposalCount, useTodayOpenCount } from '../hooks/useNavCounts';
+import { useTopicsHandoff } from '../hooks/useTopicsHandoff';
+import type { TopicsHandoff } from '../hooks/useTopicsHandoff';
 import { PlusIcon } from './ui/Icons';
 import { primaryButton } from './ui/styles';
-import { VIEW_TRANSITION_DURATION_MS } from '../constants';
+import { NEW_AREA_HIGHLIGHT_MS, VIEW_TRANSITION_DURATION_MS } from '../constants';
 
 /**
  * Main authenticated layout: a single header (wordmark, view tabs, area
@@ -52,6 +54,23 @@ const Dashboard: React.FC = () => {
     handleViewChange('topics');
   }, [handleViewChange]);
 
+  const topicsCount = usePendingProposalCount();
+  const [highlightTopicIds, setHighlightTopicIds] = useState<number[]>([]);
+
+  // Back from a proposal review: Topics tab, the proposal's area, new topics lit
+  const arriveAtTopics = useCallback((handoff: TopicsHandoff) => {
+    setOpenTopicId(null);
+    setCurrentView('topics');
+    setHighlightTopicIds(handoff.highlightTopicIds ?? []);
+  }, []);
+  useTopicsHandoff(arriveAtTopics);
+
+  useEffect(() => {
+    if (highlightTopicIds.length === 0) return;
+    const timer = setTimeout(() => setHighlightTopicIds([]), NEW_AREA_HIGHLIGHT_MS);
+    return () => clearTimeout(timer);
+  }, [highlightTopicIds]);
+
   return (
     <div className="min-h-screen bg-paper">
       <TopicNavigationContext.Provider value={openTopic}>
@@ -61,7 +80,12 @@ const Dashboard: React.FC = () => {
           <span className="font-serif font-medium text-xl sm:text-[22px] tracking-[-0.01em] text-ink">Yeezles</span>
 
           <div className="flex flex-1 min-w-0">
-            <Navigation currentView={currentView} onViewChange={handleViewChange} todayCount={todayCount} />
+            <Navigation
+              currentView={currentView}
+              onViewChange={handleViewChange}
+              todayCount={todayCount}
+              topicsCount={topicsCount}
+            />
           </div>
 
           <div className="flex items-center gap-3">
@@ -93,6 +117,7 @@ const Dashboard: React.FC = () => {
           openTopicId={openTopicId}
           onOpenTopic={openTopic}
           onCloseTopic={() => setOpenTopicId(null)}
+          highlightTopicIds={highlightTopicIds}
         />
       </main>
 
@@ -107,7 +132,12 @@ const Dashboard: React.FC = () => {
         <PlusIcon className="w-[22px] h-[22px]" />
       </button>
 
-      <PhoneTabBar currentView={currentView} onViewChange={handleViewChange} todayCount={todayCount} />
+      <PhoneTabBar
+        currentView={currentView}
+        onViewChange={handleViewChange}
+        todayCount={todayCount}
+        topicsCount={topicsCount}
+      />
       </TopicNavigationContext.Provider>
 
       {/* Add Todo Modal */}

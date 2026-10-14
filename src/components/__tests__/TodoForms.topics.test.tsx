@@ -78,7 +78,7 @@ describe('todo forms: topic picker', () => {
     expect(createTodo.mock.calls[0][0]).not.toHaveProperty('topic_id');
   });
 
-  it('edit: loads the todo\'s topic and always sends area_id with topic_id', async () => {
+  it('edit: loads the todo\'s topic and sends a changed topic with area_id', async () => {
     render(<EditTodoModal todo={baseTodo} isOpen onClose={vi.fn()} onTodoUpdated={vi.fn()} />);
     expect(screen.getByLabelText(/Topic/)).toHaveDisplayValue('Kitchen reno');
     await userEvent.selectOptions(screen.getByLabelText(/Topic/), 'None');
@@ -90,7 +90,36 @@ describe('todo forms: topic picker', () => {
     render(<EditTodoModal todo={{ ...baseTodo, topic_id: 8, topic: { id: 8, name: 'Old shed' } }} isOpen onClose={vi.fn()} onTodoUpdated={vi.fn()} />);
     expect(screen.getByLabelText(/Topic/)).toHaveDisplayValue('Old shed (archived)');
     await userEvent.click(screen.getByRole('button', { name: /Save/ }));
-    expect(updateTodo).toHaveBeenCalledWith(5, expect.objectContaining({ area_id: 1, topic_id: 8 }));
+    // Unchanged topic: no topic_id key; area_id is unchanged, so the server
+    // keeps the topic (spec §2.1 item 4)
+    expect(updateTodo).toHaveBeenCalledWith(5, expect.objectContaining({ area_id: 1 }));
+    expect(updateTodo.mock.calls[0][1]).not.toHaveProperty('topic_id');
+  });
+
+  it('edit: an untouched save of a todo with no known topic sends no topic_id', async () => {
+    // topic_id undefined: a stale cache entry or a payload without the field
+    render(<EditTodoModal todo={{ ...baseTodo, topic_id: undefined, topic: undefined }} isOpen onClose={vi.fn()} onTodoUpdated={vi.fn()} />);
+    await userEvent.click(screen.getByRole('button', { name: /Save/ }));
+    expect(updateTodo).toHaveBeenCalledWith(5, expect.objectContaining({ area_id: 1 }));
+    expect(updateTodo.mock.calls[0][1]).not.toHaveProperty('topic_id');
+  });
+
+  it('edit: changing the area clears the loaded topic and sends topic_id null with the new area', async () => {
+    render(<EditTodoModal todo={{ ...baseTodo, topic_id: 7, topic: { id: 7, name: 'Porch' } }} isOpen onClose={vi.fn()} onTodoUpdated={vi.fn()} />);
+    await userEvent.click(screen.getByRole('radio', { name: 'Work' }));
+    expect(screen.getByText('Topic cleared: topics belong to one area.')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /Save/ }));
+    expect(updateTodo).toHaveBeenCalledWith(5, expect.objectContaining({ area_id: 2, topic_id: null }));
+  });
+
+  it('edit: a topic picked then cleared by an area change still sends topic_id null', async () => {
+    // Loaded with no topic; picking Kitchen reno then moving to Work clears it.
+    // topicId is back to the loaded null, so only `cleared` sends it.
+    render(<EditTodoModal todo={{ ...baseTodo, topic_id: null, topic: null }} isOpen onClose={vi.fn()} onTodoUpdated={vi.fn()} />);
+    await userEvent.selectOptions(screen.getByLabelText(/Topic/), 'Kitchen reno');
+    await userEvent.click(screen.getByRole('radio', { name: 'Work' }));
+    await userEvent.click(screen.getByRole('button', { name: /Save/ }));
+    expect(updateTodo).toHaveBeenCalledWith(5, expect.objectContaining({ area_id: 2, topic_id: null }));
   });
 
   it('edit: a todo whose topic was deleted shows None', () => {

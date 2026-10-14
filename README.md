@@ -69,7 +69,7 @@ src/
 - [x] Access tokens: create, list, revoke
 - [x] OAuth consent page at `/oauth/consent`: approve a Claude connection with a passkey, or deny it
 - [x] Connected apps: list OAuth connections (client, scopes, created, last used, expiry) and disconnect them
-- [x] **Topics**: a second axis inside an area. The Topics tab lists each topic's open/done counts and status note (stale after 14 days with open todos), topic detail edits the note and lists the topic's todos, every todo form has a topic picker, and todo rows carry a topic chip that opens the topic.
+- [x] **Topics**: a second axis inside an area. The Topics tab lists each topic's open/done counts and status note (stale after 14 days with open todos), topic detail edits the note and lists the topic's todos, every todo form has a topic picker, and todo rows carry a topic chip that opens the topic. Claude's proposed topic changes are reviewed at `/topics/proposals/:id` (reachable from the Topics tab's pending count and banner) and applied all or nothing.
 
 ## 🚧 Upcoming Features
 
