@@ -130,6 +130,17 @@ describe('new todo rows', () => {
     expect(d.newTodos[0]).toMatchObject({ target: null, accepted: true, missingTopic: 'Gone' });
   });
 
+  it('a new todo whose topic now sits in another area starts under No topic with missingTopic', () => {
+    const d = withTodos([makeProposedTodo({ topic: 'Website' })]);
+    expect(d.newTodos[0]).toMatchObject({ target: null, accepted: true, missingTopic: 'Website' });
+  });
+
+  it('a new todo whose topic is archived in the same area keeps that topic', () => {
+    const topics = makeResolved().topics.map((t) => (t.name === 'Garden' ? { ...t, archived: true } : t));
+    const d = withTodos([makeProposedTodo({ topic: 'Garden' })], topics);
+    expect(d.newTodos[0]).toMatchObject({ target: 't:5', accepted: true, missingTopic: null });
+  });
+
   it('a resolved proposal without new_todos gives newTodos []', () => {
     const resolved = makeResolved();
     const old: Partial<typeof resolved> = { ...resolved };

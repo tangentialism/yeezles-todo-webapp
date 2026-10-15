@@ -23,8 +23,8 @@ Task 6 (reducer actions for new todos), then Task 7 (components). Push and `gh p
 ### Task 5 (data layer: types, init, selectors, serialize)
 
 - Check command `npm run lint && npm run build && npx vitest run`: lint 0
-  errors, 5 warnings (baseline 5); build succeeded; 68 files, 570 tests passed
-  (baseline 557, +13 new). The 13 were RED first (13 failed).
+  errors, 5 warnings (baseline 5); build succeeded; 68 files, 572 tests passed
+  (baseline 557, +15 new). The first 13 were RED first (13 failed).
 - Two existing tests gained `new_todos: []` in their expected apply payload
   (`proposalDraft.serialize.test.ts`, `ProposalReview.test.tsx`), because
   serialize now always emits `new_todos`.

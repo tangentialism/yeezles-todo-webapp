@@ -287,7 +287,11 @@ export const initDraft = (resolved: ResolvedProposal): Draft => {
   // A new todo's topic: a key, or No topic when it has none or no longer exists.
   const newTodos: DraftNewTodo[] = (resolved.new_todos ?? []).map((todo, index) => {
     const known = todo.topic === null ? undefined : keyByName.get(normName(todo.topic));
-    const missing = todo.topic !== null && (known === undefined || known.startsWith('u:'));
+    const topic = known === undefined ? undefined : topics.find((t) => t.key === known);
+    // Unknown, or an existing topic now in another area (apply would refuse it): No topic.
+    // An archived topic in this area stays: apply allows it.
+    const missing =
+      todo.topic !== null && (!topic || topic.kind === 'unknown' || (topic.kind === 'existing' && topic.areaId !== areaId));
     return {
       key: `n:${index}`,
       index,
