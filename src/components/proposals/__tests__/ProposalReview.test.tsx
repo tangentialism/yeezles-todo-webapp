@@ -7,7 +7,7 @@ import * as AreaContextModule from '../../../contexts/AreaContext';
 import * as ProposalStore from '../../../hooks/useProposalStore';
 import { ApiError } from '../../../services/apiError';
 import { areaContextValue, makeArea } from '../../../test/topicFactories';
-import { makeResolved } from '../../../test/proposalFactories';
+import { makeProposedTodo, makeResolved } from '../../../test/proposalFactories';
 import type { ResolvedProposal } from '../../../types/proposal';
 
 vi.mock('../../../contexts/AreaContext');
@@ -328,5 +328,40 @@ describe('ProposalReview', () => {
     mockProposal(undefined);
     renderAt('/topics/proposals/abc');
     expect(screen.getByText('Proposal not found')).toBeInTheDocument();
+  });
+
+  it('Apply sends new_todos and shows "Applied: 2 new todos, …"', async () => {
+    applyProposal.mockResolvedValue({ proposal: { id: 7, status: 'applied' }, created_topics: [], created_todos: [] });
+    const resolved = enabledAtLoad();
+    resolved.new_todos = [makeProposedTodo({ title: 'Buy grout', topic: 'Garden' }), makeProposedTodo({ title: 'Call plumber' })];
+    mockProposal(resolved);
+    renderAt();
+    await userEvent.click(applyButton());
+    expect(applyProposal).toHaveBeenCalledTimes(1);
+    const body = applyProposal.mock.calls[0][1];
+    expect(body.new_todos).toEqual([
+      expect.objectContaining({ title: 'Buy grout', topic: 'Garden' }),
+      expect.objectContaining({ title: 'Call plumber', topic: null }),
+    ]);
+    expect(showToast).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringMatching(/^Applied: 2 new todos, / ) }));
+  });
+
+  it('the No topic section renders on the By topic tab and a vanished topic shows its line', () => {
+    const resolved = enabledAtLoad();
+    resolved.new_todos = [makeProposedTodo({ title: 'Lost one', topic: 'Gone' })];
+    mockProposal(resolved);
+    renderAt();
+    const none = screen.getByRole('region', { name: 'No topic' });
+    expect(within(none).getByText("Claude proposed 'Gone', which no longer exists")).toBeInTheDocument();
+  });
+
+  it('an applied proposal lists its created todos read-only', () => {
+    const resolved = resolvedAs('applied', {
+      area_id: 2, new_topics: [], assignments: [], note_edits: [],
+      new_todos: [makeProposedTodo({ title: 'Buy grout', topic: 'Garden' })],
+    });
+    mockProposal(resolved);
+    renderAt();
+    expect(within(screen.getByRole('region', { name: 'Garden' })).getByText('Buy grout')).toBeInTheDocument();
   });
 });

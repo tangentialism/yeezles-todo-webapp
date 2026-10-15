@@ -5,15 +5,18 @@ import userEvent from '@testing-library/user-event';
 import ProposalTopicSection from '../ProposalTopicSection';
 import UnassignedTab from '../UnassignedTab';
 import ReadOnlyProposal from '../ReadOnlyProposal';
-import { draftReducer, initDraft, sections } from '../../../utils/proposalDraft';
-import { makeResolved } from '../../../test/proposalFactories';
+import NoTopicSection from '../NoTopicSection';
+import { draftReducer, initDraft, noTopicTodos, sections } from '../../../utils/proposalDraft';
+import { makeProposedTodo, makeResolved } from '../../../test/proposalFactories';
+import type { ResolvedProposal } from '../../../types/proposal';
 
 /** Renders every section and the Unassigned tab over a live reducer. */
-const Harness: React.FC = () => {
-  const [draft, dispatch] = useReducer(draftReducer, makeResolved(), initDraft);
+const Harness: React.FC<{ resolved?: ResolvedProposal }> = ({ resolved }) => {
+  const [draft, dispatch] = useReducer(draftReducer, resolved ?? makeResolved(), initDraft);
   return (
     <>
       {sections(draft).map((topic) => <ProposalTopicSection key={topic.key} topic={topic} draft={draft} dispatch={dispatch} />)}
+      {noTopicTodos(draft).length > 0 && <NoTopicSection draft={draft} dispatch={dispatch} />}
       <UnassignedTab draft={draft} dispatch={dispatch} />
     </>
   );
@@ -120,5 +123,76 @@ describe('ReadOnlyProposal', () => {
     expect(within(garden).getByText('Todo #20')).toBeInTheDocument();
     expect(within(garden).getByText('Done.')).toBeInTheDocument();
     expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+  });
+});
+
+const withNewTodos = (todos: ReturnType<typeof makeProposedTodo>[]): ResolvedProposal => ({ ...makeResolved(), new_todos: todos });
+
+describe('new todos in the review', () => {
+  it('a new todo renders under its topic with a New badge, its due date and Today flag', () => {
+    render(<Harness resolved={withNewTodos([makeProposedTodo({ title: 'Buy grout', topic: 'Kitchen reno', due_date: '2026-10-20', is_today: true })])} />);
+    const kitchen = screen.getByRole('region', { name: 'Kitchen reno' });
+    expect(within(kitchen).getByRole('checkbox', { name: 'Create "Buy grout"' })).toBeChecked();
+    const row = within(kitchen).getByText('Buy grout').closest('[role="listitem"]') as HTMLElement;
+    expect(within(row).getByText('New')).toBeInTheDocument();
+    expect(within(row).getByText(/Oct 20/)).toBeInTheDocument();
+    expect(within(row).getByText('Today')).toBeInTheDocument();
+  });
+
+  it('No topic section lists null-target new todos and is absent when there are none', () => {
+    const { unmount } = render(<Harness resolved={withNewTodos([makeProposedTodo({ title: 'Call plumber' })])} />);
+    const none = screen.getByRole('region', { name: 'No topic' });
+    expect(within(none).getByRole('heading', { level: 2, name: 'No topic' })).toBeInTheDocument();
+    expect(within(none).getByText('Call plumber')).toBeInTheDocument();
+    expect(within(none).getByRole('combobox', { name: 'Topic for "Call plumber"' })).toHaveDisplayValue('No topic');
+    unmount();
+    render(<Harness resolved={withNewTodos([makeProposedTodo({ title: 'Buy grout', topic: 'Garden' })])} />);
+    expect(screen.queryByRole('region', { name: 'No topic' })).not.toBeInTheDocument();
+  });
+
+  it('the missing-topic line shows for a vanished topic', () => {
+    render(<Harness resolved={withNewTodos([makeProposedTodo({ title: 'Lost one', topic: 'Gone' })])} />);
+    const none = screen.getByRole('region', { name: 'No topic' });
+    expect(within(none).getByText("Claude proposed 'Gone', which no longer exists")).toBeInTheDocument();
+  });
+
+  it('unchecking a new topic section moves its todo row into No topic', async () => {
+    render(<Harness resolved={withNewTodos([makeProposedTodo({ title: 'Buy grout', topic: 'Kitchen reno' })])} />);
+    expect(screen.queryByRole('region', { name: 'No topic' })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Keep new topic "Kitchen reno"' }));
+    expect(within(screen.getByRole('region', { name: 'No topic' })).getByText('Buy grout')).toBeInTheDocument();
+    expect(within(screen.getByRole('region', { name: 'Kitchen reno' })).queryByText('Buy grout')).not.toBeInTheDocument();
+  });
+
+  it('unchecking a new todo and retargeting it works from the row', async () => {
+    render(<Harness resolved={withNewTodos([makeProposedTodo({ title: 'Call plumber' })])} />);
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Topic for "Call plumber"' }), 'Garden');
+    expect(within(screen.getByRole('region', { name: 'Garden' })).getByRole('checkbox', { name: 'Create "Call plumber"' })).toBeChecked();
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Create "Call plumber"' }));
+    expect(screen.getByRole('checkbox', { name: 'Create "Call plumber"' })).not.toBeChecked();
+  });
+});
+
+describe('ReadOnlyProposal created todos', () => {
+  it('lists created todos from applied, grouped by topic, and renders a phase 2 payload without new_todos', () => {
+    const resolved = makeResolved();
+    const { unmount } = render(
+      <ReadOnlyProposal
+        resolved={resolved}
+        payload={{
+          area_id: 2,
+          new_topics: [{ name: 'Kitchen reno', description: null }],
+          assignments: [],
+          note_edits: [],
+          new_todos: [makeProposedTodo({ title: 'Buy grout', topic: 'Kitchen reno' }), makeProposedTodo({ title: 'Call plumber', topic: null })],
+        }}
+      />
+    );
+    expect(within(screen.getByRole('region', { name: 'Kitchen reno' })).getByText('Buy grout')).toBeInTheDocument();
+    expect(within(screen.getByRole('region', { name: 'No topic' })).getByText('Call plumber')).toBeInTheDocument();
+    unmount();
+    render(<ReadOnlyProposal resolved={resolved} payload={{ area_id: 2, new_topics: [], assignments: [{ todo_id: 1, topic: 'Garden' }], note_edits: [] }} />);
+    expect(within(screen.getByRole('region', { name: 'Garden' })).getByText('Order countertop')).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'No topic' })).not.toBeInTheDocument();
   });
 });

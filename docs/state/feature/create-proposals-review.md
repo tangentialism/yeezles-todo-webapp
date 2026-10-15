@@ -10,7 +10,7 @@ live in the workspace repo, branch `spec/mcp-create-proposals`:
 
 ## Next action
 
-Task 7 (components for new todo rows; the reducer actions are done). Push and `gh pr create --base master` are gated on David.
+Task 7 Step 5 browser check (components are done and unit-tested; the check runs against a local backend with PR A). Push and `gh pr create --base master` (title `Review new todos in proposals`) are gated on David.
 
 ## Verified
 
@@ -41,7 +41,24 @@ Task 7 (components for new todo rows; the reducer actions are done). Push and `g
   (`redirectNewTodo` refuses one; drops and `useExisting` retarget); a dropped
   new topic's todos serialize with `topic: null`.
 
+### Task 7 (components, read-only view)
+
+- Check command: lint 0 errors, 5 warnings (baseline 5); build succeeded; 68
+  files, 594 tests passed (Task 6: 584, +10 new). RED first: the Sections
+  file failed to import (`NoTopicSection` missing) and 2 Review tests failed
+  before the implementation.
+- New: `NewTodoRow`, `NoTopicSection`; `TopicTargetSelect` gained `noneLabel`
+  (default `—`, so assignment rows are unchanged). `ReadOnlyProposal` lists
+  `applied.new_todos` by topic with a last "No topic" group, and tolerates a
+  payload with no `new_todos`.
+- `afterResolve` already called `invalidateTodoViews`; a test now pins it
+  (`useProposalStore.test.tsx`), no new code.
+
 ## Assumed
+
+- Task 7 Step 5 (browser check) is NOT done: nothing here was rendered in a
+  browser or run against a live backend. Todos appearing in the list without
+  a reload after apply is covered only by the invalidation unit test.
 
 - The backend (`yeezles-todo` PR A, merged) serves `new_todos` on
   `GET /proposals/:id` as documented in its API doc; not run against a live
