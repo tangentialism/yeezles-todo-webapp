@@ -1,5 +1,15 @@
-import type { ResolvedProposal } from '../types/proposal';
+import type { ProposedTodo, ResolvedProposal } from '../types/proposal';
 import { makeTopic } from './topicFactories';
+
+export const makeProposedTodo = (overrides: Partial<ProposedTodo> = {}): ProposedTodo => ({
+  title: 'Buy paint',
+  description: null,
+  due_date: null,
+  is_today: false,
+  completed: false,
+  topic: null,
+  ...overrides,
+});
 
 /**
  * One proposal for area 2 ("Home") exercising every row state:
@@ -63,6 +73,7 @@ export const makeResolved = (overrides: Partial<ResolvedProposal> = {}): Resolve
     { topic: 'Kitchen reno', status_note: 'Planning.', current_status_note: null },
     { topic: 'Garden', status_note: 'Bulbs in; mulch next.', current_status_note: 'Bulbs ordered.' },
   ],
+  new_todos: [],
   area_topics: [
     makeTopic({ id: 5, area_id: 2, name: 'Garden', open_count: 3, done_count: 1 }),
     makeTopic({ id: 6, area_id: 2, name: 'Shed' }),

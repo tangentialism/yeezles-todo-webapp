@@ -12,6 +12,8 @@ interface TopicTargetSelectProps {
   draft: Draft;
   /** Offer "—" (the Unassigned tab, where it removes the assignment). */
   allowNone: boolean;
+  /** Text of the "none" option; "No topic" on a new todo's row. */
+  noneLabel?: string;
   disabled?: boolean;
   onSelect: (key: string | null) => void;
   /** Called with a validated name from the inline "New topic…" field. */
@@ -29,7 +31,7 @@ const SELECT =
  * field. A target not otherwise listed (archived, other-area) stays visible.
  * The inline field has no Enter-to-add and no form (ruling L24).
  */
-const TopicTargetSelect: React.FC<TopicTargetSelectProps> = ({ label, value, draft, allowNone, disabled, onSelect, onCreate }) => {
+const TopicTargetSelect: React.FC<TopicTargetSelectProps> = ({ label, value, draft, allowNone, noneLabel = '—', disabled, onSelect, onCreate }) => {
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -89,7 +91,7 @@ const TopicTargetSelect: React.FC<TopicTargetSelectProps> = ({ label, value, dra
         else onSelect(next === NONE ? null : next);
       }}
     >
-      {(allowNone || value === null) && <option value={NONE}>—</option>}
+      {(allowNone || value === null) && <option value={NONE}>{noneLabel}</option>}
       {unlisted && <option value={unlisted.key}>{unlisted.name}</option>}
       {options.map((o) => (
         <option key={o.key} value={o.key}>

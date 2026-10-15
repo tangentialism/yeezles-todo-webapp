@@ -2,6 +2,9 @@ import React from 'react';
 import type { ResolvedProposal, TopicChangesPayload } from '../../types/proposal';
 import { normName } from '../../utils/proposalDraft';
 
+/** React key of the synthetic No topic group, so it can't collide with a real topic named "No topic". */
+const NO_TOPIC_KEY = '__none__';
+
 /** Props for {@link ReadOnlyProposal}. */
 interface ReadOnlyProposalProps {
   resolved: ResolvedProposal;
@@ -14,7 +17,7 @@ interface ReadOnlyProposalProps {
 interface Group {
   name: string;
   isNew: boolean;
-  todos: string[];
+  todos: Array<{ title: string; created: boolean }>;
   note: string | null;
 }
 
@@ -36,24 +39,29 @@ const ReadOnlyProposal: React.FC<ReadOnlyProposalProps> = ({ resolved, payload, 
   payload.new_topics.forEach((t) => {
     group(t.name).isNew = true;
   });
-  payload.assignments.forEach((a) => group(a.topic).todos.push(titleOf(a.todo_id)));
+  payload.assignments.forEach((a) => group(a.topic).todos.push({ title: titleOf(a.todo_id), created: false }));
   payload.note_edits.forEach((n) => {
     group(n.topic).note = n.status_note;
   });
+  // Phase 2 rows have no new_todos. A todo with no topic goes in a last "No topic" group.
+  const noTopic: Group = { name: 'No topic', isNew: false, todos: [], note: null };
+  (payload.new_todos ?? []).forEach((t) => (t.topic === null ? noTopic : group(t.topic)).todos.push({ title: t.title, created: true }));
+  const shown = [...groups.values(), ...(noTopic.todos.length > 0 ? [noTopic] : [])];
 
   return (
     <div className={muted ? 'opacity-60' : ''}>
-      {[...groups.values()].map((g) => (
-        <section key={normName(g.name)} aria-label={g.name} className="pt-6">
+      {shown.map((g) => (
+        <section key={g === noTopic ? NO_TOPIC_KEY : normName(g.name)} aria-label={g.name} className="pt-6">
           <h2 className="flex items-center gap-3 pb-2 border-b border-line text-[17px] font-medium text-ink">
             {g.name}
             {g.isNew && <span className="font-mono text-[11px] tracking-[0.12em] text-accent-ink">NEW</span>}
           </h2>
           {g.todos.length > 0 && (
             <ul className="py-1">
-              {g.todos.map((title, i) => (
+              {g.todos.map(({ title, created }, i) => (
                 <li key={`${title}-${i}`} className="py-2 border-b border-line text-[15px] text-ink-2">
                   {title}
+                  {created && <span className="ml-2 font-mono text-[11px] tracking-[0.12em] text-accent-ink">NEW</span>}
                 </li>
               ))}
             </ul>

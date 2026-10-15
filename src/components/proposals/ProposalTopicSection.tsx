@@ -5,6 +5,7 @@ import { canUseExisting } from '../../utils/proposalDraft';
 import type { Draft, DraftAction, DraftTopic } from '../../utils/proposalDraft';
 import { TOPIC_DESCRIPTION_MAX, TOPIC_NAME_MAX } from '../../constants';
 import ProposalRow from './ProposalRow';
+import NewTodoRow from './NewTodoRow';
 import NoteEditBlock from './NoteEditBlock';
 
 /** Props for {@link ProposalTopicSection}. */
@@ -22,6 +23,7 @@ interface ProposalTopicSectionProps {
  */
 const ProposalTopicSection: React.FC<ProposalTopicSectionProps> = ({ topic, draft, dispatch }) => {
   const rows = draft.rows.filter((r) => r.target === topic.key);
+  const newTodos = draft.newTodos.filter((t) => t.target === topic.key);
   const note = draft.notes.find((n) => n.key === topic.key);
   const label = topic.name.trim() || 'Unnamed topic';
 
@@ -92,8 +94,11 @@ const ProposalTopicSection: React.FC<ProposalTopicSectionProps> = ({ topic, draf
         </div>
       )}
 
-      {rows.length > 0 && (
+      {(newTodos.length > 0 || rows.length > 0) && (
         <div role="list">
+          {newTodos.map((row) => (
+            <NewTodoRow key={row.key} row={row} draft={draft} dispatch={dispatch} />
+          ))}
           {rows.map((row) => (
             <ProposalRow key={row.key} row={row} draft={draft} dispatch={dispatch} />
           ))}

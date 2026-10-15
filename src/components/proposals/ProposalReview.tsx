@@ -8,7 +8,7 @@ import type { ResolvedProposal } from '../../types/proposal';
 import type { TopicsHandoff } from '../../hooks/useTopicsHandoff';
 import { formatRelative } from '../../utils/date';
 import {
-  applyBlocker, counts, draftReducer, initDraft, sections, serialize, summarizeAccepted,
+  applyBlocker, counts, draftReducer, initDraft, noTopicTodos, sections, serialize, summarizeAccepted,
 } from '../../utils/proposalDraft';
 import type { Draft, DraftAction } from '../../utils/proposalDraft';
 import PageShell from '../ui/PageShell';
@@ -17,6 +17,7 @@ import { Spinner } from '../ui/Icons';
 import { dangerTextButton, ghostButton, primaryButton } from '../ui/styles';
 import { ViewError, ViewLoading } from '../ViewChrome';
 import ProposalTopicSection from './ProposalTopicSection';
+import NoTopicSection from './NoTopicSection';
 import UnassignedTab from './UnassignedTab';
 import ReadOnlyProposal from './ReadOnlyProposal';
 
@@ -251,7 +252,10 @@ const ProposalReview: React.FC = () => {
 
       <div role="tabpanel">
         {tab === 'topics' ? (
-          sections(draft).map((topic) => <ProposalTopicSection key={topic.key} topic={topic} draft={draft} dispatch={dispatch} />)
+          <>
+            {sections(draft).map((topic) => <ProposalTopicSection key={topic.key} topic={topic} draft={draft} dispatch={dispatch} />)}
+            {noTopicTodos(draft).length > 0 && <NoTopicSection draft={draft} dispatch={dispatch} />}
+          </>
         ) : (
           <UnassignedTab draft={draft} dispatch={dispatch} />
         )}
