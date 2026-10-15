@@ -525,7 +525,8 @@ export const draftReducer = (draft: Draft, action: DraftAction): Draft => {
                 ? { ...t, movedFrom: null }
                 : t
           )
-          : next;
+          : // An existing (or unknown) topic keeps its new todos' target, but they are no longer created.
+            mapNewTodos(next, (t) => (t.target === action.key ? { ...t, accepted: false, error: null } : t));
       return mapNotes(
         mapRows(withTodos, (r) => (r.target === action.key ? { ...r, accepted: false, cascaded: false, error: null } : r)),
         (n) => (n.key === action.key ? { ...n, accepted: false, cascaded: false, error: null } : n)

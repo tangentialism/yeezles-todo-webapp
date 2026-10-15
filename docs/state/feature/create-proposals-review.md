@@ -10,7 +10,9 @@ live in the workspace repo, branch `spec/mcp-create-proposals`:
 
 ## Next action
 
-Task 7 Step 5 browser check (components are done and unit-tested; the check runs against a local backend with PR A). Push and `gh pr create --base master` (title `Review new todos in proposals`) are gated on David.
+Open PR B: a gated ask to David to push and `gh pr create --base master`
+(title `Review new todos in proposals`). Then the workspace pin bump, then PR C
+(Task 8).
 
 ## Verified
 
@@ -54,15 +56,62 @@ Task 7 Step 5 browser check (components are done and unit-tested; the check runs
 - `afterResolve` already called `invalidateTodoViews`; a test now pins it
   (`useProposalStore.test.tsx`), no new code.
 
+### Final review fixes
+
+- Reject all on an existing (or unknown) topic now also unchecks that topic's
+  new todos (`accepted: false`, target and `movedFrom` unchanged). RED first:
+  the reducer test failed on `accepted: true`. On a new topic the behavior is
+  unchanged (todos go to No topic, still checked).
+- `ReadOnlyProposal`: the synthetic No topic group has the key `__none__`, so a
+  real topic named "No topic" cannot share it. New test, RED first against the
+  old key (duplicate-key warning), then GREEN.
+- Check command: lint 0 errors, 5 warnings (baseline 5); build succeeded; 68
+  files, 595 tests passed (Task 7: 594, +1; the reducer test was changed in place).
+
+### Task 7 Step 5, browser check (by a subagent, not re-run by the controller)
+
+Report: `.superpowers/sdd/2026-10-14-mcp-create-proposals/task-7-browser-report.md`
+in the workspace worktree. Result PASS, 8 of 8 items seen.
+
+- Backend: `yeezles-todo` `origin/main` at `8c97a76` (PR #65, detached), built
+  with `npm run build`. Separate database `yeezles_create_proposals_check` on
+  the shared embedded PostgreSQL (dropped afterwards). Webapp at `f889f75`,
+  Vite on port 5184, backend on 3100.
+- Browser: Claude in Chrome, viewport 606x723, `document.visibilityState`
+  `hidden` throughout. Signed in with a seeded session cookie, not Google.
+- Seen on proposal 1 (3 new todos, 1 new topic, 1 assignment): "5 of 5
+  accepted" and "Apply 5 changes"; new todos under Patio, Garden and a No topic
+  section with New badges, due date and Today; selects offer No topic, assignment
+  selects do not; unchecking Patio moved "Buy pavers" to No topic, still
+  checked; re-checking restored it; retarget to Kitchen reno and unchecking one
+  gave "2 of 5"; Apply sent `POST /proposals/1/apply 200`, landed on Topics;
+  todos in the list without a full reload; the applied page is read-only with
+  "Applied just now" and no Apply button.
+- Seen on proposal 2 (`is_today`, `due_date`, kept new topic): toast "Applied:
+  2 new todos, 1 new topic"; Garden 2, Kitchen reno 2, Shed 1; Today tab 1.
+- DB verification (`verify.js`): proposal 1 created "Buy pavers" (no topic) and
+  "Call plumber" (Kitchen reno) only, no "Prune roses" and no Patio topic;
+  proposal 2 created "Prune roses" (Garden, `is_today` true, due 2026-10-20)
+  and "Paint shed" in new topic Shed; both proposals `applied`.
+
+## Rulings
+
+- 3: counts and `applyBlocker` count new todos.
+- 4: a topic moved to another area counts as missing; an archived topic in the
+  same area does not.
+- 6: Reject all on an existing topic drops its new todos (unchecks them, target
+  kept). On a new topic they move to No topic, still checked.
+- 7 (deferred): a deleted topic's name cannot be recreated in review, because
+  `knownNames` counts `exists: false` refs. Pre-existing; a follow-up issue.
+
 ## Assumed
 
-- Task 7 Step 5 (browser check) is NOT done: nothing here was rendered in a
-  browser or run against a live backend. Todos appearing in the list without
-  a reload after apply is covered only by the invalidation unit test.
-
-- The backend (`yeezles-todo` PR A, merged) serves `new_todos` on
-  `GET /proposals/:id` as documented in its API doc; not run against a live
-  backend in this task.
+- The hidden-tab first-Apply drop recurred in the browser check (two clicks
+  sent no request, the third worked). It still needs David's hand check in a
+  visible tab.
+- The deployed webapp and the hosted backend are untested; the check ran
+  against a local backend and Vite.
+- Google sign-in was not exercised (seeded session cookie).
 - Not run: the hosted MCP connector creating a proposal with new todos.
 
 ## Resume

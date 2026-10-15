@@ -254,9 +254,9 @@ describe('draftReducer: new todos', () => {
     for (const i of [0, 3]) expect(nt(d, i)).toMatchObject({ target: null, movedFrom: null, accepted: true });
   });
 
-  it('rejectSection on an existing topic leaves its new todos alone', () => {
+  it('rejectSection on an existing topic unchecks its new todos and keeps their target', () => {
     const d = go({ type: 'rejectSection', key: 't:5' });
-    expect(nt(d, 1).target).toBe('t:5');
+    expect(nt(d, 1)).toMatchObject({ target: 't:5', accepted: false, movedFrom: null, error: null });
   });
 
   it('useExisting retargets the new todos of the merged topic, including ones a drop had moved', () => {

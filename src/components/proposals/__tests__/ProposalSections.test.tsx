@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import React, { useReducer } from 'react';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -194,5 +194,24 @@ describe('ReadOnlyProposal created todos', () => {
     render(<ReadOnlyProposal resolved={resolved} payload={{ area_id: 2, new_topics: [], assignments: [{ todo_id: 1, topic: 'Garden' }], note_edits: [] }} />);
     expect(within(screen.getByRole('region', { name: 'Garden' })).getByText('Order countertop')).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'No topic' })).not.toBeInTheDocument();
+  });
+
+  it('a real topic named "No topic" and no-topic todos render without a duplicate key', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    render(
+      <ReadOnlyProposal
+        resolved={makeResolved()}
+        payload={{
+          area_id: 2,
+          new_topics: [],
+          assignments: [],
+          note_edits: [],
+          new_todos: [makeProposedTodo({ title: 'In real', topic: 'No topic' }), makeProposedTodo({ title: 'In none', topic: null })],
+        }}
+      />
+    );
+    expect(screen.getAllByRole('region', { name: 'No topic' })).toHaveLength(2);
+    expect(spy.mock.calls.filter((c) => String(c[0]).includes('same key'))).toEqual([]);
+    spy.mockRestore();
   });
 });
