@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
-  applyBlocker, canUseExisting, counts, findTopic, initDraft, rowReason, sections, targetOptions, validateTopicName,
+  applyBlocker, canUseExisting, counts, findTopic, initDraft, noTopicTodos, rowReason, sections, targetOptions, validateTopicName,
 } from '../proposalDraft';
-import { makeResolved } from '../../test/proposalFactories';
+import { makeProposedTodo, makeResolved } from '../../test/proposalFactories';
 
 const draft = initDraft(makeResolved());
 const row = (todoId: number) => draft.rows.find((r) => r.todoId === todoId)!;
@@ -100,5 +100,68 @@ describe('applyBlocker', () => {
       note_edits: [],
     }));
     expect(applyBlocker(d)).toBe('Nothing accepted. Reject instead.');
+  });
+});
+
+describe('new todo rows', () => {
+  const withTodos = (todos: ReturnType<typeof makeProposedTodo>[], topics = makeResolved().topics) =>
+    initDraft(makeResolved({ new_todos: todos, topics }));
+
+  it('new todos become rows keyed n:<index> under their resolved topic', () => {
+    const d = withTodos([
+      makeProposedTodo({ title: 'A', topic: 'Garden' }),
+      makeProposedTodo({ title: 'B', topic: 'kitchen reno' }),
+      makeProposedTodo({ title: 'C', topic: null }),
+    ]);
+    expect(d.newTodos.map((t) => [t.key, t.index, t.target, t.accepted, t.movedFrom, t.missingTopic, t.error])).toEqual([
+      ['n:0', 0, 't:5', true, null, null, null],
+      ['n:1', 1, 'n:0', true, null, null, null],
+      ['n:2', 2, null, true, null, null, null],
+    ]);
+    expect(d.newTodos[0].todo.title).toBe('A');
+  });
+
+  it('a new todo whose topic no longer exists starts under No topic, accepted, with missingTopic set to the proposed name', () => {
+    const topics = [
+      ...makeResolved().topics,
+      { name: 'Gone', is_new: false, exists: false, id: null, area_id: null, archived: null, open_count: null, done_count: null },
+    ];
+    const d = withTodos([makeProposedTodo({ topic: 'Gone' })], topics);
+    expect(d.newTodos[0]).toMatchObject({ target: null, accepted: true, missingTopic: 'Gone' });
+  });
+
+  it('a resolved proposal without new_todos gives newTodos []', () => {
+    const resolved = makeResolved();
+    const old: Partial<typeof resolved> = { ...resolved };
+    delete old.new_todos;
+    expect(initDraft(old as typeof resolved).newTodos).toEqual([]);
+    expect(draft.newTodos).toEqual([]);
+  });
+
+  it('sections includes an existing topic targeted only by a new todo', () => {
+    const base = makeResolved();
+    const none = initDraft({ ...base, assignments: [], note_edits: [], new_todos: [] });
+    expect(sections(none).map((t) => t.key)).toEqual(['n:0', 'n:1']);
+    const d = initDraft({ ...base, assignments: [], note_edits: [], new_todos: [makeProposedTodo({ topic: 'Garden' })] });
+    expect(sections(d).map((t) => t.key)).toEqual(['n:0', 'n:1', 't:5']);
+  });
+
+  it('noTopicTodos lists the null-target rows', () => {
+    const d = withTodos([makeProposedTodo({ title: 'A', topic: 'Garden' }), makeProposedTodo({ title: 'B' })]);
+    expect(noTopicTodos(d).map((t) => t.key)).toEqual(['n:1']);
+  });
+
+  it('counts counts new todos', () => {
+    const d = withTodos([makeProposedTodo(), makeProposedTodo({ title: 'B' })]);
+    expect(counts(d)).toEqual({ accepted: 10, total: 13 });
+    const off = { ...d, newTodos: d.newTodos.map((t, i) => (i === 0 ? { ...t, accepted: false } : t)) };
+    expect(counts(off)).toEqual({ accepted: 9, total: 13 });
+  });
+
+  it('a proposal holding only new todos can be applied', () => {
+    const base = makeResolved();
+    const d = initDraft({ ...base, topics: [], assignments: [], note_edits: [], new_todos: [makeProposedTodo()] });
+    expect(counts(d)).toEqual({ accepted: 1, total: 1 });
+    expect(applyBlocker(d)).toBeNull();
   });
 });

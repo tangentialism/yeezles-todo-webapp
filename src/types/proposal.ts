@@ -4,12 +4,24 @@
  */
 import type { TopicRef, TopicWithCounts } from './topic';
 
+/** A todo the proposal would create; `topic` is a name or null (no topic). */
+export interface ProposedTodo {
+  title: string;
+  description: string | null;
+  due_date: string | null;
+  is_today: boolean;
+  completed: boolean;
+  topic: string | null;
+}
+
 /** The topic-change payload, as stored (normalized) and as sent to apply. */
 export interface TopicChangesPayload {
   area_id: number;
   new_topics: Array<{ name: string; description: string | null }>;
   assignments: Array<{ todo_id: number; topic: string }>;
   note_edits: Array<{ topic: string; status_note: string }>;
+  /** Absent on rows stored before create proposals existed. */
+  new_todos?: ProposedTodo[];
 }
 
 export type ProposalStatus = 'pending' | 'applied' | 'rejected';
@@ -83,6 +95,8 @@ export interface ResolvedProposal {
   topics: ResolvedTopicRef[];
   assignments: ResolvedAssignment[];
   note_edits: ResolvedNoteEdit[];
+  /** Always an array (`[]` for old rows); read this, not `proposal.payload`. */
+  new_todos: ProposedTodo[];
   /** The area's active topics, for the per-row dropdown. */
   area_topics: TopicWithCounts[];
   /** Open, topic-less todos in the area that the payload does not name. */
@@ -93,4 +107,5 @@ export interface ResolvedProposal {
 export interface ApplyResult {
   proposal: ProposalRecord;
   created_topics: TopicRef[];
+  created_todos: Array<{ id: number; title: string }>;
 }

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { attachErrors, draftReducer, findTopic, hasErrors, initDraft, serialize, summarizeAccepted } from '../proposalDraft';
 import type { Draft, DraftAction } from '../proposalDraft';
-import { makeResolved } from '../../test/proposalFactories';
+import { makeProposedTodo, makeResolved } from '../../test/proposalFactories';
 
 const run = (...actions: DraftAction[]): Draft => actions.reduce(draftReducer, initDraft(makeResolved()));
 
@@ -21,8 +21,9 @@ describe('serialize', () => {
         { topic: 'Kitchen reno', status_note: 'Planning.' },
         { topic: 'Garden', status_note: 'Bulbs in; mulch next.' },
       ],
+      new_todos: [],
     });
-    expect(pathIndex).toEqual({ new_topics: ['n:0'], assignments: ['a:1', 'a:2', 'a:3', 'a:7'], note_edits: ['n:0', 't:5'] });
+    expect(pathIndex).toEqual({ new_topics: ['n:0'], assignments: ['a:1', 'a:2', 'a:3', 'a:7'], note_edits: ['n:0', 't:5'], new_todos: [] });
   });
 
   it('follows renames, redirects, unchecks and Unassigned additions', () => {
@@ -121,5 +122,54 @@ describe('summarizeAccepted', () => {
     expect(summarizeAccepted({ area_id: 2, new_topics: [{ name: 'a', description: null }, { name: 'b', description: null }], assignments: Array.from({ length: 38 }, (_, i) => ({ todo_id: i + 1, topic: 'a' })), note_edits: [{ topic: 'a', status_note: '' }] }))
       .toBe('2 new topics, 38 assignments, 1 note');
     expect(summarizeAccepted({ area_id: 2, new_topics: [], assignments: [{ todo_id: 1, topic: 'a' }], note_edits: [] })).toBe('1 assignment');
+  });
+});
+
+describe('serialize new todos', () => {
+  const todos = [
+    makeProposedTodo({ title: 'A', description: 'd', due_date: '2026-11-01', is_today: true, completed: true, topic: 'Garden' }),
+    makeProposedTodo({ title: 'B', topic: 'Kitchen reno' }),
+    makeProposedTodo({ title: 'C', topic: null }),
+  ];
+  const base = () => initDraft(makeResolved({ new_todos: todos }));
+
+  it('kept new todos are sent in stored order with only topic changed', () => {
+    const d = base();
+    const dropped = { ...d, newTodos: d.newTodos.map((t) => (t.index === 1 ? { ...t, accepted: false } : t)) };
+    const retargeted = { ...dropped, newTodos: dropped.newTodos.map((t) => (t.index === 0 ? { ...t, target: 't:5' } : t)) };
+    expect(serialize(retargeted).accepted.new_todos).toEqual([todos[0], todos[2]]);
+    const moved = { ...d, newTodos: d.newTodos.map((t) => (t.index === 0 ? { ...t, target: 'n:0' } : t)) };
+    expect(serialize(moved).accepted.new_todos?.[0]).toEqual({ ...todos[0], topic: 'Kitchen reno' });
+  });
+
+  it('a No topic row serializes topic null', () => {
+    const d = base();
+    const none = { ...d, newTodos: d.newTodos.map((t) => (t.index === 0 ? { ...t, target: null } : t)) };
+    expect(serialize(none).accepted.new_todos?.[0]).toEqual({ ...todos[0], topic: null });
+  });
+
+  it('pathIndex.new_todos maps indexes to row keys', () => {
+    const d = base();
+    const dropped = { ...d, newTodos: d.newTodos.map((t) => (t.index === 1 ? { ...t, accepted: false } : t)) };
+    expect(serialize(dropped).pathIndex.new_todos).toEqual(['n:0', 'n:2']);
+  });
+
+  it('attachErrors puts new_todos[1].title on that row', () => {
+    const d = base();
+    const { pathIndex } = serialize(d);
+    const out = attachErrors(d, [{ path: 'new_todos[1].title', reason: 'bad' }], pathIndex);
+    expect(out.newTodos.map((t) => t.error)).toEqual([null, 'bad', null]);
+    expect(out.pageErrors).toEqual([]);
+    expect(attachErrors(out, [], pathIndex).newTodos.map((t) => t.error)).toEqual([null, null, null]);
+  });
+
+  it('a resolved proposal without new todos serializes new_todos []', () => {
+    expect(serialize(initDraft(makeResolved())).accepted.new_todos).toEqual([]);
+  });
+
+  it('summarizeAccepted starts with the new todo count', () => {
+    const payload = { area_id: 2, new_topics: [{ name: 'X', description: null }], assignments: [], note_edits: [], new_todos: [todos[0], todos[1]] };
+    expect(summarizeAccepted(payload)).toBe('2 new todos, 1 new topic');
+    expect(summarizeAccepted({ ...payload, new_todos: [todos[0]] })).toMatch(/^1 new todo,/);
   });
 });

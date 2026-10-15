@@ -174,6 +174,7 @@ describe('ProposalReview', () => {
         { topic: 'Kitchen reno', status_note: 'Planning.' },
         { topic: 'Garden', status_note: 'Bulbs in; mulch next.' },
       ],
+      new_todos: [],
     });
     expect(showToast).toHaveBeenCalledWith({ message: 'Applied: 1 new topic, 4 assignments, 2 notes', type: 'success' });
     expect(JSON.parse(screen.getByTestId('home').textContent!)).toEqual({ view: 'topics', areaId: 2, highlightTopicIds: [30] });

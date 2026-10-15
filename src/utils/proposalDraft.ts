@@ -5,7 +5,7 @@
  * and attachErrors maps a 422's paths back to items. Components only render
  * and dispatch.
  */
-import type { ResolvedProposal, TopicChangesPayload } from '../types/proposal';
+import type { ProposedTodo, ResolvedProposal, TopicChangesPayload } from '../types/proposal';
 import type { TopicRef, TopicWithCounts } from '../types/topic';
 import { TOPIC_NAME_MAX } from '../constants';
 
@@ -72,12 +72,32 @@ export interface DraftNote {
   error: string | null;
 }
 
+/** A todo the proposal would create. */
+export interface DraftNewTodo {
+  /** `n:<index>` into the stored `new_todos`. */
+  key: string;
+  index: number;
+  todo: ProposedTodo;
+  /** Topic key; null = No topic. */
+  target: string | null;
+  accepted: boolean;
+  /** The topic key a cascade moved it off, so it can go back. */
+  movedFrom: string | null;
+  /** The proposed topic name, when that topic no longer exists. */
+  missingTopic: string | null;
+  error: string | null;
+}
+
+/** A new todo's target when it has no topic. */
+export const NO_TOPIC = null;
+
 export interface Draft {
   proposalId: number;
   areaId: number;
   topics: DraftTopic[];
   rows: DraftRow[];
   notes: DraftNote[];
+  newTodos: DraftNewTodo[];
   areaTopics: TopicWithCounts[];
   unassigned: Array<{ id: number; title: string }>;
   /**
@@ -137,15 +157,16 @@ export const rowReason = (draft: Draft, row: DraftRow): string | null => {
 export const isRowIncluded = (draft: Draft, row: DraftRow) => row.accepted && rowCheckable(draft, row);
 export const isNoteIncluded = (draft: Draft, note: DraftNote) => note.accepted && topicUsable(draft, note.key);
 
-/** "N of M accepted": rows, new topics and note edits. */
+/** "N of M accepted": rows, new topics, note edits and new todos. */
 export const counts = (draft: Draft) => {
   const newTopics = draft.topics.filter((t) => t.kind === 'new');
   return {
-    total: draft.rows.length + newTopics.length + draft.notes.length,
+    total: draft.rows.length + newTopics.length + draft.notes.length + draft.newTodos.length,
     accepted:
       draft.rows.filter((r) => isRowIncluded(draft, r)).length +
       newTopics.filter((t) => t.accepted).length +
-      draft.notes.filter((n) => isNoteIncluded(draft, n)).length,
+      draft.notes.filter((n) => isNoteIncluded(draft, n)).length +
+      draft.newTodos.filter((t) => t.accepted).length,
   };
 };
 
@@ -160,14 +181,19 @@ export const applyBlocker = (draft: Draft): string | null => {
   return null;
 };
 
+/** New todos with no topic. */
+export const noTopicTodos = (draft: Draft): DraftNewTodo[] => draft.newTodos.filter((t) => t.target === NO_TOPIC);
+
 /**
- * Topics shown as sections: every new topic, and any topic with a row or note.
+ * Topics shown as sections: every new topic, and any topic with a row, note
+ * or new todo.
  * An existing topic whose rows were all redirected away is hidden (ruling L12;
  * spec §6.2 says one section per topic).
  */
 export const sections = (draft: Draft): DraftTopic[] =>
   draft.topics.filter(
-    (t) => t.kind === 'new' || draft.rows.some((r) => r.target === t.key) || draft.notes.some((n) => n.key === t.key)
+    (t) => t.kind === 'new' || draft.rows.some((r) => r.target === t.key) || draft.notes.some((n) => n.key === t.key) ||
+      draft.newTodos.some((n) => n.target === t.key)
   );
 
 /** Row targets: the area's active topics, then kept new topics without name problems. */
@@ -258,6 +284,22 @@ export const initDraft = (resolved: ResolvedProposal): Draft => {
     error: null,
   }));
 
+  // A new todo's topic: a key, or No topic when it has none or no longer exists.
+  const newTodos: DraftNewTodo[] = (resolved.new_todos ?? []).map((todo, index) => {
+    const known = todo.topic === null ? undefined : keyByName.get(normName(todo.topic));
+    const missing = todo.topic !== null && (known === undefined || known.startsWith('u:'));
+    return {
+      key: `n:${index}`,
+      index,
+      todo,
+      target: missing ? NO_TOPIC : (known ?? NO_TOPIC),
+      accepted: true,
+      movedFrom: null,
+      missingTopic: missing ? todo.topic : null,
+      error: null,
+    };
+  });
+
   // Ruling L10: all resolved names count, except a still-free new name, which
   // is checked via `topics` so renaming that topic to its own name is allowed.
   const knownNames = [
@@ -271,6 +313,7 @@ export const initDraft = (resolved: ResolvedProposal): Draft => {
     topics,
     rows,
     notes,
+    newTodos,
     areaTopics: resolved.area_topics,
     unassigned: resolved.unassigned,
     knownNames: [...new Set(knownNames)],
@@ -292,6 +335,7 @@ export interface PathIndex {
   new_topics: string[];
   assignments: string[];
   note_edits: string[];
+  new_todos: string[];
 }
 
 export type DraftAction =
@@ -475,22 +519,26 @@ export const serialize = (draft: Draft): { accepted: TopicChangesPayload; pathIn
   const newTopics = draft.topics.filter((t) => t.kind === 'new' && t.accepted);
   const rows = draft.rows.filter((r) => isRowIncluded(draft, r));
   const notes = draft.notes.filter((n) => isNoteIncluded(draft, n));
+  const newTodos = draft.newTodos.filter((t) => t.accepted);
   return {
     accepted: {
       area_id: draft.areaId,
       new_topics: newTopics.map((t) => ({ name: t.name.trim(), description: t.description?.trim() ? t.description.trim() : null })),
       assignments: rows.map((r) => ({ todo_id: r.todoId, topic: nameOf(r.target) })),
       note_edits: notes.map((n) => ({ topic: nameOf(n.key), status_note: n.text })),
+      // Apply wants every field echoed as resolved; only the topic may differ.
+      new_todos: newTodos.map((t) => ({ ...t.todo, topic: t.target === NO_TOPIC ? null : nameOf(t.target) })),
     },
     pathIndex: {
       new_topics: newTopics.map((t) => t.key),
       assignments: rows.map((r) => r.key),
       note_edits: notes.map((n) => n.key),
+      new_todos: newTodos.map((t) => t.key),
     },
   };
 };
 
-const ITEM_PATH = /^(new_topics|assignments|note_edits)\[(\d+)\]/;
+const ITEM_PATH = /^(new_topics|assignments|note_edits|new_todos)\[(\d+)\]/;
 
 /**
  * Puts a 422's `{ path, reason }` items on the draft items they index, using
@@ -503,6 +551,7 @@ export const attachErrors = (draft: Draft, errors: Array<{ path: string; reason:
     topics: draft.topics.map((t) => ({ ...t, error: null })),
     rows: draft.rows.map((r) => ({ ...r, error: null })),
     notes: draft.notes.map((n) => ({ ...n, error: null })),
+    newTodos: draft.newTodos.map((t) => ({ ...t, error: null })),
     pageErrors: [],
   };
   return errors.reduce<Draft>((d, { path, reason }) => {
@@ -512,6 +561,7 @@ export const attachErrors = (draft: Draft, errors: Array<{ path: string; reason:
     if (list === 'new_topics' && key) return { ...d, topics: d.topics.map((t) => (t.key === key ? { ...t, error: reason } : t)) };
     if (list === 'assignments' && key) return { ...d, rows: d.rows.map((r) => (r.key === key ? { ...r, error: reason } : r)) };
     if (list === 'note_edits' && key) return { ...d, notes: d.notes.map((n) => (n.key === key ? { ...n, error: reason } : n)) };
+    if (list === 'new_todos' && key) return { ...d, newTodos: d.newTodos.map((t) => (t.key === key ? { ...t, error: reason } : t)) };
     return { ...d, pageErrors: [...d.pageErrors, path ? `${path}: ${reason}` : reason] };
   }, cleared);
 };
@@ -520,12 +570,14 @@ export const hasErrors = (draft: Draft): boolean =>
   draft.pageErrors.length > 0 ||
   draft.topics.some((t) => t.error !== null) ||
   draft.rows.some((r) => r.error !== null) ||
-  draft.notes.some((n) => n.error !== null);
+  draft.notes.some((n) => n.error !== null) ||
+  draft.newTodos.some((t) => t.error !== null);
 
-/** "2 new topics, 38 assignments, 1 note" (zero parts omitted). */
+/** "2 new todos, 2 new topics, 38 assignments, 1 note" (zero parts omitted). */
 export const summarizeAccepted = (payload: TopicChangesPayload): string => {
   const part = (n: number, one: string, many: string) => (n === 0 ? null : `${n} ${n === 1 ? one : many}`);
   return [
+    part(payload.new_todos?.length ?? 0, 'new todo', 'new todos'),
     part(payload.new_topics.length, 'new topic', 'new topics'),
     part(payload.assignments.length, 'assignment', 'assignments'),
     part(payload.note_edits.length, 'note', 'notes'),

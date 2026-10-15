@@ -10,8 +10,7 @@ live in the workspace repo, branch `spec/mcp-create-proposals`:
 
 ## Next action
 
-Task 5 (data layer) in progress; then Task 6 (reducer actions), Task 7
-(components). Push and `gh pr create --base master` are gated on David.
+Task 6 (reducer actions for new todos), then Task 7 (components). Push and `gh pr create --base master` are gated on David.
 
 ## Verified
 
@@ -21,11 +20,23 @@ Task 5 (data layer) in progress; then Task 6 (reducer actions), Task 7
   5 warnings (react-hooks/exhaustive-deps); build succeeded; 68 test files,
   557 tests passed.
 
+### Task 5 (data layer: types, init, selectors, serialize)
+
+- Check command `npm run lint && npm run build && npx vitest run`: lint 0
+  errors, 5 warnings (baseline 5); build succeeded; 68 files, 570 tests passed
+  (baseline 557, +13 new). The 13 were RED first (13 failed).
+- Two existing tests gained `new_todos: []` in their expected apply payload
+  (`proposalDraft.serialize.test.ts`, `ProposalReview.test.tsx`), because
+  serialize now always emits `new_todos`.
+- Not yet built: reducer actions (cascade, `movedFrom`), components.
+
 ## Assumed
 
 - The backend (`yeezles-todo` PR A, merged) serves `new_todos` on
   `GET /proposals/:id` as documented in its API doc; not run against a live
   backend in this task.
+- A new todo whose topic is a new topic that the user later drops is moved to
+  No topic by the Task 6 reducer; Task 5 only carries `movedFrom`.
 - Not run: the hosted MCP connector creating a proposal with new todos.
 
 ## Resume
