@@ -518,7 +518,13 @@ export const draftReducer = (draft: Draft, action: DraftAction): Draft => {
       // Like unchecking, but not cascaded: the new todos of a rejected new topic go to No topic for good.
       const withTodos =
         findTopic(draft, action.key)?.kind === 'new'
-          ? mapNewTodos(next, (t) => (t.target === action.key ? { ...t, target: NO_TOPIC, movedFrom: null, error: null } : t))
+          ? mapNewTodos(next, (t) =>
+            t.target === action.key
+              ? { ...t, target: NO_TOPIC, movedFrom: null, error: null }
+              : t.target === NO_TOPIC && t.movedFrom === action.key
+                ? { ...t, movedFrom: null }
+                : t
+          )
           : next;
       return mapNotes(
         mapRows(withTodos, (r) => (r.target === action.key ? { ...r, accepted: false, cascaded: false, error: null } : r)),

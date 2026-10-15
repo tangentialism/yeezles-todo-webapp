@@ -33,9 +33,9 @@ Task 7 (components for new todo rows; the reducer actions are done). Push and `g
 ### Task 6 (reducer: toggle, redirect, decision 6 cascade)
 
 - Check command: lint 0 errors, 5 warnings (baseline 5); build succeeded; 68
-  files, 583 tests passed (Task 5: 572, +11 new in
-  `proposalDraft.reducer.test.ts`, 30 tests in that file). RED first: 9 of
-  the 11 failed before the implementation.
+  files, 584 tests passed (Task 5: 572, +12 new in
+  `proposalDraft.reducer.test.ts`, 31 tests in that file). RED first: 9 of
+  the 11 failed before the implementation; fix round 1 added one (uncheck, reject all, re-check), RED then GREEN.
 - New actions `toggleNewTodo`, `redirectNewTodo`, `addTopic.newTodoKey`.
   Invariant: a new todo's target is never a dropped or missing topic
   (`redirectNewTodo` refuses one; drops and `useExisting` retarget); a dropped

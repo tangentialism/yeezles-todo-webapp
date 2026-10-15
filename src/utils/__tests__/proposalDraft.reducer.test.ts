@@ -249,6 +249,11 @@ describe('draftReducer: new todos', () => {
     expect(nt(d, 0).target).toBeNull();
   });
 
+  it('uncheck, then rejectSection, then re-check keeps the new todos at No topic', () => {
+    const d = go({ type: 'toggleTopic', key: 'n:0' }, { type: 'rejectSection', key: 'n:0' }, { type: 'toggleTopic', key: 'n:0' });
+    for (const i of [0, 3]) expect(nt(d, i)).toMatchObject({ target: null, movedFrom: null, accepted: true });
+  });
+
   it('rejectSection on an existing topic leaves its new todos alone', () => {
     const d = go({ type: 'rejectSection', key: 't:5' });
     expect(nt(d, 1).target).toBe('t:5');
@@ -261,7 +266,7 @@ describe('draftReducer: new todos', () => {
     d = go({ type: 'toggleTopic', key: 'n:1' });
     expect(nt(d, 4)).toMatchObject({ target: null, movedFrom: 'n:1' });
     d = draftReducer(d, { type: 'useExisting', key: 'n:1' });
-    expect(nt(d, 4)).toMatchObject({ target: 't:11', movedFrom: null });
+    expect(nt(d, 4)).toMatchObject({ target: 't:11', movedFrom: null, accepted: true });
     expect(findTopic(d, 'n:1')).toBeUndefined();
   });
 
