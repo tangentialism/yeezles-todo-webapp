@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { applyBlocker, draftReducer, findTopic, initDraft, rowReason, sections, targetOptions } from '../proposalDraft';
+import { applyBlocker, draftReducer, findTopic, initDraft, rowReason, sections, serialize, targetOptions } from '../proposalDraft';
 import type { Draft, DraftAction } from '../proposalDraft';
-import { makeResolved } from '../../test/proposalFactories';
+import { makeProposedTodo, makeResolved } from '../../test/proposalFactories';
 
 const run = (...actions: DraftAction[]): Draft => actions.reduce(draftReducer, initDraft(makeResolved()));
 const row = (d: Draft, todoId: number) => d.rows.find((r) => r.todoId === todoId && r.origin === 'proposal') ?? d.rows.find((r) => r.todoId === todoId)!;
@@ -170,5 +170,110 @@ describe('draftReducer', () => {
     const d0 = initDraft(makeResolved());
     const withError: Draft = { ...d0, rows: d0.rows.map((r) => (r.key === 'a:1' ? { ...r, error: 'todo not found' } : r)) };
     expect(row(draftReducer(withError, { type: 'toggleRow', key: 'a:1' }), 1).error).toBeNull();
+  });
+});
+
+describe('draftReducer: new todos', () => {
+  // n:0 -> Kitchen reno (new), n:1 -> Garden (t:5), n:2 -> no topic, n:3 -> Taken (new, taken).
+  const todos = [
+    makeProposedTodo({ title: 'A', topic: 'Kitchen reno' }),
+    makeProposedTodo({ title: 'B', topic: 'Garden' }),
+    makeProposedTodo({ title: 'C', topic: null }),
+    makeProposedTodo({ title: 'D', topic: 'Kitchen reno' }),
+    makeProposedTodo({ title: 'E', topic: 'Taken' }),
+  ];
+  const start = (): Draft => initDraft(makeResolved({ new_todos: todos }));
+  const go = (...actions: DraftAction[]): Draft => actions.reduce(draftReducer, start());
+  const nt = (d: Draft, index: number) => d.newTodos.find((t) => t.index === index)!;
+  const topicsSent = (d: Draft) => serialize(d).accepted.new_todos?.map((t) => t.topic);
+
+  it('toggleNewTodo flips accepted and clears error', () => {
+    const d0 = start();
+    const withError = { ...d0, newTodos: d0.newTodos.map((t) => (t.index === 0 ? { ...t, error: 'bad' } : t)) };
+    let d = draftReducer(withError, { type: 'toggleNewTodo', key: 'n:0' });
+    expect(nt(d, 0)).toMatchObject({ accepted: false, error: null });
+    d = draftReducer(d, { type: 'toggleNewTodo', key: 'n:0' });
+    expect(nt(d, 0).accepted).toBe(true);
+  });
+
+  it('redirectNewTodo to an area topic, a kept new topic, or null clears movedFrom', () => {
+    let d = go({ type: 'toggleTopic', key: 'n:0' });
+    expect(nt(d, 0).movedFrom).toBe('n:0');
+    d = draftReducer(d, { type: 'redirectNewTodo', key: 'n:0', target: 't:6' });
+    expect(nt(d, 0)).toMatchObject({ target: 't:6', movedFrom: null });
+    expect(findTopic(d, 't:6')?.name).toBe('Shed');
+    d = draftReducer(d, { type: 'toggleTopic', key: 'n:0' });
+    d = draftReducer(d, { type: 'redirectNewTodo', key: 'n:1', target: 'n:0' });
+    expect(nt(d, 1).target).toBe('n:0');
+    d = draftReducer(d, { type: 'redirectNewTodo', key: 'n:1', target: null });
+    expect(nt(d, 1).target).toBeNull();
+  });
+
+  it('redirectNewTodo refuses a dropped new topic or an unknown key', () => {
+    const d = go({ type: 'toggleTopic', key: 'n:0' });
+    expect(draftReducer(d, { type: 'redirectNewTodo', key: 'n:1', target: 'n:0' })).toBe(d);
+    expect(draftReducer(d, { type: 'redirectNewTodo', key: 'n:1', target: 't:999' })).toBe(d);
+  });
+
+  it('unchecking a new topic moves its new todos to No topic, still accepted, and cascades rows as before', () => {
+    const d = go({ type: 'toggleTopic', key: 'n:0' });
+    for (const i of [0, 3]) expect(nt(d, i)).toMatchObject({ target: null, accepted: true, movedFrom: 'n:0' });
+    expect(nt(d, 1)).toMatchObject({ target: 't:5', movedFrom: null });
+    expect(row(d, 1)).toMatchObject({ accepted: false, cascaded: true });
+    expect(note(d, 'n:0').accepted).toBe(false);
+  });
+
+  it('a dropped new topic\'s todos serialize with topic null, never an empty name', () => {
+    const d = go({ type: 'toggleTopic', key: 'n:0' });
+    expect(topicsSent(d)).toEqual([null, 'Garden', null, null, 'Taken']);
+    expect(serialize(d).accepted.new_todos?.every((t) => t.topic !== '')).toBe(true);
+  });
+
+  it('re-checking moves back only todos still at No topic with movedFrom = that key', () => {
+    let d = go(
+      { type: 'toggleTopic', key: 'n:0' },
+      { type: 'redirectNewTodo', key: 'n:0', target: 't:5' }, // retargeted: stays put
+      { type: 'toggleNewTodo', key: 'n:3' } // dropped meanwhile: restored but stays dropped
+    );
+    d = draftReducer(d, { type: 'toggleTopic', key: 'n:0' });
+    expect(nt(d, 0)).toMatchObject({ target: 't:5', movedFrom: null });
+    expect(nt(d, 3)).toMatchObject({ target: 'n:0', accepted: false, movedFrom: null });
+    expect(nt(d, 2)).toMatchObject({ target: null });
+  });
+
+  it('rejectSection on a new topic moves its new todos to No topic with movedFrom null', () => {
+    let d = go({ type: 'rejectSection', key: 'n:0' });
+    expect(nt(d, 0)).toMatchObject({ target: null, accepted: true, movedFrom: null });
+    expect(nt(d, 3)).toMatchObject({ target: null, movedFrom: null });
+    d = draftReducer(d, { type: 'toggleTopic', key: 'n:0' });
+    expect(nt(d, 0).target).toBeNull();
+  });
+
+  it('rejectSection on an existing topic leaves its new todos alone', () => {
+    const d = go({ type: 'rejectSection', key: 't:5' });
+    expect(nt(d, 1).target).toBe('t:5');
+  });
+
+  it('useExisting retargets the new todos of the merged topic, including ones a drop had moved', () => {
+    let d = go({ type: 'useExisting', key: 'n:1' });
+    expect(nt(d, 4)).toMatchObject({ target: 't:11', accepted: true });
+    expect(topicsSent(d)?.[4]).toBe('Taken');
+    d = go({ type: 'toggleTopic', key: 'n:1' });
+    expect(nt(d, 4)).toMatchObject({ target: null, movedFrom: 'n:1' });
+    d = draftReducer(d, { type: 'useExisting', key: 'n:1' });
+    expect(nt(d, 4)).toMatchObject({ target: 't:11', movedFrom: null });
+    expect(findTopic(d, 'n:1')).toBeUndefined();
+  });
+
+  it('addTopic with newTodoKey creates the topic and targets the row', () => {
+    const d = go({ type: 'addTopic', name: 'Patio', newTodoKey: 'n:2' });
+    expect(findTopic(d, 'n:2')).toMatchObject({ kind: 'new', name: 'Patio', accepted: true });
+    expect(nt(d, 2)).toMatchObject({ target: 'n:2', movedFrom: null });
+    expect(topicsSent(d)?.[2]).toBe('Patio');
+  });
+
+  it('targetOptions excludes a dropped new topic, so a new todo cannot be sent there', () => {
+    const d = go({ type: 'toggleTopic', key: 'n:0' });
+    expect(targetOptions(d).map((o) => o.key)).not.toContain('n:0');
   });
 });

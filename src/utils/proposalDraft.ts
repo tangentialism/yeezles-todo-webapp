@@ -350,7 +350,9 @@ export type DraftAction =
   | { type: 'renameTopic'; key: string; name: string }
   | { type: 'describeTopic'; key: string; description: string }
   | { type: 'useExisting'; key: string }
-  | { type: 'addTopic'; name: string; rowKey?: string; unassignedTodoId?: number }
+  | { type: 'addTopic'; name: string; rowKey?: string; unassignedTodoId?: number; newTodoKey?: string }
+  | { type: 'toggleNewTodo'; key: string }
+  | { type: 'redirectNewTodo'; key: string; target: string | null }
   | { type: 'toggleNote'; key: string }
   | { type: 'editNote'; key: string; text: string }
   | { type: 'setUnassigned'; todoId: number; target: string | null }
@@ -358,6 +360,7 @@ export type DraftAction =
 
 const mapRows = (draft: Draft, fn: (row: DraftRow) => DraftRow): Draft => ({ ...draft, rows: draft.rows.map(fn) });
 const mapNotes = (draft: Draft, fn: (note: DraftNote) => DraftNote): Draft => ({ ...draft, notes: draft.notes.map(fn) });
+const mapNewTodos = (draft: Draft, fn: (todo: DraftNewTodo) => DraftNewTodo): Draft => ({ ...draft, newTodos: draft.newTodos.map(fn) });
 const mapTopic = (draft: Draft, key: string, fn: (topic: DraftTopic) => DraftTopic): Draft => ({
   ...draft,
   topics: draft.topics.map((t) => (t.key === key ? fn(t) : t)),
@@ -377,6 +380,17 @@ const redirect = (draft: Draft, rowKey: string, target: string): Draft => {
       ? { ...r, target, cascaded: false, error: null, accepted: r.lock === null && topicUsable(next, target) }
       : r
   );
+};
+
+/**
+ * Sends a new todo to a topic or to No topic. A target that is not usable is
+ * refused, so a new todo never points at a dropped or missing topic (its name
+ * would serialize as '' and 422). David's choice also forgets `movedFrom`.
+ */
+const redirectNewTodo = (draft: Draft, todoKey: string, target: string | null): Draft => {
+  const next = target === NO_TOPIC ? draft : ensureTopic(draft, target);
+  if (target !== NO_TOPIC && !topicUsable(next, target)) return draft;
+  return mapNewTodos(next, (t) => (t.key === todoKey ? { ...t, target, movedFrom: null, error: null } : t));
 };
 
 const setUnassigned = (draft: Draft, todoId: number, target: string | null): Draft => {
@@ -403,8 +417,14 @@ const toggleTopic = (draft: Draft, key: string): Draft => {
     keep
       ? item.cascaded ? { ...item, accepted: true, cascaded: false, error: null } : { ...item, error: null }
       : item.accepted ? { ...item, accepted: false, cascaded: true, error: null } : { ...item, error: null };
+  // Decision 6: a dropped new topic does not drop its new todos; they go to No
+  // topic and, on re-check, only those still there come back (spec §7).
+  const withTodos = mapNewTodos(next, (t) => {
+    if (!keep) return t.target === key ? { ...t, target: NO_TOPIC, movedFrom: key, error: null } : t;
+    return t.target === NO_TOPIC && t.movedFrom === key ? { ...t, target: key, movedFrom: null, error: null } : t;
+  });
   return mapNotes(
-    mapRows(next, (r) => (r.target === key ? cascade(r) : r)),
+    mapRows(withTodos, (r) => (r.target === key ? cascade(r) : r)),
     (n) => (n.key === key ? cascade(n) : n)
   );
 };
@@ -423,7 +443,13 @@ const mergeIntoExisting = (draft: Draft, key: string): Draft => {
     : draft.topics.map((t) => (t.key === key ? replacement : t));
   const moved: Draft = { ...draft, topics };
   return {
-    ...moved,
+    ...mapNewTodos(moved, (t) =>
+      t.target === key
+        ? { ...t, target: newKey, error: null }
+        : t.target === NO_TOPIC && t.movedFrom === key
+          ? { ...t, target: newKey, movedFrom: null, error: null }
+          : t
+    ),
     rows: moved.rows.map((r) =>
       r.target === key ? { ...r, target: newKey, accepted: r.lock === null && (r.accepted || r.cascaded), cascaded: false, error: null } : r
     ),
@@ -433,7 +459,7 @@ const mergeIntoExisting = (draft: Draft, key: string): Draft => {
   };
 };
 
-const addTopic = (draft: Draft, name: string, rowKey?: string, unassignedTodoId?: number): Draft => {
+const addTopic = (draft: Draft, name: string, rowKey?: string, unassignedTodoId?: number, newTodoKey?: string): Draft => {
   if (validateTopicName(draft, name) !== null) return draft;
   const key = `n:${draft.nextSeq}`;
   const topic: DraftTopic = {
@@ -443,6 +469,7 @@ const addTopic = (draft: Draft, name: string, rowKey?: string, unassignedTodoId?
   let next: Draft = { ...draft, topics: [...draft.topics, topic], nextSeq: draft.nextSeq + 1 };
   if (rowKey) next = redirect(next, rowKey, key);
   if (unassignedTodoId !== undefined) next = setUnassigned(next, unassignedTodoId, key);
+  if (newTodoKey) next = redirectNewTodo(next, newTodoKey, key);
   return recheckNames(next);
 };
 
@@ -488,8 +515,13 @@ export const draftReducer = (draft: Draft, action: DraftAction): Draft => {
       return toggleTopic(draft, action.key);
     case 'rejectSection': {
       const next = mapTopic(draft, action.key, (t) => (t.kind === 'new' ? { ...t, accepted: false, error: null } : t));
+      // Like unchecking, but not cascaded: the new todos of a rejected new topic go to No topic for good.
+      const withTodos =
+        findTopic(draft, action.key)?.kind === 'new'
+          ? mapNewTodos(next, (t) => (t.target === action.key ? { ...t, target: NO_TOPIC, movedFrom: null, error: null } : t))
+          : next;
       return mapNotes(
-        mapRows(next, (r) => (r.target === action.key ? { ...r, accepted: false, cascaded: false, error: null } : r)),
+        mapRows(withTodos, (r) => (r.target === action.key ? { ...r, accepted: false, cascaded: false, error: null } : r)),
         (n) => (n.key === action.key ? { ...n, accepted: false, cascaded: false, error: null } : n)
       );
     }
@@ -500,7 +532,11 @@ export const draftReducer = (draft: Draft, action: DraftAction): Draft => {
     case 'useExisting':
       return mergeIntoExisting(draft, action.key);
     case 'addTopic':
-      return addTopic(draft, action.name, action.rowKey, action.unassignedTodoId);
+      return addTopic(draft, action.name, action.rowKey, action.unassignedTodoId, action.newTodoKey);
+    case 'toggleNewTodo':
+      return mapNewTodos(draft, (t) => (t.key === action.key ? { ...t, accepted: !t.accepted, error: null } : t));
+    case 'redirectNewTodo':
+      return redirectNewTodo(draft, action.key, action.target);
     case 'toggleNote':
       return mapNotes(draft, (n) =>
         n.key === action.key && topicUsable(draft, n.key) ? { ...n, accepted: !n.accepted, cascaded: false, error: null } : n

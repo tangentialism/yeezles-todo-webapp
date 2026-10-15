@@ -10,7 +10,7 @@ live in the workspace repo, branch `spec/mcp-create-proposals`:
 
 ## Next action
 
-Task 6 (reducer actions for new todos), then Task 7 (components). Push and `gh pr create --base master` are gated on David.
+Task 7 (components for new todo rows; the reducer actions are done). Push and `gh pr create --base master` are gated on David.
 
 ## Verified
 
@@ -28,15 +28,24 @@ Task 6 (reducer actions for new todos), then Task 7 (components). Push and `gh p
 - Two existing tests gained `new_todos: []` in their expected apply payload
   (`proposalDraft.serialize.test.ts`, `ProposalReview.test.tsx`), because
   serialize now always emits `new_todos`.
-- Not yet built: reducer actions (cascade, `movedFrom`), components.
+- Not yet built: components.
+
+### Task 6 (reducer: toggle, redirect, decision 6 cascade)
+
+- Check command: lint 0 errors, 5 warnings (baseline 5); build succeeded; 68
+  files, 583 tests passed (Task 5: 572, +11 new in
+  `proposalDraft.reducer.test.ts`, 30 tests in that file). RED first: 9 of
+  the 11 failed before the implementation.
+- New actions `toggleNewTodo`, `redirectNewTodo`, `addTopic.newTodoKey`.
+  Invariant: a new todo's target is never a dropped or missing topic
+  (`redirectNewTodo` refuses one; drops and `useExisting` retarget); a dropped
+  new topic's todos serialize with `topic: null`.
 
 ## Assumed
 
 - The backend (`yeezles-todo` PR A, merged) serves `new_todos` on
   `GET /proposals/:id` as documented in its API doc; not run against a live
   backend in this task.
-- A new todo whose topic is a new topic that the user later drops is moved to
-  No topic by the Task 6 reducer; Task 5 only carries `movedFrom`.
 - Not run: the hosted MCP connector creating a proposal with new todos.
 
 ## Resume
