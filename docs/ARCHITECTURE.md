@@ -1267,7 +1267,8 @@ export default defineConfig({
     host: '0.0.0.0',
     allowedHosts: [
       'yeezles-todo-webapp-production.up.railway.app',
-      'yeezlestodo.com'
+      'yeezlestodo.com',
+      'todo.yeezles.com'
     ],
     strictPort: true
   }
