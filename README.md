@@ -70,6 +70,7 @@ src/
 - [x] OAuth consent page at `/oauth/consent`: approve a Claude connection with a passkey, or deny it
 - [x] Connected apps: list OAuth connections (client, scopes, created, last used, expiry) and disconnect them
 - [x] **Topics**: a second axis inside an area. The Topics tab lists each topic's open/done counts and status note (stale after 14 days with open todos), topic detail edits the note and lists the topic's todos, every todo form has a topic picker, and todo rows carry a topic chip that opens the topic. Claude's proposed topic changes, including new todos it wants to create (with a No topic section for those without one), are reviewed at `/topics/proposals/:id` (reachable from the Topics tab's pending count and banner) and applied all or nothing.
+- [x] **People**: tag todos with the people they involve. The People tab lists everyone tagged (most recent first, with open counts, dimmed when nothing is open) beside the selected person's todos across all areas; on phones the person opens in place of the list. Todo rows carry person chips (filled when linked to Peopler, outlined when not) that open the person. The add and edit forms have a People field with typeahead and Create. A person can be renamed, given aliases, merged into another person, or deleted (the todos stay). MCP and proposals, Peopler linking and suggestions come in later phases.
 
 ## 🚧 Upcoming Features
 

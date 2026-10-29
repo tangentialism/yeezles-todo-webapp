@@ -9,7 +9,12 @@ repo `docs/superpowers/plans/2026-10-29-people-tags-webapp.md`.
 
 ## Next action
 
-Task 9: next task in the plan (Task 8 landed: People field in the add and edit forms).
+David reviews; on approval push and open the PR `feature/people-tags` → `master`;
+after merge, pin the webapp in the workspace and plan P3.
+
+Before or during review, decide whether to run the browser walkthrough (Task 9
+Step 2), which was not run: local sign-in needs a session that could not be
+created here (see Assumed).
 
 ## Verified
 
@@ -36,8 +41,10 @@ Task 9: next task in the plan (Task 8 landed: People field in the add and edit f
   601 total, 601 passed, 0 failing names, lint 5 (baseline 5), new failing names
   empty. New files lint clean (`npx eslint` on person.ts, personFactories.ts,
   api.people.test.ts: no output).
-- Task 2: RED `npx vitest run` on the three new suites before implementing: 7
-  failed (missing `usePeopleStore`/`peopleInvalidation` imports, no
+- Task 2: RED `npx vitest run` on the three new suites before implementing: 3 of 3
+  suites failed. `usePeopleStore.test.tsx` failed at import (missing
+  `usePeopleStore`/`peopleInvalidation` modules), so none of its tests ran; among
+  the tests that did run (the other two suites), 7 failed and 1 passed (no
   `invalidatePeopleViews` or `personTodos` calls, PERSON_* messages unhandled).
   GREEN: 18/18 passed. The review-focus-4 test passed on the Task 1 drop; with
   `delete optimisticUpdates.people` removed it fails (pinned), then restored.
@@ -114,6 +121,29 @@ Task 9: next task in the plan (Task 8 landed: People field in the add and edit f
   fixed by mocking `usePeopleStore` there, as they already mock `useTopicStore`.
   Check script: `TSC_OK`, 701 total, 701 passed, 0 failing names, lint 5
   (baseline 5), new failing names empty. New and touched files lint clean.
+- Task 9 (docs and final check; no TDD, docs only): README People bullet,
+  `docs/FEATURES.md` People section, `docs/STATUS.md` People tags (phase 2) entry.
+  Final check script on `2178c19` plus this task's doc edits: `TSC_OK`, 701
+  total, 701 passed, 0 failing names, lint 5 (baseline 5), new failing names
+  empty. Every suite this plan added or touched, by name (23 files, from
+  `git diff --name-only 1bb2072..HEAD`): AddTodoModal, Dashboard.people,
+  Navigation, PhoneTabBar, TodoForms.people, TodoForms.topics, TodoRow.people,
+  ViewContainer, DeletePersonDialog, EditPersonDialog, MergePersonDialog,
+  PeopleField, PeopleView, PersonChip, PersonPane, Dialog.nested,
+  useCrossTabSync.people, usePeopleStore, useProposalStore, useTodoStore.people,
+  useTopicStore, api.people, groupByArea: 23 files passed, 171 tests passed, no
+  stderr. `npm run build` (tsc -b && vite build): 261 modules, built, no errors.
+- Task 9 browser walkthrough: NOT RUN (0 seen, 0 not seen, 11 not run). A local
+  backend did start: a detached `yeezles-todo` worktree at `origin/main`
+  `5651d7c` (after `46b3510`), built with `tsc`, against a new local database
+  `yeezles_people_tags_browser` on the local test PostgreSQL, port 3010; `/health`
+  reported 14/14 migrations, last `add_people`. It logged "No sign-in method is
+  configured — nobody can sign in" (no Google client id, no passkey config).
+  Signing in would have meant minting a persistent session for a fake user
+  directly in the database, which the session's permission check refused, and the
+  task rules say not to work around auth. The walkthrough stopped there, before
+  Vite was started. The backend was stopped, the database dropped and the
+  worktree removed.
 
 ## Assumed
 
@@ -124,6 +154,31 @@ Task 9: next task in the plan (Task 8 landed: People field in the add and edit f
   fallback was therefore not applied. No visual check was run.
 
 - The backend at `yeezles-todo` `46b3510` serves `/people` and `people` on todos as documented in its `docs/api/API.md`.
+  Every API call in this branch is tested against a mocked client; none was made against a real backend.
+- Browser walkthrough (Task 9 Step 2) not run; every item below is unverified in a browser and rests on
+  jsdom tests only:
+  1. Create a todo with a new person (Create …) and with an existing one: not run.
+  2. Click a chip in All, then in Today: not run.
+  3. People tab list order, the dimmed zero-open person, Show completed: not run.
+  4. Complete a todo from the pane: not run.
+  5. Rename with a second tab on All, that tab's chip changes: not run (cross-tab is tested by
+     `useCrossTabSync.people.test.tsx` with a mocked BroadcastChannel only).
+  6. Merge two people: not run.
+  7. Delete a person, the todo stays: not run.
+  8. At 390px: list, person, back; the People sheet in the add form; the five-tab bar at 320px: not run.
+  9. (carried from Task 4) five-tab phone bar at 320px without wrapping: not run; still assumed from
+     classes (see the Task 4 bullet above). The 11px fallback was not applied.
+  10. (carried from Task 7) the phone full-screen People sheet layout: not run; asserted by class only.
+  11. (carried from the Task 5 review) the People list stays scrollable when taller than the viewport:
+      not run. Risk, unconfirmed: `PeopleView.tsx` gives the list wrapper `sm:sticky` with no max-height
+      or overflow, so from `sm` up the bottom of a long list may be unreachable. Not fixed here (bug
+      fixes are out of scope for Task 9); final review should triage it.
+- Why it was not run: the local backend has no sign-in method configured (no Google client id, no
+  passkey RP config), and creating a session directly in the local database was refused by the
+  session's permission check. Running it needs David's choice of a local sign-in path (for example,
+  allowing a minted persistent-session cookie for a fake user on the local test database, as the topics
+  UI walkthrough did).
+- Not run: the deployed app and the hosted backend.
 
 ## Deviations
 
@@ -151,7 +206,18 @@ Task 9: next task in the plan (Task 8 landed: People field in the add and edit f
 - Task 5: phone/desktop layout is asserted by class (`hidden sm:block`, `sm:hidden`) via
   `data-testid` on the two wrappers; jsdom has no media queries. Not checked in a browser.
 - Task 3: `DoneItem` also got `hidePersonId` (the brief names it for `TodoRow`
-  only; the person pane renders done rows through `DoneItem`).
+  only; the person pane renders done rows through `DoneItem`). Controller ruling.
+- Task 3 fix round 1 (controller ruling): a linked `PersonChip`'s accessible name is
+  `Open person ‹name› (in Peopler)`, the plan's label plus a suffix, so the screen-reader
+  "in Peopler" hint survives `aria-label`. Tests that query a linked chip use a regex.
+- Spec discrepancies applied (plan § Spec discrepancies, all eleven): 1 the list asks for
+  `limit=100` with the "Showing the 100 most recently tagged." footer; 2 on phones the person opens
+  in place of the list, tab bar visible; 3 desktop right pane prompt, no auto-select; 4 person todos
+  from two area-less queries, done only while Show completed is on; 5 `['personTodos', id, completed]`
+  key, invalidated wherever `['topicTodos']` is (widened by the Task 2 ruling); 6 the optimistic
+  update drops `people`; 7 the edit form sends `people` only when the set changed; 8 the shown
+  person's chip is hidden in their pane; 9 People-field save errors use the store toast; 10 the
+  single-tag routes are unused; 11 Create makes the person at once, even if the form is cancelled.
 - Task 6: `PersonPane` gained required `onMerged` and `onDeleted` props (wired in `PeopleView`
   to `onOpenPerson` and `onClosePerson`); the two existing `PersonPane` test render calls were
   updated. Limits became `PERSON_NAME_MAX`, `PERSON_ALIAS_MAX`, `PERSON_ALIASES_MAX` in
@@ -171,8 +237,11 @@ Task 9: next task in the plan (Task 8 landed: People field in the add and edit f
 ## Resume
 
 Branch `feature/people-tags` in
-`/Users/davidyee/Code/yeezles-todo-webapp-wt/people-tags`. Task 0 is done;
-continue at the task named under Next action. Every git command uses `-C` with
+`/Users/davidyee/Code/yeezles-todo-webapp-wt/people-tags`. Tasks 0-9 are done; the
+branch is not pushed and has no PR. Continue at Next action: David's review, then
+(each gated on David) push, `gh pr create --base master`, and after merge the
+workspace pin and the P3 plan. If the browser walkthrough is wanted first, it needs a
+local sign-in path decided by David (see Assumed). Every git command uses `-C` with
 that path. Run `/Users/davidyee/Code/yeezles-todo-webapp-wt/people-tags-check.sh`
 for the full check; pass is `TSC_OK`, a lint total not above 5, and nothing
 between the comm markers.
