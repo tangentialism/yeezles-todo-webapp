@@ -9,7 +9,7 @@ repo `docs/superpowers/plans/2026-10-29-people-tags-webapp.md`.
 
 ## Next action
 
-Task 5: fill in `PeopleView` (list pane and person pane). Task 4 left it a title-only stub with the props `openPersonId`, `onOpenPerson`, `onClosePerson`, which it does not yet use.
+Task 6: person actions (rename, aliases, merge, delete) in the `data-slot="person-actions"` div in the `PersonPane` header.
 
 ## Verified
 
@@ -66,6 +66,13 @@ Task 5: fill in `PeopleView` (list pane and person pane). Task 4 left it a title
   were the missing People tab, `openPersonId` never passed on, and the missing PeopleView.
   GREEN: 4 suites, 25/25 passed. Check script: `TSC_OK`, 636 total, 636 passed, 0 failing
   names, lint 5 (baseline 5), new failing names empty. New and touched files lint clean.
+- Task 5: RED `npx vitest run src/utils/__tests__/groupByArea.test.ts src/components/people`:
+  3 suites failed (groupByArea and PersonPane failed to load, missing modules; PeopleView 9
+  failed on missing list, pane and layout), 5 passed (PersonChip 4, plus the area-switcher test,
+  which passes against the stub's static heading). GREEN: 4 suites, 25/25 passed (groupByArea 4,
+  PersonChip 4, PersonPane 7, PeopleView 10, incl. keyed-pane reset and phone class layout).
+  Check script: `TSC_OK`, 657 total, 657 passed, 0 failing names, lint 5 (baseline 5), new failing
+  names empty. New files lint clean.
 
 ## Assumed
 
@@ -97,6 +104,11 @@ Task 5: fill in `PeopleView` (list pane and person pane). Task 4 left it a title
   The brief's site list was incomplete.
 - Task 4: `PeopleView` ignores its three props (`React.FC<PeopleViewProps> = () =>`),
   because `noUnusedParameters` rejects unused destructured props; Task 5 starts using them.
+- Task 5: `PeopleView` header is `ViewHeader` with empty `totals` and no refresh button; the
+  brief names no totals. The pane's "Nothing tagged." shows when no open todos, none loaded done,
+  and `done_count` is 0, because done todos only load while Show completed is on.
+- Task 5: phone/desktop layout is asserted by class (`hidden sm:block`, `sm:hidden`) via
+  `data-testid` on the two wrappers; jsdom has no media queries. Not checked in a browser.
 - Task 3: `DoneItem` also got `hidePersonId` (the brief names it for `TodoRow`
   only; the person pane renders done rows through `DoneItem`).
 
