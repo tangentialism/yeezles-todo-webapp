@@ -9,7 +9,7 @@ repo `docs/superpowers/plans/2026-10-29-people-tags-webapp.md`.
 
 ## Next action
 
-Task 7: the People field (typeahead) in the add and edit forms.
+Task 8: put `PeopleField` into AddTodoModal and EditTodoModal (send `people` only when the set changed).
 
 ## Verified
 
@@ -87,6 +87,18 @@ Task 7: the People field (typeahead) in the add and edit forms.
   survivor, list loses the merged person, `['person', A]` removed) are pinned against a real
   QueryClient with a mocked API client.
 
+- Task 7: Dialog listener checked first: `Dialog.tsx` adds one bubble-phase `document` keydown
+  listener (no capture), so `stopPropagation()` in the combobox's React `onKeyDown` (React listens
+  on the root and on portal containers, both below `document`) stops Escape before it. Pinned:
+  removing that `stopPropagation()` makes both Escape tests fail (2 failed, 9 passed), then restored.
+  No debounce helper existed (grep), so `useDebouncedValue` was added; replacing it with the raw text
+  makes the "queries once" test fail (1 failed), then restored. RED
+  `npx vitest run src/components/people/__tests__/PeopleField.test.tsx src/components/ui/__tests__/Dialog.nested.test.tsx`:
+  2 suites failed; PeopleField failed to load (`Failed to resolve import "../PeopleField"`), Dialog
+  1 failed (fullScreenOnPhone classes missing), 5 passed. GREEN: 2 suites, 17/17 (PeopleField 11,
+  Dialog.nested 6), no stderr. Check script: `TSC_OK`, 691 total, 691 passed, 0 failing names,
+  lint 5 (baseline 5), new failing names empty. New and touched files lint clean.
+
 ## Assumed
 
 - Task 4: the five phone tabs do not wrap at 320px (assumed, checked by reading classes;
@@ -131,6 +143,14 @@ Task 7: the People field (typeahead) in the add and edit forms.
   field, so over-length input is explained rather than silently cut). Saving an unchanged
   edit closes without a request. Menu, dialogs and phone return-to-list were checked in jsdom
   only, not in a browser.
+- Task 7: Enter with the list open but no option moved to does nothing (and does not submit the
+  form); Enter never picks the first match by itself, so typing "Sam" + Enter cannot tag "Sam Lee".
+  The 20 limit is `PEOPLE_PER_TODO_MAX` in `constants.ts`. On phones the "Add people" button carries
+  the field `id`, and the label row is plain text (a `<label>` would rename the button to "People");
+  the sheet's combobox is `${id}-sheet` with an sr-only "People" label and autofocus. The create error
+  shows the `ApiError` message, falling back to "Could not create that person.". `useIsPhone` and
+  `useDebouncedValue` have no tests of their own (PeopleField mocks `useIsPhone`); the sheet layout
+  is asserted by class only, not checked in a browser.
 
 ## Resume
 

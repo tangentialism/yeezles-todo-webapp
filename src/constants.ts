@@ -117,3 +117,5 @@ export const TOPIC_NOTE_COUNTER_FROM = 9_000;
 export const PERSON_NAME_MAX = 120;
 export const PERSON_ALIAS_MAX = 120;
 export const PERSON_ALIASES_MAX = 20;
+/** Most people one todo can carry (the backend refuses more in one request). */
+export const PEOPLE_PER_TODO_MAX = 20;

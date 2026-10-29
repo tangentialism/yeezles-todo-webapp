@@ -20,6 +20,23 @@ describe('Dialog: nested', () => {
     expect(closeOuter).not.toHaveBeenCalled();
   });
 
+  it('a fullScreenOnPhone dialog fills a phone screen and still takes part in the Escape stack', async () => {
+    const closeOuter = vi.fn();
+    const closeSheet = vi.fn();
+    render(
+      <>
+        <Dialog title="New todo" onClose={closeOuter}>outer</Dialog>
+        <Dialog title="People" onClose={closeSheet} fullScreenOnPhone>sheet</Dialog>
+      </>
+    );
+    const sheet = screen.getByRole('dialog', { name: 'People' });
+    expect(sheet).toHaveClass('fixed', 'inset-0', 'rounded-none', 'sm:static', 'sm:rounded-[18px]');
+    expect(screen.getByRole('dialog', { name: 'New todo' })).not.toHaveClass('rounded-none');
+    await userEvent.keyboard('{Escape}');
+    expect(closeSheet).toHaveBeenCalledTimes(1);
+    expect(closeOuter).not.toHaveBeenCalled();
+  });
+
   it('a single dialog still closes on Escape', async () => {
     const onClose = vi.fn();
     render(<Dialog title="Only" onClose={onClose}>x</Dialog>);
