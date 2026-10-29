@@ -4,6 +4,7 @@ import type { SyncMessage, SyncMessageType, SyncMessageData } from '../types/syn
 import { SYNC_CHANNEL_NAME, generateTabId } from '../types/sync';
 import { logger } from '../utils/logger';
 import { invalidateTodoViews, invalidateTopicViews } from './topicInvalidation';
+import { invalidatePeopleViews } from './peopleInvalidation';
 
 /**
  * One id for the whole tab. Every store hook calls useCrossTabSync, and a
@@ -72,9 +73,10 @@ export const useCrossTabSync = () => {
         case 'TODO_COMPLETED':
         case 'TODO_MOVED_TO_TODAY':
         case 'TODO_REMOVED_FROM_TODAY':
-          // Todo lists, today view, and (counts move with every todo) topic views
+          // Todo lists, today view, and (counts move with every todo) topic and people views
           invalidateTodoViews(queryClient, { refetchType: 'active' });
           invalidateTopicViews(queryClient, { refetchType: 'active' });
+          invalidatePeopleViews(queryClient, { refetchType: 'active' });
           break;
 
         case 'AREA_CREATED':
@@ -93,6 +95,20 @@ export const useCrossTabSync = () => {
           // Rows show topic names, so todo lists refetch too
           invalidateTopicViews(queryClient, { refetchType: 'active' });
           invalidateTodoViews(queryClient, { refetchType: 'active' });
+          break;
+
+        case 'PERSON_CREATED':
+          // A new person changes no todo row
+          invalidatePeopleViews(queryClient, { refetchType: 'active' });
+          break;
+
+        case 'PERSON_UPDATED':
+        case 'PERSON_DELETED':
+        case 'PERSON_MERGED':
+          // Chips on every row show person names and tags
+          invalidatePeopleViews(queryClient, { refetchType: 'active' });
+          invalidateTodoViews(queryClient, { refetchType: 'active' });
+          invalidateTopicViews(queryClient, { refetchType: 'active' });
           break;
 
         case 'PROPOSAL_RESOLVED':

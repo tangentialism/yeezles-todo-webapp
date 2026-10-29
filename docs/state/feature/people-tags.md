@@ -9,7 +9,7 @@ repo `docs/superpowers/plans/2026-10-29-people-tags-webapp.md`.
 
 ## Next action
 
-Task 2: invalidation, query keys and the people store (the optimistic `people` drop in `useTodoStore` onUpdate `onMutate` already landed in Task 1; Task 2 only needs its test).
+Task 3: person chips on todo rows.
 
 ## Verified
 
@@ -36,6 +36,13 @@ Task 2: invalidation, query keys and the people store (the optimistic `people` d
   601 total, 601 passed, 0 failing names, lint 5 (baseline 5), new failing names
   empty. New files lint clean (`npx eslint` on person.ts, personFactories.ts,
   api.people.test.ts: no output).
+- Task 2: RED `npx vitest run` on the three new suites before implementing: 7
+  failed (missing `usePeopleStore`/`peopleInvalidation` imports, no
+  `invalidatePeopleViews` or `personTodos` calls, PERSON_* messages unhandled).
+  GREEN: 18/18 passed. The review-focus-4 test passed on the Task 1 drop; with
+  `delete optimisticUpdates.people` removed it fails (pinned), then restored.
+  Check script: `TSC_OK`, 619 total, 619 passed, 0 failing names, lint 5
+  (baseline 5), new failing names empty. New files lint clean.
 
 ## Assumed
 

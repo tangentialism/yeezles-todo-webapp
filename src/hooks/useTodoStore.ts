@@ -3,6 +3,7 @@ import { useCallback, useMemo } from 'react';
 import { useApi } from './useApi';
 import { useCrossTabSync } from './useCrossTabSync';
 import { invalidateTopicViews } from './topicInvalidation';
+import { invalidatePeopleViews } from './peopleInvalidation';
 import { useToast } from '../contexts/ToastContext';
 import { useArea } from '../contexts/AreaContext';
 import type { Todo, TodoFilters, CreateTodoRequest, UpdateTodoRequest } from '../types/todo';
@@ -167,6 +168,7 @@ export const useTodoStore = (options: UseTodoStoreOptions = {}) => {
     onSuccess: (data, _variables, context) => {
       // Topic counts and topic todo lists are separate caches
       invalidateTopicViews(queryClient);
+      invalidatePeopleViews(queryClient);
       // Replace optimistic todo with real data
       updateTodosOptimistically((todos) =>
         todos.map(todo =>
@@ -240,6 +242,7 @@ export const useTodoStore = (options: UseTodoStoreOptions = {}) => {
     onSuccess: (data) => {
       // Topic counts and topic todo lists are separate caches
       invalidateTopicViews(queryClient);
+      invalidatePeopleViews(queryClient);
       // Replace optimistic update with server data
       updateTodosOptimistically((todos) =>
         todos.map(todo => todo.id === data.id ? { ...data, _optimistic: false } : todo)
@@ -319,6 +322,7 @@ export const useTodoStore = (options: UseTodoStoreOptions = {}) => {
     onSuccess: (deletedId) => {
       // Topic counts and topic todo lists are separate caches
       invalidateTopicViews(queryClient);
+      invalidatePeopleViews(queryClient);
       // Remove from cache
       updateTodosOptimistically((todos) =>
         todos.filter(todo => todo.id !== deletedId)
@@ -421,6 +425,7 @@ export const useTodoStore = (options: UseTodoStoreOptions = {}) => {
     onSuccess: (updatedTodo) => {
       // A topic's todo list shows the Today state
       queryClient.invalidateQueries({ queryKey: ['topicTodos'] });
+      queryClient.invalidateQueries({ queryKey: ['personTodos'] });
       updateTodosOptimistically((todos) =>
         todos.map(todo =>
           todo.id === updatedTodo.id
@@ -479,6 +484,7 @@ export const useTodoStore = (options: UseTodoStoreOptions = {}) => {
     onSuccess: (updatedTodo) => {
       // A topic's todo list shows the Today state
       queryClient.invalidateQueries({ queryKey: ['topicTodos'] });
+      queryClient.invalidateQueries({ queryKey: ['personTodos'] });
       updateTodosOptimistically((todos) =>
         todos.map(todo =>
           todo.id === updatedTodo.id

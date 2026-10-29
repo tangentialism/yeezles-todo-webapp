@@ -20,6 +20,10 @@ export type SyncMessageType =
   | 'TOPIC_CREATED'
   | 'TOPIC_UPDATED'
   | 'TOPIC_DELETED'
+  | 'PERSON_CREATED'
+  | 'PERSON_UPDATED'
+  | 'PERSON_DELETED'
+  | 'PERSON_MERGED'
   | 'PROPOSAL_RESOLVED';
 
 /**
