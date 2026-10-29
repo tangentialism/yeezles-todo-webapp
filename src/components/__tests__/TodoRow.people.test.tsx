@@ -44,4 +44,10 @@ describe('DoneItem people chips', () => {
     expect(screen.getByText('Priya Raman')).toBeInTheDocument();
     expect(screen.getByText('Sam Lee')).toBeInTheDocument();
   });
+
+  it('skips hidePersonId', () => {
+    render(<ul><DoneItem todo={{ ...todo, completed: true, people: [priya, sam] }} hidePersonId={2} /></ul>);
+    expect(screen.getByText('Priya Raman')).toBeInTheDocument();
+    expect(screen.queryByText('Sam Lee')).not.toBeInTheDocument();
+  });
 });

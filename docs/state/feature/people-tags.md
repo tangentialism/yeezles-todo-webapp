@@ -55,6 +55,10 @@ Task 4: the Dashboard wires `PersonNavigationContext` and the People tab.
   2 suites, 7/7 passed (3 chip, 4 row/DoneItem). Check script: `TSC_OK`, 629 total,
   629 passed, 0 failing names, lint 5 (baseline 5), new failing names empty. New and
   touched files lint clean.
+- Task 3 fix round 1: RED (accessible-name test before the edit) 1 failed, 8 passed:
+  `Unable to find ... button ... "Open person Linked Lee (in Peopler)"`. GREEN: 2 suites,
+  9/9. Check script: `TSC_OK`, 631 total, 631 passed, 0 failing names, lint 5
+  (baseline 5), new failing names empty.
 
 ## Assumed
 

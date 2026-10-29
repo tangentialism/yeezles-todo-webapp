@@ -38,7 +38,7 @@ const PersonChip: React.FC<PersonChipProps> = ({ person }) => {
         event.stopPropagation();
         openPerson(person.id);
       }}
-      aria-label={`Open person ${person.display_name}`}
+      aria-label={`Open person ${person.display_name}${linked ? ' (in Peopler)' : ''}`}
       className={`${className} hover:bg-hover hover:text-ink transition-colors`}
     >
       {content}

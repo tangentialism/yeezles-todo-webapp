@@ -41,4 +41,15 @@ describe('PersonChip', () => {
     expect(linked).toHaveTextContent('(in Peopler)');
     expect(bare).not.toHaveTextContent('(in Peopler)');
   });
+
+  it('announces the Peopler link in the button accessible name', () => {
+    render(
+      <PersonNavigationContext.Provider value={vi.fn()}>
+        <PersonChip person={makeTodoPerson({ id: 1, display_name: 'Linked Lee', peopler_id: 9 })} />
+        <PersonChip person={makeTodoPerson({ id: 2, display_name: 'Bare Bo' })} />
+      </PersonNavigationContext.Provider>
+    );
+    expect(screen.getByRole('button', { name: 'Open person Linked Lee (in Peopler)' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open person Bare Bo' })).toBeInTheDocument();
+  });
 });
