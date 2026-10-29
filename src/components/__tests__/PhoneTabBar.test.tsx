@@ -4,13 +4,24 @@ import userEvent from '@testing-library/user-event';
 import PhoneTabBar from '../PhoneTabBar';
 
 describe('PhoneTabBar', () => {
-  it('renders the four views and marks the current one', () => {
+  it('renders five views and marks the current one', () => {
     render(<PhoneTabBar currentView="today" onViewChange={vi.fn()} />);
 
     expect(screen.getByRole('navigation', { name: 'Views' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'All' })).not.toHaveAttribute('aria-current');
     expect(screen.getByRole('button', { name: 'Today' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('button', { name: 'Done' })).not.toHaveAttribute('aria-current');
+  });
+
+  it('lists All, Today, Topics, People, Done in order; People switches view', async () => {
+    const user = userEvent.setup();
+    const onViewChange = vi.fn();
+    render(<PhoneTabBar currentView="people" onViewChange={onViewChange} />);
+    const tabs = screen.getByRole('navigation', { name: 'Views' }).querySelectorAll('button');
+    expect(Array.from(tabs).map((b) => b.textContent)).toEqual(['All', 'Today', 'Topics', 'People', 'Done']);
+    expect(screen.getByRole('button', { name: 'People' })).toHaveAttribute('aria-current', 'page');
+    await user.click(screen.getByRole('button', { name: 'People' }));
+    expect(onViewChange).toHaveBeenCalledWith('people');
   });
 
   it('has a Topics tab', () => {

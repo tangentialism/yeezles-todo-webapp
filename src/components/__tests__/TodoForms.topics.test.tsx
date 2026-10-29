@@ -14,6 +14,8 @@ import type { Todo } from '../../types/todo';
 vi.mock('../../contexts/AreaContext');
 vi.mock('../../hooks/useTodoStore');
 vi.mock('../../hooks/useTopicStore');
+// The People field reads people through react-query; this file has no QueryClient
+vi.mock('../../hooks/usePeopleStore', () => ({ usePeople: () => ({ data: [] }), usePeopleMutations: () => ({ createPerson: vi.fn(), isCreating: false }) }));
 const categorizeTodo = vi.fn();
 vi.mock('../../hooks/useApi', () => ({ useApi: () => ({ categorizeTodo }) }));
 vi.mock('../../contexts/ToastContext', () => ({ useToast: () => ({ showToast: vi.fn(), hideToast: vi.fn() }) }));

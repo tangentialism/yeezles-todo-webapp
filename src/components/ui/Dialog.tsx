@@ -11,6 +11,8 @@ interface DialogProps {
   onClose: () => void;
   /** When true, Escape, the scrim and the close button do nothing (e.g. while saving). */
   closeDisabled?: boolean;
+  /** Below `sm`, fill the screen edge to edge (a sheet); from `sm` up it is the usual centred panel. */
+  fullScreenOnPhone?: boolean;
   children: React.ReactNode;
 }
 
@@ -33,7 +35,14 @@ const handleEscape = (event: KeyboardEvent) => {
  * Modal shell: dimmed scrim, centred panel with a serif title and close button.
  * Closes on Escape or a click on the scrim unless `closeDisabled` is set.
  */
-const Dialog: React.FC<DialogProps> = ({ title, titleDotColor, onClose, closeDisabled = false, children }) => {
+const Dialog: React.FC<DialogProps> = ({
+  title,
+  titleDotColor,
+  onClose,
+  closeDisabled = false,
+  fullScreenOnPhone = false,
+  children,
+}) => {
   const titleId = React.useId();
 
   // Escape is decided by the module-level stack below, not by listener order
@@ -58,7 +67,9 @@ const Dialog: React.FC<DialogProps> = ({ title, titleDotColor, onClose, closeDis
   // header would otherwise be positioned and clipped by it.
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/30 px-3 sm:px-4 pt-[6vh] sm:pt-[8vh] pb-6"
+      className={`fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/30 sm:px-4 sm:pt-[8vh] sm:pb-6 ${
+        fullScreenOnPhone ? '' : 'px-3 pt-[6vh] pb-6'
+      }`}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget && !closeDisabled) onClose();
       }}
@@ -67,7 +78,11 @@ const Dialog: React.FC<DialogProps> = ({ title, titleDotColor, onClose, closeDis
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="w-full max-w-[560px] rounded-[18px] bg-surface shadow-dialog animate-dialog-rise"
+        className={`w-full bg-surface shadow-dialog animate-dialog-rise ${
+          fullScreenOnPhone
+            ? 'fixed inset-0 rounded-none overflow-y-auto sm:static sm:inset-auto sm:max-w-[560px] sm:rounded-[18px] sm:overflow-visible'
+            : 'max-w-[560px] rounded-[18px]'
+        }`}
       >
         <div className="flex items-center justify-between pl-7 pr-[18px] pt-5 pb-1">
           <h2 id={titleId} className="flex items-center gap-3 font-serif font-medium text-2xl tracking-[-0.01em]">

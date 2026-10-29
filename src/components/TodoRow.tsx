@@ -7,6 +7,7 @@ import type { DueKind } from '../utils/dueDate';
 import TodoActions from './TodoActions';
 import TodayToggle from './TodayToggle';
 import TopicChip from './topics/TopicChip';
+import PersonChip from './people/PersonChip';
 import { CheckIcon, ExternalLinkIcon } from './ui/Icons';
 
 /** Display flags supplied by the owning store's `getTodoDisplayState`. */
@@ -25,6 +26,8 @@ interface TodoRowProps {
   showArea?: boolean;
   /** Show the topic chip (off in topic detail, where every row has that topic). */
   showTopic?: boolean;
+  /** Skip this person's chip (the person pane, where every row has them). */
+  hidePersonId?: number;
   /** "today" says "Due" instead of "Today" and hides empty date cells. */
   variant?: 'all' | 'today';
   /** Show the sun toggle; when false a spacer keeps columns aligned. */
@@ -56,6 +59,7 @@ const TodoRow: React.FC<TodoRowProps> = ({
   area,
   showArea = false,
   showTopic = true,
+  hidePersonId,
   variant = 'all',
   showTodayToggle = true,
   isNew = false,
@@ -69,7 +73,8 @@ const TodoRow: React.FC<TodoRowProps> = ({
   const due = getDueInfo(todo.due_date);
   const whenLabel = variant === 'today' && due.kind === 'today' ? 'Due' : due.label;
   const topic = showTopic ? (todo.topic ?? null) : null;
-  const hasMeta = (showArea && !!area) || !!topic || tags.length > 0 || !!todo.reference_url;
+  const people = (todo.people ?? []).filter((p) => p.id !== hidePersonId);
+  const hasMeta = (showArea && !!area) || !!topic || people.length > 0 || tags.length > 0 || !!todo.reference_url;
 
   return (
     <div
@@ -120,6 +125,9 @@ const TodoRow: React.FC<TodoRowProps> = ({
               </span>
             )}
             {topic && <TopicChip topic={topic} color={area?.color} />}
+            {people.map((person) => (
+              <PersonChip key={person.id} person={person} />
+            ))}
             {tags.map((tag) => (
               <span key={tag} className="font-mono text-xs text-accent-ink">@{tag}</span>
             ))}

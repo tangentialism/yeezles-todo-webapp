@@ -110,3 +110,12 @@ export const TOPIC_NOTE_MAX = 10_000;
 
 /** The note's character counter appears from this length. */
 export const TOPIC_NOTE_COUNTER_FROM = 9_000;
+
+// ── People ────────────────────────────────────────────────────────────
+
+/** Backend limits for people (API.md § People): name and each alias, and the alias count. */
+export const PERSON_NAME_MAX = 120;
+export const PERSON_ALIAS_MAX = 120;
+export const PERSON_ALIASES_MAX = 20;
+/** Most people one todo can carry (the backend refuses more in one request). */
+export const PEOPLE_PER_TODO_MAX = 20;

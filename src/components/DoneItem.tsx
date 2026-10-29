@@ -2,6 +2,7 @@ import React from 'react';
 import { extractTags, stripTags } from '../utils/todoText';
 import { CheckIcon } from './ui/Icons';
 import TopicChip from './topics/TopicChip';
+import PersonChip from './people/PersonChip';
 import type { Todo } from '../types/todo';
 import type { Area } from '../types/area';
 
@@ -12,6 +13,8 @@ interface DoneItemProps {
   area?: Area;
   /** Show the topic chip (off in topic detail, where every row has that topic). */
   showTopic?: boolean;
+  /** Skip this person's chip (the person pane, where every row has them). */
+  hidePersonId?: number;
 }
 
 /**
@@ -19,7 +22,7 @@ interface DoneItemProps {
  * Static: unlike {@link TodoRow} it has no in-progress "Completing…" state, so
  * it suits lists of todos that are already done (the Done view, topic detail).
  */
-const DoneItem: React.FC<DoneItemProps> = ({ todo, area, showTopic = true }) => {
+const DoneItem: React.FC<DoneItemProps> = ({ todo, area, showTopic = true, hidePersonId }) => {
   const completedTime = todo.completed_at
     ? new Date(todo.completed_at).toLocaleTimeString('en-US', {
         hour: 'numeric',
@@ -28,6 +31,7 @@ const DoneItem: React.FC<DoneItemProps> = ({ todo, area, showTopic = true }) => 
       })
     : '';
   const topic = showTopic ? (todo.topic ?? null) : null;
+  const people = (todo.people ?? []).filter((p) => p.id !== hidePersonId);
   const tags = todo.tags && todo.tags.length > 0 ? todo.tags : extractTags(todo.title);
 
   return (
@@ -43,7 +47,7 @@ const DoneItem: React.FC<DoneItemProps> = ({ todo, area, showTopic = true }) => 
         {todo.description && (
           <p className="text-[13px] text-ink-muted line-clamp-2">{todo.description}</p>
         )}
-        {(area || topic || tags.length > 0) && (
+        {(area || topic || people.length > 0 || tags.length > 0) && (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[12.5px] text-ink-muted">
             {area && (
               <span className="inline-flex items-center gap-1.5">
@@ -52,6 +56,9 @@ const DoneItem: React.FC<DoneItemProps> = ({ todo, area, showTopic = true }) => 
               </span>
             )}
             {topic && <TopicChip topic={topic} color={area?.color} />}
+            {people.map((person) => (
+              <PersonChip key={person.id} person={person} />
+            ))}
             {tags.map((tag) => (
               <span key={tag} className="font-mono text-xs text-accent-ink">@{tag.replace(/^@/, '')}</span>
             ))}

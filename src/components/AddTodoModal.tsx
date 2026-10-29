@@ -7,6 +7,8 @@ import { logger } from '../utils/logger';
 import Dialog from './ui/Dialog';
 import AreaChips from './ui/AreaChips';
 import TopicPicker from './topics/TopicPicker';
+import PeopleField from './people/PeopleField';
+import type { TodoPerson } from '../types/person';
 import { useTopicSelection } from '../hooks/useTopicSelection';
 import Switch from './ui/Switch';
 import { CalendarIcon, LinkIcon, Spinner, SunIcon } from './ui/Icons';
@@ -41,6 +43,7 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
   const [isToday, setIsToday] = useState(false);
   const [selectedAreaId, setSelectedAreaId] = useState<number | null>(null);
   const { topicId, cleared: topicCleared, selectTopic, changeArea, reset: resetTopic } = useTopicSelection(selectedAreaId, setSelectedAreaId);
+  const [people, setPeople] = useState<TodoPerson[]>([]);
   const [referenceUrl, setReferenceUrl] = useState('');
   const [isCategorizing, setIsCategorizing] = useState(false);
   const { createTodo, isCreating } = useTodoStore();
@@ -110,6 +113,7 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
         area_id: finalAreaId,
         // A topic implies its area, which the picker already set (spec §5.4)
         ...(topicId !== null ? { topic_id: topicId } : {}),
+        ...(people.length > 0 ? { people: people.map((p) => ({ person_id: p.id })) } : {}),
         reference_url: referenceUrl.trim() || undefined,
       };
 
@@ -122,6 +126,7 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
       setIsToday(false);
       setSelectedAreaId(null);
       resetTopic(null, null);
+      setPeople([]);
       setReferenceUrl('');
       
       // Notify parent with the assigned area info
@@ -149,6 +154,7 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
       setIsToday(false);
       setSelectedAreaId(null);
       resetTopic(null, null);
+      setPeople([]);
       setReferenceUrl('');
       onClose();
     }
@@ -228,6 +234,8 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
             showCleared={topicCleared}
             disabled={isSubmitting}
           />
+
+          <PeopleField id="people" value={people} onChange={setPeople} disabled={isSubmitting} />
 
           <div>
             <label htmlFor="dueDate" className={fieldLabel}>

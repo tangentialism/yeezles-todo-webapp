@@ -425,6 +425,28 @@ A topic is a named group of todos inside one area, with a status note
 
 ---
 
+## People
+
+A person is someone a todo involves. People are not tied to an area: one
+person can be tagged on todos in any area (workspace spec
+`docs/superpowers/specs/2026-10-28-people-tags-design.md`, phase 2).
+
+- **People tab.** The tabs run All, Today, Topics, People, Done.
+  - **Desktop (`sm` and up):** the list on the left, the selected person on the right. With nobody selected, the right pane reads "Pick a person to see their todos." Nobody is picked automatically.
+  - **Phones:** the list fills the tab. Picking a person shows them in place of the list, with a "← People" control to go back; the header and tab bar stay.
+  - **The list** shows everyone tagged, most recently tagged first, with each person's open count. People with nothing open are dimmed, and a link mark shows who is linked to Peopler. It shows at most 100 people; at 100 a footer reads "Showing the 100 most recently tagged." With nobody tagged it reads "No people yet. Tag someone from a todo's People field."
+  - **The person** shows the name, aliases, open and done counts, and their open todos grouped by area, from every area. Show completed adds their done todos. A person with nothing open or done reads "Nothing tagged." Their own chip is hidden on these rows, since every row carries it. Completing a todo here moves it out of the open list and updates the counts.
+- **Chips.** Todo rows show a chip per person, in All, Today, topic detail, Done and the person pane. A chip is filled when the person is linked to Peopler, and outlined like a topic chip when not. Clicking a chip opens that person on the People tab, replacing whoever was shown.
+- **People field.** The add and edit forms have a People field. Typing searches names and aliases, and the last option is always `Create "‹text›"`. Create makes a new person at once and tags them, even when a namesake exists and even if the form is then cancelled (the leftover person shows as "Nothing tagged" and can be deleted). Arrow keys move through the options and Enter picks the highlighted one; Enter never picks the first match by itself. Escape closes the list only; a second Escape closes the form. A todo takes up to 20 people ("Up to 20 people per todo."). On phones the field opens as a full-screen sheet. The edit form sends people only when the set changed, so saving an untouched form cannot remove a tag added in another tab.
+- **Person actions** (the ⋯ menu on the person):
+  - **Rename / edit aliases…** changes the name and the aliases (one per line). Tags point at the person, not the name, so every chip shows the new name at once, in this tab and in other open tabs.
+  - **Merge into…** picks another person. The merged person's todos move to the one they were merged into (a todo tagged with both keeps one tag), and the merged person's name and aliases become that person's aliases. The pane then shows the survivor.
+  - **Delete…** asks `Delete "X"? Their tags are removed from N todos; the todos stay.` The todos are untouched apart from losing the tag.
+  - **Open in Peopler** appears only for a person already linked to Peopler.
+- **Later phases.** MCP tools and people in Claude's proposals (P3), linking people to Peopler from here (P4), and suggested people (P5) come later.
+
+---
+
 ## User Interface Features
 
 ### Responsive Design

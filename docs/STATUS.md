@@ -367,6 +367,15 @@ The Yeezles Todo Web Application is fully functional and deployed in production 
 - ✅ Mobile-responsive
 - ✅ Centered layout
 
+#### People tags (phase 2) ✅
+**Status:** ✅ Webapp done for the phase 2 scope (branch `feature/people-tags`, against backend `yeezles-todo` `46b3510`). Unit-tested; a browser walkthrough has not been run (see `docs/state/feature/people-tags.md`).
+- ✅ People tab: list and person pane side by side from `sm`, the person in place of the list on phones
+- ✅ Person chips on todo rows (filled when linked to Peopler, outlined when bare); a click opens the person
+- ✅ People field with typeahead and Create in the add and edit forms; full-screen sheet on phones
+- ✅ Rename and aliases, merge, delete; chips and lists refresh in this tab and other tabs
+- ❌ MCP and proposals (P3), Peopler linking (P4), suggestions (P5): later phases
+- ❌ People field in the external-create page (browser plugins, share)
+
 ---
 
 ### Routing

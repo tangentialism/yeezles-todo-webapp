@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { TopicNavigationContext } from '../hooks/useOpenTopic';
+import { PersonNavigationContext } from '../hooks/useOpenPerson';
 import Navigation from './Navigation';
 import ViewContainer from './ViewContainer';
 import AddTodoModal from './AddTodoModal';
@@ -18,7 +19,8 @@ import { NEW_AREA_HIGHLIGHT_MS, VIEW_TRANSITION_DURATION_MS } from '../constants
  * Main authenticated layout: a single header (wordmark, view tabs, area
  * switcher, New button, account menu) above the multi-view container.
  * Manages view switching with a fade transition, owns the topic open in the
- * Topics view (chips open it through TopicNavigationContext), and coordinates the
+ * Topics view and the person open in the People view (chips open them through
+ * TopicNavigationContext and PersonNavigationContext), and coordinates the
  * "Add Todo" modal with entrance animation for new todos.
  */
 const Dashboard: React.FC = () => {
@@ -54,6 +56,14 @@ const Dashboard: React.FC = () => {
     handleViewChange('topics');
   }, [handleViewChange]);
 
+  const [openPersonId, setOpenPersonId] = useState<number | null>(null);
+
+  // A person chip anywhere in the dashboard opens that person in the People view
+  const openPerson = useCallback((personId: number) => {
+    setOpenPersonId(personId);
+    handleViewChange('people');
+  }, [handleViewChange]);
+
   const topicsCount = usePendingProposalCount();
   const [highlightTopicIds, setHighlightTopicIds] = useState<number[]>([]);
 
@@ -74,6 +84,7 @@ const Dashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-paper">
       <TopicNavigationContext.Provider value={openTopic}>
+      <PersonNavigationContext.Provider value={openPerson}>
       {/* Phones: wordmark, area dot and avatar only; views move to the tab bar, New to the round button */}
       <header className="sticky top-0 z-20 bg-paper/90 backdrop-blur">
         <div className="max-w-[1120px] mx-auto pl-5 pr-3 pt-2.5 pb-1 sm:px-10 sm:py-4 flex items-center sm:gap-x-8">
@@ -118,6 +129,9 @@ const Dashboard: React.FC = () => {
           onOpenTopic={openTopic}
           onCloseTopic={() => setOpenTopicId(null)}
           highlightTopicIds={highlightTopicIds}
+          openPersonId={openPersonId}
+          onOpenPerson={openPerson}
+          onClosePerson={() => setOpenPersonId(null)}
         />
       </main>
 
@@ -138,6 +152,7 @@ const Dashboard: React.FC = () => {
         todayCount={todayCount}
         topicsCount={topicsCount}
       />
+      </PersonNavigationContext.Provider>
       </TopicNavigationContext.Provider>
 
       {/* Add Todo Modal */}

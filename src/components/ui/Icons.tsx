@@ -46,6 +46,14 @@ export const FolderIcon: React.FC<IconProps> = (p) => (
   </Stroke>
 );
 
+/** Head and shoulders: the "People" view. */
+export const PersonIcon: React.FC<IconProps> = (p) => (
+  <Stroke {...p}>
+    <circle cx="12" cy="8.5" r="3.5" />
+    <path d="M5 19.5c.8-3.6 3.5-5.5 7-5.5s6.2 1.9 7 5.5" />
+  </Stroke>
+);
+
 /** Tick in a circle: the "Done" view. */
 export const CircleCheckIcon: React.FC<IconProps> = (p) => (
   <Stroke {...p}>

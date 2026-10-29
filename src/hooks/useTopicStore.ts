@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useApi } from './useApi';
 import { useCrossTabSync } from './useCrossTabSync';
 import { invalidateTodoViews, invalidateTopicViews, topicKeys } from './topicInvalidation';
+import { invalidatePeopleViews } from './peopleInvalidation';
 import { retryUnlessClientError } from '../services/apiError';
 import type { Todo } from '../types/todo';
 import type { CreateTopicRequest, Topic, TopicWithCounts, UpdateTopicRequest } from '../types/topic';
@@ -67,6 +68,7 @@ export const useTopicMutations = () => {
     retry: false,
     onSuccess: (topic: Topic) => {
       invalidateTopicViews(queryClient);
+      invalidatePeopleViews(queryClient);
       broadcast('TOPIC_CREATED', stamp(topic.id));
     },
   });
@@ -76,6 +78,7 @@ export const useTopicMutations = () => {
     retry: false,
     onSuccess: (topic: Topic, { updates }) => {
       invalidateTopicViews(queryClient);
+      invalidatePeopleViews(queryClient);
       if (updates.name !== undefined) invalidateTodoViews(queryClient);
       broadcast('TOPIC_UPDATED', stamp(topic.id));
     },
@@ -96,6 +99,7 @@ export const useTopicMutations = () => {
     retry: false,
     onSuccess: (_result, id) => {
       invalidateTopicViews(queryClient);
+      invalidatePeopleViews(queryClient);
       invalidateTodoViews(queryClient);
       broadcast('TOPIC_DELETED', stamp(id));
     },

@@ -3,6 +3,7 @@ import TodoList from './TodoList';
 import TodayView from './TodayView';
 import AccomplishmentsView from './AccomplishmentsView';
 import TopicsView from './topics/TopicsView';
+import PeopleView from './people/PeopleView';
 
 /** Props for {@link ViewContainer}. */
 interface ViewContainerProps {
@@ -18,11 +19,15 @@ interface ViewContainerProps {
   onCloseTopic: () => void;
   /** Topics just created by an applied proposal, highlighted in the Topics view. */
   highlightTopicIds: number[];
+  /** The person open in the People view, or null for none. */
+  openPersonId: number | null;
+  onOpenPerson: (id: number) => void;
+  onClosePerson: () => void;
 }
 
 /**
- * Stacked view container that keeps all four views (All Todos, Today, Topics,
- * Accomplishments) mounted simultaneously for instant switching.
+ * Stacked view container that keeps all five views (All Todos, Today, Topics,
+ * People, Accomplishments) mounted simultaneously for instant switching.
  *
  * Only the active view is visible; inactive views are hidden with
  * `visibility: hidden` and `pointerEvents: none`. Scroll positions are
@@ -38,12 +43,16 @@ const ViewContainer: React.FC<ViewContainerProps> = ({
   openTopicId,
   onOpenTopic,
   onCloseTopic,
-  highlightTopicIds
+  highlightTopicIds,
+  openPersonId,
+  onOpenPerson,
+  onClosePerson
 }) => {
   // Refs to preserve scroll positions
   const allViewRef = useRef<HTMLDivElement>(null);
   const todayViewRef = useRef<HTMLDivElement>(null);
   const topicsViewRef = useRef<HTMLDivElement>(null);
+  const peopleViewRef = useRef<HTMLDivElement>(null);
   const accomplishmentsViewRef = useRef<HTMLDivElement>(null);
   
   // Store scroll positions when switching views
@@ -51,6 +60,7 @@ const ViewContainer: React.FC<ViewContainerProps> = ({
     all: 0,
     today: 0,
     topics: 0,
+    people: 0,
     accomplishments: 0
   });
 
@@ -61,6 +71,7 @@ const ViewContainer: React.FC<ViewContainerProps> = ({
         case 'all': return allViewRef.current;
         case 'today': return todayViewRef.current;
         case 'topics': return topicsViewRef.current;
+        case 'people': return peopleViewRef.current;
         case 'accomplishments': return accomplishmentsViewRef.current;
         default: return null;
       }
@@ -93,6 +104,7 @@ const ViewContainer: React.FC<ViewContainerProps> = ({
       case 'all': return allViewRef.current;
       case 'today': return todayViewRef.current;
       case 'topics': return topicsViewRef.current;
+      case 'people': return peopleViewRef.current;
       case 'accomplishments': return accomplishmentsViewRef.current;
       default: return null;
     }
@@ -159,6 +171,23 @@ const ViewContainer: React.FC<ViewContainerProps> = ({
           onOpenTopic={onOpenTopic}
           onCloseTopic={onCloseTopic}
           highlightTopicIds={highlightTopicIds}
+        />
+      </div>
+
+      {/* People View */}
+      <div
+        ref={peopleViewRef}
+        className="absolute inset-0 -mx-3 px-3 pb-36 sm:pb-0 overflow-y-auto overflow-x-hidden transition-opacity duration-200"
+        style={{
+          opacity: getViewOpacity('people'),
+          visibility: getViewVisibility('people'),
+          pointerEvents: getViewPointerEvents('people'),
+        }}
+      >
+        <PeopleView
+          openPersonId={openPersonId}
+          onOpenPerson={onOpenPerson}
+          onClosePerson={onClosePerson}
         />
       </div>
 

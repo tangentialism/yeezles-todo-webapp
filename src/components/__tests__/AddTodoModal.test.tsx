@@ -11,6 +11,8 @@ vi.mock('../../hooks/useTodoStore');
 vi.mock('../../contexts/AreaContext');
 // The topic picker reads topics; this file has no QueryClient
 vi.mock('../../hooks/useTopicStore', () => ({ useTopics: () => ({ data: [] }), useTopicMutations: () => ({}) }));
+// The People field reads people through react-query; this file has no QueryClient
+vi.mock('../../hooks/usePeopleStore', () => ({ usePeople: () => ({ data: [] }), usePeopleMutations: () => ({ createPerson: vi.fn(), isCreating: false }) }));
 // AI categorization (no area picked) and the success toast; neither is under test here
 vi.mock('../../hooks/useApi', () => ({
   useApi: () => ({

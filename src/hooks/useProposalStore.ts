@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useApi } from './useApi';
 import { useCrossTabSync } from './useCrossTabSync';
 import { invalidateTodoViews, invalidateTopicViews } from './topicInvalidation';
+import { invalidatePeopleViews } from './peopleInvalidation';
 import { retryUnlessClientError } from '../services/apiError';
 import type { TopicChangesPayload } from '../types/proposal';
 import { BACKGROUND_SYNC_INTERVAL_MS } from '../constants';
@@ -54,6 +55,7 @@ export const useProposalActions = () => {
     queryClient.invalidateQueries({ queryKey: ['proposals'] });
     queryClient.invalidateQueries({ queryKey: proposalKeys.one(id) });
     invalidateTopicViews(queryClient);
+    invalidatePeopleViews(queryClient);
     invalidateTodoViews(queryClient);
     broadcast('PROPOSAL_RESOLVED', { id, timestamp: Date.now() });
   };
