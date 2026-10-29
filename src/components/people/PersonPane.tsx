@@ -29,7 +29,7 @@ const PersonPane: React.FC<PersonPaneProps> = ({ personId, onBack }) => {
   const { areas } = useArea();
   const { data: person, isLoading, error, refetch } = usePerson(personId);
   const [showDone, setShowDone] = useState(false);
-  const { data: openTodos = [], error: openError, refetch: refetchOpen } = usePersonTodos(personId, false);
+  const { data: openTodos = [], error: openError, isLoading: openLoading, refetch: refetchOpen } = usePersonTodos(personId, false);
   const { data: doneTodos = [] } = usePersonTodos(personId, true, showDone);
   const { toggleTodoCompletion, getTodoDisplayState } = useTodoStore();
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
@@ -99,7 +99,9 @@ const PersonPane: React.FC<PersonPaneProps> = ({ personId, onBack }) => {
         <div data-slot="person-actions" />
       </div>
 
-      {openError ? (
+      {openLoading ? (
+        <ViewLoading label="Loading todos..." />
+      ) : openError ? (
         <ViewError
           title="Could not load todos"
           message={openError instanceof Error ? openError.message : 'Please try again.'}

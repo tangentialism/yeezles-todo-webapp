@@ -100,6 +100,16 @@ describe('PersonPane', () => {
     expect(screen.getByText('Nothing tagged.')).toBeInTheDocument();
   });
 
+  it('shows a loading indicator, not an empty-state claim, while open todos load', () => {
+    vi.mocked(PeopleStore.usePersonTodos).mockReturnValue(
+      asReturn<ReturnType<typeof PeopleStore.usePersonTodos>>({ data: undefined, isLoading: true, error: null, refetch: vi.fn() })
+    );
+    renderPane();
+    expect(screen.getByText('Loading todos...')).toBeInTheDocument();
+    expect(screen.queryByText('Nothing tagged.')).not.toBeInTheDocument();
+    expect(screen.queryByText('No open todos.')).not.toBeInTheDocument();
+  });
+
   it('shows the not-found copy and keeps the back control', async () => {
     const onBack = vi.fn();
     vi.mocked(PeopleStore.usePerson).mockReturnValue(

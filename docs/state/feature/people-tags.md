@@ -73,6 +73,9 @@ Task 6: person actions (rename, aliases, merge, delete) in the `data-slot="perso
   PersonChip 4, PersonPane 7, PeopleView 10, incl. keyed-pane reset and phone class layout).
   Check script: `TSC_OK`, 657 total, 657 passed, 0 failing names, lint 5 (baseline 5), new failing
   names empty. New files lint clean.
+- Task 5 fix round 1: RED (loading test before the edit) 1 failed, 7 passed in PersonPane:
+  `Unable to find an element with the text: Loading todos...`. GREEN: PersonPane and PeopleView
+  suites 18/18 (PersonPane 8, PeopleView 10). Check script: `TSC_OK`, 658 total, 658 passed, 0 failing names, lint 5 (baseline 5), new failing names empty.
 
 ## Assumed
 
