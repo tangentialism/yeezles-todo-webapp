@@ -56,7 +56,7 @@ beforeEach(() => {
 const renderPane = (onBack = vi.fn()) =>
   render(
     <PersonNavigationContext.Provider value={vi.fn()}>
-      <PersonPane personId={1} onBack={onBack} />
+      <PersonPane personId={1} onBack={onBack} onMerged={vi.fn()} onDeleted={vi.fn()} />
     </PersonNavigationContext.Provider>
   );
 
@@ -149,11 +149,38 @@ describe('PersonPane', () => {
     );
     rerender(
       <PersonNavigationContext.Provider value={vi.fn()}>
-        <PersonPane personId={1} onBack={vi.fn()} />
+        <PersonPane personId={1} onBack={vi.fn()} onMerged={vi.fn()} onDeleted={vi.fn()} />
       </PersonNavigationContext.Provider>
     );
     expect(screen.queryByRole('button', { name: 'Complete "Order tiles"' })).not.toBeInTheDocument();
     expect(within(screen.getByRole('list', { name: 'Done todos' })).getByText('Order tiles')).toBeInTheDocument();
     expect(screen.getByText('2 open · 2 done')).toBeInTheDocument();
+  });
+
+  describe('actions menu', () => {
+    const openMenu = () => userEvent.click(screen.getByRole('button', { name: 'Person actions' }));
+
+    it('offers Open in Peopler only for a linked person, as a new-tab link to the right url', async () => {
+      vi.mocked(PeopleStore.usePerson).mockReturnValue(
+        asReturn<ReturnType<typeof PeopleStore.usePerson>>(query({ ...priya, peopler_id: 12, peopler_url: 'https://peopler.example/people/12' }))
+      );
+      renderPane();
+      await openMenu();
+      const link = screen.getByRole('menuitem', { name: 'Open in Peopler' });
+      expect(link).toHaveAttribute('href', 'https://peopler.example/people/12');
+      expect(link).toHaveAttribute('target', '_blank');
+      expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    });
+
+    it('hides Open in Peopler for a bare person and lists the other actions in order', async () => {
+      renderPane();
+      await openMenu();
+      expect(screen.queryByRole('menuitem', { name: 'Open in Peopler' })).not.toBeInTheDocument();
+      expect(screen.getAllByRole('menuitem').map((i) => i.textContent)).toEqual([
+        'Rename / edit aliases…',
+        'Merge into…',
+        'Delete…',
+      ]);
+    });
   });
 });

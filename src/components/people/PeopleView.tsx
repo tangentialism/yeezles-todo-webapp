@@ -32,7 +32,13 @@ const PeopleView: React.FC<PeopleViewProps> = ({ openPersonId, onOpenPerson, onC
         <div data-testid="people-detail-pane" className={selected ? '' : 'hidden sm:block'}>
           {/* Keyed by id: switching people starts a fresh pane (Show completed, dialogs). */}
           {selected ? (
-            <PersonPane key={openPersonId} personId={openPersonId} onBack={onClosePerson} />
+            <PersonPane
+              key={openPersonId}
+              personId={openPersonId}
+              onBack={onClosePerson}
+              onMerged={onOpenPerson}
+              onDeleted={onClosePerson}
+            />
           ) : (
             <p className="py-6 text-sm text-ink-muted">Pick a person to see their todos.</p>
           )}

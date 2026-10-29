@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import React, { useState } from 'react';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import PeopleView from '../PeopleView';
@@ -143,5 +144,28 @@ describe('PeopleView layout', () => {
     expect(vi.mocked(PeopleStore.usePeople).mock.calls.map((c) => JSON.stringify(c))).toEqual(peopleCalls);
     expect(vi.mocked(PeopleStore.usePersonTodos).mock.calls.map((c) => JSON.stringify(c))).toEqual(todoCalls);
     expect(screen.getByRole('heading', { name: 'People' })).toBeInTheDocument();
+  });
+
+  it('deleting the selected person clears the selection, which on phones returns to the list', async () => {
+    const deletePerson = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(PeopleStore.usePeopleMutations).mockReturnValue(
+      asReturn<ReturnType<typeof PeopleStore.usePeopleMutations>>({ deletePerson, isDeleting: false })
+    );
+    const Harness = () => {
+      const [id, setId] = useState<number | null>(1);
+      return <PeopleView openPersonId={id} onOpenPerson={setId} onClosePerson={() => setId(null)} />;
+    };
+    render(<Harness />);
+    expect(screen.getByTestId('people-list-pane')).toHaveClass('hidden');
+    await userEvent.click(screen.getByRole('button', { name: 'Person actions' }));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Delete…' }));
+    expect(
+      screen.getByText('Delete "Priya Raman"? Their tags are removed from 4 todos; the todos stay.')
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Delete person' }));
+    expect(deletePerson).toHaveBeenCalledWith(1);
+    expect(await screen.findByText('Pick a person to see their todos.')).toBeInTheDocument();
+    expect(screen.getByTestId('people-list-pane')).not.toHaveClass('hidden');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });

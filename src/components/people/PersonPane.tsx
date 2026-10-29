@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { useArea } from '../../contexts/AreaContext';
+import { useDismiss } from '../../hooks/useDismiss';
 import { usePerson, usePersonTodos } from '../../hooks/usePeopleStore';
 import { useTodoStore } from '../../hooks/useTodoStore';
 import { isApiError } from '../../services/apiError';
@@ -10,13 +11,21 @@ import DoneItem from '../DoneItem';
 import EditTodoModal from '../EditTodoModal';
 import Switch from '../ui/Switch';
 import { ViewError, ViewLoading } from '../ViewChrome';
-import { ghostButton, sectionCap } from '../ui/styles';
+import { MoreIcon } from '../ui/Icons';
+import { ghostButton, iconButton, menuItem, menuItemDanger, menuPanel, menuSeparator, sectionCap } from '../ui/styles';
+import EditPersonDialog from './EditPersonDialog';
+import MergePersonDialog from './MergePersonDialog';
+import DeletePersonDialog from './DeletePersonDialog';
 
 /** Props for {@link PersonPane}. */
 export interface PersonPaneProps {
   personId: number;
   /** Phone back control: returns to the list. */
   onBack: () => void;
+  /** Called with the survivor's id after this person is merged into another. */
+  onMerged: (intoId: number) => void;
+  /** Called after this person is deleted. */
+  onDeleted: () => void;
 }
 
 /**
@@ -25,7 +34,7 @@ export interface PersonPaneProps {
  * so it spans every area and ignores the area switcher. Mounted with
  * `key={personId}` so state never carries from one person to the next.
  */
-const PersonPane: React.FC<PersonPaneProps> = ({ personId, onBack }) => {
+const PersonPane: React.FC<PersonPaneProps> = ({ personId, onBack, onMerged, onDeleted }) => {
   const { areas } = useArea();
   const { data: person, isLoading, error, refetch } = usePerson(personId);
   const [showDone, setShowDone] = useState(false);
@@ -33,6 +42,13 @@ const PersonPane: React.FC<PersonPaneProps> = ({ personId, onBack }) => {
   const { data: doneTodos = [] } = usePersonTodos(personId, true, showDone);
   const { toggleTodoCompletion, getTodoDisplayState } = useTodoStore();
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [dialog, setDialog] = useState<'edit' | 'merge' | 'delete' | null>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const closeMenu = useCallback(() => setMenuOpen(false), []);
+  const dismissRefs = useMemo(() => [triggerRef, panelRef], []);
+  useDismiss(dismissRefs, closeMenu, menuOpen);
 
   const back = (
     <button type="button" onClick={onBack} className={`${ghostButton} -ml-4 mb-2 sm:hidden`}>
@@ -95,8 +111,45 @@ const PersonPane: React.FC<PersonPaneProps> = ({ personId, onBack }) => {
             <span className="font-mono">{person.open_count} open · {person.done_count} done</span>
           </p>
         </div>
-        {/* Actions slot: the person menu (rename, aliases, merge, delete) lands here. */}
-        <div data-slot="person-actions" />
+        <div className="relative">
+          <button
+            ref={triggerRef}
+            type="button"
+            onClick={() => setMenuOpen((v) => !v)}
+            aria-label="Person actions"
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            className={iconButton}
+          >
+            <MoreIcon className="w-4 h-4" />
+          </button>
+          {menuOpen && (
+            <div ref={panelRef} role="menu" aria-label="Person actions" className={`absolute right-0 top-11 z-30 w-56 ${menuPanel}`}>
+              {person.peopler_url && (
+                <a
+                  role="menuitem"
+                  href={person.peopler_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={menuItem}
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Open in Peopler
+                </a>
+              )}
+              <button type="button" role="menuitem" className={menuItem} onClick={() => { setMenuOpen(false); setDialog('edit'); }}>
+                Rename / edit aliases…
+              </button>
+              <button type="button" role="menuitem" className={menuItem} onClick={() => { setMenuOpen(false); setDialog('merge'); }}>
+                Merge into…
+              </button>
+              <div className={menuSeparator} />
+              <button type="button" role="menuitem" className={menuItemDanger} onClick={() => { setMenuOpen(false); setDialog('delete'); }}>
+                Delete…
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {openLoading ? (
@@ -146,6 +199,28 @@ const PersonPane: React.FC<PersonPaneProps> = ({ personId, onBack }) => {
         onClose={() => setEditingTodo(null)}
         onTodoUpdated={() => setEditingTodo(null)}
       />
+
+      {dialog === 'edit' && <EditPersonDialog person={person} onClose={() => setDialog(null)} />}
+      {dialog === 'merge' && (
+        <MergePersonDialog
+          person={person}
+          onClose={() => setDialog(null)}
+          onMerged={(intoId) => {
+            setDialog(null);
+            onMerged(intoId);
+          }}
+        />
+      )}
+      {dialog === 'delete' && (
+        <DeletePersonDialog
+          person={person}
+          onClose={() => setDialog(null)}
+          onDeleted={() => {
+            setDialog(null);
+            onDeleted();
+          }}
+        />
+      )}
     </div>
   );
 };

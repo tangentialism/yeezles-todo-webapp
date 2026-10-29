@@ -9,7 +9,7 @@ repo `docs/superpowers/plans/2026-10-29-people-tags-webapp.md`.
 
 ## Next action
 
-Task 6: person actions (rename, aliases, merge, delete) in the `data-slot="person-actions"` div in the `PersonPane` header.
+Task 7: the People field (typeahead) in the add and edit forms.
 
 ## Verified
 
@@ -76,6 +76,16 @@ Task 6: person actions (rename, aliases, merge, delete) in the `data-slot="perso
 - Task 5 fix round 1: RED (loading test before the edit) 1 failed, 7 passed in PersonPane:
   `Unable to find an element with the text: Loading todos...`. GREEN: PersonPane and PeopleView
   suites 18/18 (PersonPane 8, PeopleView 10). Check script: `TSC_OK`, 658 total, 658 passed, 0 failing names, lint 5 (baseline 5), new failing names empty.
+- Task 6: RED `npx vitest run src/components/people`: 5 suites failed (EditPersonDialog,
+  MergePersonDialog and DeletePersonDialog failed to load, missing modules; PersonPane 2 menu
+  tests and PeopleView 1 delete test failed on `Unable to find ... name "Person actions"`), 3 tests
+  failed, 22 passed in the suites that loaded. GREEN: 6 suites, 43/43 passed (EditPersonDialog 10,
+  MergePersonDialog 5 incl. the PeopleView merge-selects-survivor test, DeletePersonDialog 3,
+  PersonPane 10, PeopleView 11, PersonChip 4). Check script: `TSC_OK`, 679 total, 679 passed,
+  0 failing names, lint 5 (baseline 5), new failing names empty. New and touched files lint clean.
+  Review focus 1 (local `['todos']` row shows the renamed person) and focus 2 (merge selects the
+  survivor, list loses the merged person, `['person', A]` removed) are pinned against a real
+  QueryClient with a mocked API client.
 
 ## Assumed
 
@@ -114,6 +124,13 @@ Task 6: person actions (rename, aliases, merge, delete) in the `data-slot="perso
   `data-testid` on the two wrappers; jsdom has no media queries. Not checked in a browser.
 - Task 3: `DoneItem` also got `hidePersonId` (the brief names it for `TodoRow`
   only; the person pane renders done rows through `DoneItem`).
+- Task 6: `PersonPane` gained required `onMerged` and `onDeleted` props (wired in `PeopleView`
+  to `onOpenPerson` and `onClosePerson`); the two existing `PersonPane` test render calls were
+  updated. Limits became `PERSON_NAME_MAX`, `PERSON_ALIAS_MAX`, `PERSON_ALIASES_MAX` in
+  `constants.ts`. Client-side limit errors show inline under the form (no `maxLength` on the
+  field, so over-length input is explained rather than silently cut). Saving an unchanged
+  edit closes without a request. Menu, dialogs and phone return-to-list were checked in jsdom
+  only, not in a browser.
 
 ## Resume
 
