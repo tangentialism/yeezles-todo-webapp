@@ -99,6 +99,14 @@ Task 8: put `PeopleField` into AddTodoModal and EditTodoModal (send `people` onl
   Dialog.nested 6), no stderr. Check script: `TSC_OK`, 691 total, 691 passed, 0 failing names,
   lint 5 (baseline 5), new failing names empty. New and touched files lint clean.
 
+- Task 7 fix round 1: the active option is held by key (`person-<id>` or `create`), not index, so
+  matches arriving after the debounce cannot move Enter onto a namesake; a pending Create appends to
+  the latest `value` (ref synced each render), so picks and chip removals made meanwhile survive.
+  RED `npx vitest run src/components/people/__tests__/PeopleField.test.tsx`: 2 failed, 11 passed
+  (Create "Sam" lost `aria-selected` once "Sam Lee"/"sam" arrived; last `onChange` after the create
+  still held the removed chip). GREEN: PeopleField 13/13 and Dialog.nested 6/6, no stderr. Check
+  script: `TSC_OK`, 693 total, 693 passed, 0 failing names, lint 5 (baseline 5), new failing names empty.
+
 ## Assumed
 
 - Task 4: the five phone tabs do not wrap at 320px (assumed, checked by reading classes;

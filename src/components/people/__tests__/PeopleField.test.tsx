@@ -127,6 +127,39 @@ describe('PeopleField', () => {
     expect(input).toHaveValue('');
   });
 
+  it('an option moved to before the matches load stays the one Enter picks (Create "Sam" over namesakes)', async () => {
+    let resolvePeople: (rows: unknown) => void = () => {};
+    api.getPeople.mockReturnValue(new Promise((resolve) => (resolvePeople = resolve)));
+    api.createPerson.mockResolvedValue(makePerson({ id: 77, display_name: 'Sam' }));
+    const { onChange } = renderField();
+    await userEvent.type(screen.getByRole('combobox', { name: 'People' }), 'Sam');
+    await waitFor(() => expect(api.getPeople).toHaveBeenCalledWith({ q: 'Sam', limit: 8 }));
+    expect(optionNames()).toEqual(['Create "Sam"']);
+    await userEvent.keyboard('{ArrowDown}');
+    expect(screen.getByRole('option', { name: 'Create "Sam"' })).toHaveAttribute('aria-selected', 'true');
+    resolvePeople([makePerson({ id: 5, display_name: 'Sam Lee' }), makePerson({ id: 6, display_name: 'sam' })]);
+    await screen.findByRole('option', { name: 'Sam Lee' });
+    expect(screen.getByRole('option', { name: 'Create "Sam"' })).toHaveAttribute('aria-selected', 'true');
+    await userEvent.keyboard('{Enter}');
+    expect(api.createPerson).toHaveBeenCalledWith({ display_name: 'Sam' });
+    await waitFor(() => expect(onChange).toHaveBeenCalledWith([expect.objectContaining({ id: 77 })]));
+    expect(onChange).toHaveBeenCalledTimes(1);
+  });
+
+  it('a chip removed while a create is pending stays removed when the create lands', async () => {
+    const other = makeTodoPerson({ id: 3, display_name: 'Ola Other' });
+    let resolveCreate: (p: unknown) => void = () => {};
+    api.createPerson.mockReturnValue(new Promise((resolve) => (resolveCreate = resolve)));
+    const { onChange } = renderField({ initial: [chosen, other] });
+    await userEvent.type(screen.getByRole('combobox', { name: 'People' }), 'pri');
+    await userEvent.click(await screen.findByRole('option', { name: 'Create "pri"' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Remove Pri Chosen' }));
+    expect(onChange).toHaveBeenLastCalledWith([other]);
+    resolveCreate(makePerson({ id: 77, display_name: 'pri' }));
+    await waitFor(() => expect(onChange).toHaveBeenCalledTimes(2));
+    expect(onChange).toHaveBeenLastCalledWith([other, expect.objectContaining({ id: 77 })]);
+  });
+
   it('a failed create shows the error under the field and keeps the text', async () => {
     api.createPerson.mockRejectedValue(new ApiError(400, 'VALIDATION_ERROR', 'display_name must be at most 120 characters'));
     const { onChange } = renderField();

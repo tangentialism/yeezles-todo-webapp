@@ -1,4 +1,4 @@
-import React, { useId, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import type { TodoPerson } from '../../types/person';
 import { usePeople, usePeopleMutations } from '../../hooks/usePeopleStore';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
@@ -62,6 +62,9 @@ const RemovableChips: React.FC<{ value: TodoPerson[]; onChange: (next: TodoPerso
 
 type Option = { kind: 'match'; person: TodoPerson } | { kind: 'create' };
 
+/** Stable identity for an option, so the active one survives the list changing under it. */
+const optionKey = (option: Option) => (option.kind === 'match' ? `person-${option.person.id}` : 'create');
+
 /**
  * The text box and its listbox: matches from the server (people already
  * chosen are left out), then always `Create "‹text›"`. Escape with the list
@@ -78,9 +81,18 @@ const PeopleCombobox: React.FC<{
   const errorId = useId();
   const [text, setText] = useState('');
   const [open, setOpen] = useState(false);
-  const [active, setActive] = useState(-1);
+  // The active option is held by key, not index: matches arrive after the
+  // debounce and reshuffle the list, and Enter must still pick what the user
+  // moved to (e.g. Create "Sam" must not become "Sam Lee").
+  const [activeKey, setActiveKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { createPerson, isCreating } = usePeopleMutations();
+  // A create resolves later; append to the value as it is then, not as it was
+  // when Create was picked, so picks and removals made meanwhile survive.
+  const latestValue = useRef(value);
+  useEffect(() => {
+    latestValue.current = value;
+  });
 
   const trimmed = text.trim();
   const debounced = useDebouncedValue(trimmed);
@@ -95,12 +107,13 @@ const PeopleCombobox: React.FC<{
       ]
     : [];
   const expanded = open && options.length > 0 && !atLimit && !disabled;
+  const active = activeKey === null ? -1 : options.findIndex((option) => optionKey(option) === activeKey);
   const optionId = (index: number) => `${listboxId}-option-${index}`;
 
   const reset = () => {
     setText('');
     setOpen(false);
-    setActive(-1);
+    setActiveKey(null);
     setError(null);
   };
 
@@ -114,7 +127,7 @@ const PeopleCombobox: React.FC<{
     setError(null);
     try {
       const created = await createPerson({ display_name: trimmed });
-      onChange([...value, toTodoPerson(created)]);
+      onChange([...latestValue.current, toTodoPerson(created)]);
       reset();
     } catch (err) {
       setError(err instanceof Error && err.message ? err.message : 'Could not create that person.');
@@ -127,7 +140,7 @@ const PeopleCombobox: React.FC<{
       event.preventDefault();
       event.stopPropagation();
       setOpen(false);
-      setActive(-1);
+      setActiveKey(null);
       return;
     }
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
@@ -135,11 +148,12 @@ const PeopleCombobox: React.FC<{
       event.preventDefault();
       if (!expanded) {
         setOpen(true);
-        setActive(event.key === 'ArrowDown' ? 0 : options.length - 1);
+        setActiveKey(optionKey(options[event.key === 'ArrowDown' ? 0 : options.length - 1]));
         return;
       }
       const step = event.key === 'ArrowDown' ? 1 : -1;
-      setActive((current) => (current + step + options.length) % options.length);
+      const from = active === -1 && step === -1 ? 0 : active;
+      setActiveKey(optionKey(options[(from + step + options.length) % options.length]));
       return;
     }
     if (event.key === 'Enter' && expanded) {
@@ -168,7 +182,7 @@ const PeopleCombobox: React.FC<{
         onChange={(event) => {
           setText(event.target.value);
           setOpen(true);
-          setActive(-1);
+          setActiveKey(null);
           setError(null);
         }}
         onKeyDown={onKeyDown}
@@ -185,14 +199,14 @@ const PeopleCombobox: React.FC<{
         >
           {options.map((option, index) => (
             <li
-              key={option.kind === 'match' ? option.person.id : 'create'}
+              key={optionKey(option)}
               id={optionId(index)}
               role="option"
               aria-selected={index === active}
               // Keep focus in the input so the click lands before blur closes the list.
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => void pick(option)}
-              onMouseEnter={() => setActive(index)}
+              onMouseEnter={() => setActiveKey(optionKey(option))}
               className={`flex items-center min-h-[44px] sm:min-h-[40px] px-2.5 rounded-[9px] text-sm cursor-pointer text-ink-2 ${
                 index === active ? 'bg-hover' : ''
               }`}
