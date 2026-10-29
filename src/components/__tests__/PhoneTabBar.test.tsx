@@ -13,6 +13,17 @@ describe('PhoneTabBar', () => {
     expect(screen.getByRole('button', { name: 'Done' })).not.toHaveAttribute('aria-current');
   });
 
+  it('lists All, Today, Topics, People, Done in order; People switches view', async () => {
+    const user = userEvent.setup();
+    const onViewChange = vi.fn();
+    render(<PhoneTabBar currentView="people" onViewChange={onViewChange} />);
+    const tabs = screen.getByRole('navigation', { name: 'Views' }).querySelectorAll('button');
+    expect(Array.from(tabs).map((b) => b.textContent)).toEqual(['All', 'Today', 'Topics', 'People', 'Done']);
+    expect(screen.getByRole('button', { name: 'People' })).toHaveAttribute('aria-current', 'page');
+    await user.click(screen.getByRole('button', { name: 'People' }));
+    expect(onViewChange).toHaveBeenCalledWith('people');
+  });
+
   it('has a Topics tab', () => {
     render(<PhoneTabBar currentView="topics" onViewChange={vi.fn()} />);
     expect(screen.getByRole('button', { name: /Topics/ })).toHaveAttribute('aria-current', 'page');

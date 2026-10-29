@@ -40,11 +40,20 @@ describe('Navigation', () => {
   });
 
   describe('Tab Rendering', () => {
+    it('lists All, Today, Topics, People, Done in order; People switches view', async () => {
+      const user = userEvent.setup();
+      render(<Navigation currentView="all" onViewChange={mockOnViewChange} />);
+      const labels = screen.getByRole('navigation', { name: 'Views' }).querySelectorAll('button');
+      expect(Array.from(labels).map((b) => b.textContent)).toEqual(['All', 'Today', 'Topics', 'People', 'Done']);
+      await user.click(screen.getByRole('button', { name: 'People' }));
+      expect(mockOnViewChange).toHaveBeenCalledWith('people');
+    });
+
     it('renders a Topics tab between Today and Done', async () => {
       const user = userEvent.setup();
       render(<Navigation currentView="all" onViewChange={mockOnViewChange} />);
-      const labels = screen.getAllByRole('button').map((b) => b.textContent).filter((t) => ['All', 'Today', 'Topics', 'Done'].includes(t ?? ''));
-      expect(labels).toEqual(['All', 'Today', 'Topics', 'Done']);
+      const labels = screen.getAllByRole('button').map((b) => b.textContent).filter((t) => ['All', 'Today', 'Topics', 'People', 'Done'].includes(t ?? ''));
+      expect(labels).toEqual(['All', 'Today', 'Topics', 'People', 'Done']);
       await user.click(screen.getByRole('button', { name: 'Topics' }));
       expect(mockOnViewChange).toHaveBeenCalledWith('topics');
     });

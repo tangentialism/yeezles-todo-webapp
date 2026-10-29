@@ -9,7 +9,7 @@ repo `docs/superpowers/plans/2026-10-29-people-tags-webapp.md`.
 
 ## Next action
 
-Task 4: the Dashboard wires `PersonNavigationContext` and the People tab.
+Task 5: fill in `PeopleView` (list pane and person pane). Task 4 left it a title-only stub with the props `openPersonId`, `onOpenPerson`, `onClosePerson`, which it does not yet use.
 
 ## Verified
 
@@ -60,7 +60,20 @@ Task 4: the Dashboard wires `PersonNavigationContext` and the People tab.
   9/9. Check script: `TSC_OK`, 631 total, 631 passed, 0 failing names, lint 5
   (baseline 5), new failing names empty.
 
+- Task 4: RED `npx vitest run` on Navigation, PhoneTabBar, Dashboard.people, ViewContainer
+  suites: 4 suites failed; 6 tests failed (2 Navigation: new order test and the updated
+  Topics-order test, 1 PhoneTabBar, 2 Dashboard.people, 1 ViewContainer), 19 passed. Failures
+  were the missing People tab, `openPersonId` never passed on, and the missing PeopleView.
+  GREEN: 4 suites, 25/25 passed. Check script: `TSC_OK`, 636 total, 636 passed, 0 failing
+  names, lint 5 (baseline 5), new failing names empty. New and touched files lint clean.
+
 ## Assumed
+
+- Task 4: the five phone tabs do not wrap at 320px (assumed, checked by reading classes;
+  browser check in Task 9). Bar is `px-2`, so 304px / 5 = 60.8px per `flex-1` tab; the
+  longest label ("Topics"/"People", 6 chars at 11.5px, about 40px) fits, and the widest
+  count case ("Today 12", about 58px) is close but only appears with a badge. The 11px
+  fallback was therefore not applied. No visual check was run.
 
 - The backend at `yeezles-todo` `46b3510` serves `/people` and `people` on todos as documented in its `docs/api/API.md`.
 
@@ -82,6 +95,8 @@ Task 4: the Dashboard wires `PersonNavigationContext` and the People tab.
   `useTopicStore` (create, update, delete), `useProposalStore` `afterResolve`
   (apply and reject), and the `TOPIC_*` and `PROPOSAL_RESOLVED` cross-tab cases.
   The brief's site list was incomplete.
+- Task 4: `PeopleView` ignores its three props (`React.FC<PeopleViewProps> = () =>`),
+  because `noUnusedParameters` rejects unused destructured props; Task 5 starts using them.
 - Task 3: `DoneItem` also got `hidePersonId` (the brief names it for `TodoRow`
   only; the person pane renders done rows through `DoneItem`).
 
