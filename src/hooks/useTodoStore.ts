@@ -206,13 +206,18 @@ export const useTodoStore = (options: UseTodoStoreOptions = {}) => {
 
       const previousTodos = queryClient.getQueryData<Todo[]>(QUERY_KEYS.todos(filters));
 
+      // `people` holds bare `{ person_id }` refs; copying them onto the row would render nameless
+      // chips, so the optimistic patch drops them and the server row replaces them.
+      const optimisticUpdates: Omit<UpdateTodoRequest, 'people'> & { people?: undefined } = { ...updates, people: undefined };
+      delete optimisticUpdates.people;
+
       // Optimistically update
       updateTodosOptimistically((todos) =>
         todos.map(todo =>
           todo.id === id
             ? { 
                 ...todo, 
-                ...updates, 
+                ...optimisticUpdates, 
                 updated_at: new Date().toISOString(),
                 _optimistic: true,
                 _pendingAction: 'update'

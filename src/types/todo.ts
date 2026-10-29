@@ -6,6 +6,7 @@
  */
 
 import type { TopicRef } from './topic';
+import type { PersonIdRef, TodoPerson } from './person';
 
 /** A single todo item as returned by the API. */
 export interface Todo {
@@ -28,6 +29,8 @@ export interface Todo {
   topic_id?: number | null;
   /** The todo's topic, `{ id, name }`, or null. */
   topic?: TopicRef | null;
+  /** The todo's people, ordered by name; optional for optimistic rows (readers treat undefined as `[]`). */
+  people?: TodoPerson[];
 }
 
 /**
@@ -122,6 +125,8 @@ export interface TodoFilters {
   include_all_areas?: boolean;
   /** Only todos in this topic (no area filter is applied unless area_id is also sent). */
   topic_id?: number;
+  /** Only todos tagged with this person (no area filter is applied unless area_id is also sent). */
+  person_id?: number;
 }
 
 /** Request body for `POST /todos`. */
@@ -134,6 +139,8 @@ export interface CreateTodoRequest {
   /** Positive id to assign, null to unassign. Always send area_id with it. */
   topic_id?: number | null;
   reference_url?: string;
+  /** The full set of people to tag; `[]` clears. */
+  people?: PersonIdRef[];
 }
 
 /** Request body for `PUT /todos/:id`. All fields are optional (partial update). */
@@ -147,4 +154,6 @@ export interface UpdateTodoRequest {
   /** Positive id to assign, null to unassign. Always send area_id with it. */
   topic_id?: number | null;
   reference_url?: string;
+  /** Replaces the todo's people when present; omit to leave them alone. */
+  people?: PersonIdRef[];
 }

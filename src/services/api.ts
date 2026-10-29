@@ -28,6 +28,12 @@ import type {
   UpdateTopicRequest
 } from '../types/topic';
 import type {
+  Person,
+  PersonWithCounts,
+  CreatePersonRequest,
+  UpdatePersonRequest
+} from '../types/person';
+import type {
   ApplyResult,
   ProposalRecord,
   ProposalRow,
@@ -299,6 +305,7 @@ class TokenAwareApiClient {
     if (filters.area_name) params.append('area_name', filters.area_name);
     if (filters.include_all_areas) params.append('include_all_areas', filters.include_all_areas.toString());
     if (filters.topic_id !== undefined) params.append('topic_id', filters.topic_id.toString());
+    if (filters.person_id !== undefined) params.append('person_id', filters.person_id.toString());
 
     const response = await this.api.get(`/todos?${params.toString()}`);
     return response.data;
@@ -574,6 +581,47 @@ class TokenAwareApiClient {
   /** `DELETE /topics/:id` -- its todos survive with no topic. */
   async deleteTopic(id: number): Promise<void> {
     await this.unwrap<{ message: string; topic_id: number }>(this.api.delete(`/topics/${id}`));
+  }
+
+  // ── Person Methods ──────────────────────────────────────────────────
+  // /people responses are bare `data` (no `{ people }` / `{ person }` wrapper).
+
+  /**
+   * `GET /people` -- people with open/done counts, most recently tagged first.
+   * @param options.q - Case-insensitive name, word or alias prefix filter.
+   * @param options.limit - 1 to 100 (the backend's default is 20).
+   */
+  async getPeople(options: { q?: string; limit?: number } = {}): Promise<PersonWithCounts[]> {
+    const params = new URLSearchParams();
+    if (options.q !== undefined) params.append('q', options.q);
+    if (options.limit !== undefined) params.append('limit', options.limit.toString());
+    const query = params.toString();
+    return this.unwrap<PersonWithCounts[]>(this.api.get(`/people${query ? `?${query}` : ''}`));
+  }
+
+  /** `GET /people/:id` -- one person with their counts. */
+  async getPerson(id: number): Promise<PersonWithCounts> {
+    return this.unwrap<PersonWithCounts>(this.api.get(`/people/${id}`));
+  }
+
+  /** `POST /people` -- always creates, even when the name exists (a deliberate namesake). */
+  async createPerson(input: CreatePersonRequest): Promise<Person> {
+    return this.unwrap<Person>(this.api.post('/people', input));
+  }
+
+  /** `PUT /people/:id` -- display name and aliases; absent keys are left alone. */
+  async updatePerson(id: number, updates: UpdatePersonRequest): Promise<Person> {
+    return this.unwrap<Person>(this.api.put(`/people/${id}`, updates));
+  }
+
+  /** `DELETE /people/:id` -- their tags are removed; the todos survive. Returns no data. */
+  async deletePerson(id: number): Promise<void> {
+    await this.unwrap<undefined>(this.api.delete(`/people/${id}`));
+  }
+
+  /** `POST /people/:id/merge` -- `id` is merged away and the survivor (`intoId`) is returned. */
+  async mergePerson(id: number, intoId: number): Promise<Person> {
+    return this.unwrap<Person>(this.api.post(`/people/${id}/merge`, { into_id: intoId }));
   }
 
   // ── Proposal Methods (session only) ─────────────────────────────────
