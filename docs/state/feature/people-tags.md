@@ -9,7 +9,7 @@ repo `docs/superpowers/plans/2026-10-29-people-tags-webapp.md`.
 
 ## Next action
 
-Task 3: person chips on todo rows.
+Task 4: the Dashboard wires `PersonNavigationContext` and the People tab.
 
 ## Verified
 
@@ -48,6 +48,13 @@ Task 3: person chips on todo rows.
   PROPOSAL_RESOLVED), 20 others passed. GREEN: 3 suites, 23/23 passed. Check
   script: `TSC_OK`, 622 total, 622 passed, 0 failing names, lint 5 (baseline 5),
   new failing names empty.
+- Task 3: RED `npx vitest run src/components/people src/components/__tests__/TodoRow.people.test.tsx`:
+  2 suites failed. `PersonChip.test.tsx` failed to load (missing `../PersonChip` and
+  `useOpenPerson`, as expected); `TodoRow.people.test.tsx` 3 failed, 1 passed (the
+  undefined-people no-crash test passes before implementing, as expected). GREEN:
+  2 suites, 7/7 passed (3 chip, 4 row/DoneItem). Check script: `TSC_OK`, 629 total,
+  629 passed, 0 failing names, lint 5 (baseline 5), new failing names empty. New and
+  touched files lint clean.
 
 ## Assumed
 
@@ -71,6 +78,8 @@ Task 3: person chips on todo rows.
   `useTopicStore` (create, update, delete), `useProposalStore` `afterResolve`
   (apply and reject), and the `TOPIC_*` and `PROPOSAL_RESOLVED` cross-tab cases.
   The brief's site list was incomplete.
+- Task 3: `DoneItem` also got `hidePersonId` (the brief names it for `TodoRow`
+  only; the person pane renders done rows through `DoneItem`).
 
 ## Resume
 
