@@ -9,7 +9,7 @@ repo `docs/superpowers/plans/2026-10-29-people-tags-webapp.md`.
 
 ## Next action
 
-Task 8: put `PeopleField` into AddTodoModal and EditTodoModal (send `people` only when the set changed).
+Task 9: next task in the plan (Task 8 landed: People field in the add and edit forms).
 
 ## Verified
 
@@ -106,6 +106,14 @@ Task 8: put `PeopleField` into AddTodoModal and EditTodoModal (send `people` onl
   (Create "Sam" lost `aria-selected` once "Sam Lee"/"sam" arrived; last `onChange` after the create
   still held the removed chip). GREEN: PeopleField 13/13 and Dialog.nested 6/6, no stderr. Check
   script: `TSC_OK`, 693 total, 693 passed, 0 failing names, lint 5 (baseline 5), new failing names empty.
+- Task 8: RED `npx vitest run src/components/__tests__/TodoForms.people.test.tsx`:
+  8 tests, 5 failed (no People chips/combobox in the forms), 3 passed (the three
+  "no people key" cases, which hold before implementing, as expected). GREEN:
+  1 suite, 8/8 passed, output pristine (logger mocked). Existing `AddTodoModal.test.tsx`
+  and `TodoForms.topics.test.tsx` broke (22 tests, no QueryClient for the field);
+  fixed by mocking `usePeopleStore` there, as they already mock `useTopicStore`.
+  Check script: `TSC_OK`, 701 total, 701 passed, 0 failing names, lint 5
+  (baseline 5), new failing names empty. New and touched files lint clean.
 
 ## Assumed
 

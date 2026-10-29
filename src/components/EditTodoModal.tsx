@@ -6,6 +6,8 @@ import { logger } from '../utils/logger';
 import Dialog from './ui/Dialog';
 import AreaChips from './ui/AreaChips';
 import TopicPicker from './topics/TopicPicker';
+import PeopleField from './people/PeopleField';
+import type { TodoPerson } from '../types/person';
 import { useTopicSelection } from '../hooks/useTopicSelection';
 import Switch from './ui/Switch';
 import { CalendarIcon, CheckIcon, LinkIcon, Spinner, SunIcon } from './ui/Icons';
@@ -33,6 +35,7 @@ const EditTodoModal: React.FC<EditTodoModalProps> = ({ todo, isOpen, onClose, on
   const [isToday, setIsToday] = useState(false);
   const [selectedAreaId, setSelectedAreaId] = useState<number | null>(null);
   const { topicId, cleared: topicCleared, selectTopic, changeArea, reset: resetTopic } = useTopicSelection(selectedAreaId, setSelectedAreaId);
+  const [people, setPeople] = useState<TodoPerson[]>([]);
   const [referenceUrl, setReferenceUrl] = useState('');
   const { updateTodo, isUpdating } = useTodoStore();
   const { areas } = useArea();
@@ -47,6 +50,7 @@ const EditTodoModal: React.FC<EditTodoModalProps> = ({ todo, isOpen, onClose, on
       setIsToday(todo.is_today);
       setSelectedAreaId(todo.area_id);
       resetTopic(todo.topic_id ?? null, todo.topic_id ? todo.area_id : null);
+      setPeople(todo.people ?? []);
       setReferenceUrl(todo.reference_url || '');
 
       // Format due date for datetime-local input
@@ -71,6 +75,11 @@ const EditTodoModal: React.FC<EditTodoModalProps> = ({ todo, isOpen, onClose, on
       // the server keeps the topic while area_id is unchanged (spec §2.1 item 4).
       const loadedTopicId = todo.topic_id ?? null; // what the effect passed to resetTopic
       const topicChanged = topicCleared || topicId !== loadedTopicId;
+      // people follows the same rule: sent (possibly empty) only when the set
+      // of ids changed. Order alone is not a change. An untouched save omits it,
+      // so a tag another tab added after this form loaded is not erased.
+      const sortedIds = (list: TodoPerson[]) => list.map((p) => p.id).sort((a, b) => a - b).join(',');
+      const peopleChanged = sortedIds(todo.people ?? []) !== sortedIds(people);
       const updateData = {
         title: title.trim(),
         description: description.trim() || undefined,
@@ -79,6 +88,7 @@ const EditTodoModal: React.FC<EditTodoModalProps> = ({ todo, isOpen, onClose, on
         is_today: isToday,
         area_id: selectedAreaId,
         ...(topicChanged ? { topic_id: topicId } : {}),
+        ...(peopleChanged ? { people: people.map((p) => ({ person_id: p.id })) } : {}),
         reference_url: referenceUrl.trim() || undefined,
       };
 
@@ -169,6 +179,8 @@ const EditTodoModal: React.FC<EditTodoModalProps> = ({ todo, isOpen, onClose, on
             showCleared={topicCleared}
             disabled={isSubmitting}
           />
+
+          <PeopleField id="edit-people" value={people} onChange={setPeople} disabled={isSubmitting} />
 
           <div>
             <label htmlFor="edit-dueDate" className={fieldLabel}>
