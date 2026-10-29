@@ -59,6 +59,19 @@ describe('useProposalStore', () => {
     expect(broadcast).toHaveBeenCalledWith('PROPOSAL_RESOLVED', expect.objectContaining({ id: 7 }));
   });
 
+  it('apply also refreshes people counts and person todo lists', async () => {
+    api.applyProposal.mockResolvedValue({ proposal: { id: 7 }, created_topics: [] });
+    const { wrapper, client } = setup();
+    const spy = vi.spyOn(client, 'invalidateQueries');
+    const { result } = renderHook(() => useProposalActions(), { wrapper });
+    await act(async () => {
+      await result.current.applyProposal(7, { area_id: 2, new_topics: [], assignments: [], note_edits: [] });
+    });
+    for (const key of ['people', 'person', 'personTodos']) {
+      expect(spy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: [key] }));
+    }
+  });
+
   it('apply invalidates todo views, so created todos show without a reload', async () => {
     api.applyProposal.mockResolvedValue({ proposal: { id: 7 }, created_topics: [], created_todos: [{ id: 90, title: 'Buy grout' }] });
     const { wrapper, client } = setup();

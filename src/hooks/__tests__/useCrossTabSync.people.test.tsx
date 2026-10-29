@@ -70,4 +70,12 @@ describe('useCrossTabSync: people', () => {
     deliver('TODO_COMPLETED');
     expectActive(spy, ['people', 'personTodos']);
   });
+
+  it('topic messages and PROPOSAL_RESOLVED from another tab also refresh people views', () => {
+    for (const type of ['TOPIC_CREATED', 'TOPIC_UPDATED', 'TOPIC_DELETED', 'PROPOSAL_RESOLVED'] as const) {
+      const { spy, deliver } = setup();
+      deliver(type);
+      expectActive(spy, ['people', 'person', 'personTodos']);
+    }
+  });
 });

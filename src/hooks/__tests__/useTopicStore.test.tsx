@@ -82,6 +82,29 @@ describe('useTopicStore', () => {
     expect(broadcast).toHaveBeenCalledWith('TOPIC_DELETED', expect.objectContaining({ id: 7 }));
   });
 
+  it('topic create, update and delete also refresh people counts and person todo lists', async () => {
+    api.createTopic.mockResolvedValue({ id: 7, name: 'New' });
+    api.updateTopic.mockResolvedValue({ id: 7, name: 'New' });
+    api.deleteTopic.mockResolvedValue(undefined);
+    const client = makeClient();
+    const spy = vi.spyOn(client, 'invalidateQueries');
+    const { result } = renderHook(() => useTopicMutations(), { wrapper: wrapperFor(client) });
+    const steps: Array<() => Promise<unknown>> = [
+      () => result.current.createTopic({ name: 'New', area_id: 2 }),
+      () => result.current.updateTopic(7, { archived: true }),
+      () => result.current.deleteTopic(7),
+    ];
+    for (const step of steps) {
+      spy.mockClear();
+      await act(async () => {
+        await step();
+      });
+      for (const key of ['people', 'person', 'personTodos']) {
+        expect(spy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: [key] }));
+      }
+    }
+  });
+
   it('setTopicNote writes the returned row into the cached topic', async () => {
     const client = makeClient();
     client.setQueryData(topicKeys.one(7), { id: 7, name: 'A', status_note: 'old', open_count: 2, done_count: 1 });

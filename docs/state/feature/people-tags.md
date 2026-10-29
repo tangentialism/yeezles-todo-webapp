@@ -43,6 +43,11 @@ Task 3: person chips on todo rows.
   `delete optimisticUpdates.people` removed it fails (pinned), then restored.
   Check script: `TSC_OK`, 619 total, 619 passed, 0 failing names, lint 5
   (baseline 5), new failing names empty. New files lint clean.
+- Task 2 fix round 1: RED (before the edits) 3 tests failed, one per site group
+  (topic store create/update/delete, proposal apply, cross-tab TOPIC_* and
+  PROPOSAL_RESOLVED), 20 others passed. GREEN: 3 suites, 23/23 passed. Check
+  script: `TSC_OK`, 622 total, 622 passed, 0 failing names, lint 5 (baseline 5),
+  new failing names empty.
 
 ## Assumed
 
@@ -61,6 +66,11 @@ Task 3: person chips on todo rows.
   `useTodoStore.ts` (the optimistic update spread typed `PersonIdRef[]` onto a
   `Todo`). The `people` drop (spec discrepancy 6) was therefore made here, in
   `onMutate`, ahead of Task 2; no test pins it yet (Task 2 adds it).
+- Task 2 fix round 1 (controller ruling): spec discrepancy 5 covers every
+  `['topicTodos']` invalidation site, so `invalidatePeopleViews` was also added to
+  `useTopicStore` (create, update, delete), `useProposalStore` `afterResolve`
+  (apply and reject), and the `TOPIC_*` and `PROPOSAL_RESOLVED` cross-tab cases.
+  The brief's site list was incomplete.
 
 ## Resume
 

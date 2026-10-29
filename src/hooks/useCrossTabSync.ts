@@ -95,6 +95,7 @@ export const useCrossTabSync = () => {
           // Rows show topic names, so todo lists refetch too
           invalidateTopicViews(queryClient, { refetchType: 'active' });
           invalidateTodoViews(queryClient, { refetchType: 'active' });
+          invalidatePeopleViews(queryClient, { refetchType: 'active' });
           break;
 
         case 'PERSON_CREATED':
@@ -118,6 +119,7 @@ export const useCrossTabSync = () => {
           }
           invalidateTopicViews(queryClient, { refetchType: 'active' });
           invalidateTodoViews(queryClient, { refetchType: 'active' });
+          invalidatePeopleViews(queryClient, { refetchType: 'active' });
           break;
 
         default:
