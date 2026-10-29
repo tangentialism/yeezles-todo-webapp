@@ -47,3 +47,8 @@ export const dangerTextButton =
 
 /** White card on the paper ground, for full-page forms (sign-in, consent, imports). */
 export const pageCard = 'bg-surface rounded-[18px] shadow-[0_1px_2px_rgb(20_26_33_/_0.04),0_0_0_1px_rgb(20_26_33_/_0.06)]';
+
+/** Person chip colours: filled when linked to Peopler, outlined when bare. */
+export const chipLinked = 'bg-accent-soft text-accent-ink border-transparent';
+
+export const chipBare = 'border-line-strong text-ink-2';

@@ -19,7 +19,7 @@ vi.mock('../../EditTodoModal', () => ({ default: () => null }));
 
 const home = makeArea({ id: 1, name: 'Home' });
 const work = makeArea({ id: 2, name: 'Work', color: '#1E88E5' });
-const priya = makePerson({ id: 1, display_name: 'Priya Raman', open_count: 3, done_count: 1, peopler_id: 'p-1' });
+const priya = makePerson({ id: 1, display_name: 'Priya Raman', open_count: 3, done_count: 1, peopler_id: 1 });
 const sam = makePerson({ id: 2, display_name: 'Sam Lee', open_count: 0, done_count: 2 });
 
 const query = <T,>(data: T) => ({ data, isLoading: false, error: null, refetch: vi.fn() });
@@ -48,6 +48,13 @@ beforeEach(() => {
 });
 
 describe('PeopleView list', () => {
+  it('bounds the sticky list so its lower rows scroll inside it (classes only; jsdom has no layout)', () => {
+    renderView();
+    const pane = screen.getByTestId('people-list-pane');
+    expect(pane).toHaveClass('sm:sticky', 'sm:top-4', 'sm:overflow-y-auto');
+    expect(pane.className).toMatch(/sm:max-h-\[/);
+  });
+
   it('shows the empty copy with no people', () => {
     mockPeople([]);
     renderView();

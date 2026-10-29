@@ -1,6 +1,7 @@
 import React from 'react';
 import type { TodoPerson } from '../../types/person';
 import { useOpenPerson } from '../../hooks/useOpenPerson';
+import { chipBare, chipLinked } from '../ui/styles';
 
 /** Props for {@link PersonChip}. */
 interface PersonChipProps {
@@ -8,8 +9,6 @@ interface PersonChipProps {
 }
 
 const CHIP = 'inline-flex items-center h-[22px] px-2 rounded-full border text-[12.5px] leading-none';
-const LINKED = 'bg-accent-soft text-accent-ink border-transparent';
-const BARE = 'border-line-strong text-ink-2';
 
 /**
  * A person tagged on a todo. Filled when linked to Peopler, outlined when bare;
@@ -19,7 +18,7 @@ const BARE = 'border-line-strong text-ink-2';
 const PersonChip: React.FC<PersonChipProps> = ({ person }) => {
   const openPerson = useOpenPerson();
   const linked = person.peopler_id !== null;
-  const className = `${CHIP} ${linked ? LINKED : BARE}`;
+  const className = `${CHIP} ${linked ? chipLinked : chipBare}`;
   const content = (
     <>
       {person.display_name}

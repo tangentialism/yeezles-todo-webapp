@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import PhoneTabBar from '../PhoneTabBar';
 
 describe('PhoneTabBar', () => {
-  it('renders the four views and marks the current one', () => {
+  it('renders five views and marks the current one', () => {
     render(<PhoneTabBar currentView="today" onViewChange={vi.fn()} />);
 
     expect(screen.getByRole('navigation', { name: 'Views' })).toBeInTheDocument();

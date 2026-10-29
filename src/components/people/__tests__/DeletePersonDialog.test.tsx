@@ -48,7 +48,7 @@ describe('DeletePersonDialog', () => {
     api.deletePerson.mockRejectedValue(new ApiError(404, 'PERSON_NOT_FOUND', 'Person not found'));
     const { onDeleted } = renderDialog();
     await userEvent.click(screen.getByRole('button', { name: 'Delete person' }));
-    expect(await screen.findByText('Person not found')).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent('Person not found');
     expect(onDeleted).not.toHaveBeenCalled();
   });
 });

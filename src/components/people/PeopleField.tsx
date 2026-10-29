@@ -6,7 +6,7 @@ import { useIsPhone } from '../../hooks/useIsPhone';
 import { PEOPLE_PER_TODO_MAX } from '../../constants';
 import Dialog from '../ui/Dialog';
 import { CloseIcon, PlusIcon } from '../ui/Icons';
-import { fieldError, fieldHint, fieldInput, fieldLabel, fieldOptional, outlineButton, primaryButton } from '../ui/styles';
+import { chipBare, chipLinked, fieldError, fieldHint, fieldInput, fieldLabel, fieldOptional, outlineButton, primaryButton } from '../ui/styles';
 
 /** Props for {@link PeopleField}. */
 interface PeopleFieldProps {
@@ -23,8 +23,6 @@ const MATCH_LIMIT = 8;
 const LIMIT_COPY = `Up to ${PEOPLE_PER_TODO_MAX} people per todo.`;
 
 const CHIP = 'inline-flex items-center gap-0.5 h-7 pl-2.5 pr-1 rounded-full border text-[13px] leading-none';
-const LINKED = 'bg-accent-soft text-accent-ink border-transparent';
-const BARE = 'border-line-strong text-ink-2';
 
 const toTodoPerson = ({ id, display_name, peopler_id, peopler_url }: TodoPerson): TodoPerson => ({
   id,
@@ -43,7 +41,7 @@ const RemovableChips: React.FC<{ value: TodoPerson[]; onChange: (next: TodoPerso
   return (
     <ul className="flex flex-wrap gap-1.5 mb-2">
       {value.map((person) => (
-        <li key={person.id} className={`${CHIP} ${person.peopler_id !== null ? LINKED : BARE}`}>
+        <li key={person.id} className={`${CHIP} ${person.peopler_id !== null ? chipLinked : chipBare}`}>
           {person.display_name}
           <button
             type="button"
@@ -90,6 +88,15 @@ const PeopleCombobox: React.FC<{
   // A create resolves later; append to the value as it is then, not as it was
   // when Create was picked, so picks and removals made meanwhile survive.
   const latestValue = useRef(value);
+  // A create that resolves after the field unmounted (the form closed) must not
+  // push its person into whatever form opens next.
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   useEffect(() => {
     latestValue.current = value;
   });
@@ -127,6 +134,7 @@ const PeopleCombobox: React.FC<{
     setError(null);
     try {
       const created = await createPerson({ display_name: trimmed });
+      if (!mounted.current) return;
       onChange([...latestValue.current, toTodoPerson(created)]);
       reset();
     } catch (err) {

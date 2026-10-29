@@ -12,7 +12,7 @@ interface PeopleViewProps {
 }
 
 /**
- * The People tab (layout B). From `sm` up: the list (sticky, 280px) beside the
+ * The People tab (layout B). From `sm` up: the list (sticky and bounded, 280px) beside the
  * person pane. Below `sm`: the list, or the selected person in its place, with
  * a back control inside the pane. CSS only, no JS breakpoint. It ignores the
  * area switcher: people span every area.
@@ -25,7 +25,7 @@ const PeopleView: React.FC<PeopleViewProps> = ({ openPersonId, onOpenPerson, onC
       <div className="grid grid-cols-1 sm:grid-cols-[280px_minmax(0,1fr)] gap-x-10 pt-4">
         <div
           data-testid="people-list-pane"
-          className={`${selected ? 'hidden sm:block' : ''} sm:sticky sm:top-4 sm:self-start`}
+          className={`${selected ? 'hidden sm:block' : ''} sm:sticky sm:top-4 sm:self-start sm:max-h-[min(calc(100vh-2rem),calc(800px-2rem))] sm:overflow-y-auto`}
         >
           <PersonList selectedId={openPersonId} onOpen={onOpenPerson} />
         </div>

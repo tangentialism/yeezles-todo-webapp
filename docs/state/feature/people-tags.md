@@ -145,6 +145,30 @@ created here (see Assumed).
   Vite was started. The backend was stopped, the database dropped and the
   worktree removed.
 
+- Final review fix wave (`f84c98b` + this commit): (1) the People list wrapper is
+  bounded, `sm:max-h-[min(calc(100vh-2rem),calc(800px-2rem))] sm:overflow-y-auto`,
+  and keeps `sm:sticky sm:top-4`. Why that bound: `Dashboard`'s `<main>` has no
+  definite height, so `ViewContainer`'s `h-full min-h-[800px]` resolves to the 800px
+  minimum and each view's scroll box (`absolute inset-0 overflow-y-auto`) is 800px
+  tall, not viewport tall. `100vh - 2rem` alone would overshoot that box; 800px minus
+  the 1rem sticky offset top and bottom fits it, and `100vh - 2rem` wins on short
+  windows. Pinned by class in `PeopleView.test.tsx` (jsdom has no layout).
+  (2) A create that resolves after `PeopleField` unmounted is ignored (a `mounted`
+  ref), so a person created while the Add form closes no longer lands in the next
+  form. I did not also reset `people` in `AddTodoModal`'s open effect: that effect
+  re-runs when `currentView` or `initialData` change while the form is open and would
+  wipe chips mid-edit; `handleClose` already clears `people`. (3) Delete dialog error
+  has `role="alert"`. (4) PhoneTabBar test title says five views. (5) Chip colours
+  are `chipLinked` and `chipBare` in `ui/styles.ts`, used by `PersonChip` and
+  `PeopleField` (their sizes differ, so those stay local). (6) `peopler_id: 1` in the
+  `PeopleView` test. (7) Deviation rulings labelled.
+  RED (before the code change): `npx vitest run PeopleView TodoForms.people
+  DeletePersonDialog` -> 3 failed: the sticky-bound class test (no `sm:overflow-y-auto`),
+  the Delete `role="alert"` test (`Unable to find role="alert"`), and the leak test
+  (`expected document not to contain` the `Remove Zed Late` chip). GREEN: the same
+  suites plus `src/components/people` and `PhoneTabBar`: 9 files, 72 tests passed, no
+  stderr. Check script and build: check script `TSC_OK`, 703 total, 703 passed, 0 failing names, lint 5 (baseline 5), new failing names empty; `npm run build` built, no errors.
+
 ## Assumed
 
 - Task 4: the five phone tabs do not wrap at 320px (assumed, checked by reading classes;
@@ -179,6 +203,17 @@ created here (see Assumed).
   allowing a minted persistent-session cookie for a fake user on the local test database, as the topics
   UI walkthrough did).
 - Not run: the deployed app and the hosted backend.
+- Final review fix wave: a browser check is still owed for the bounded People list
+  (does the list scroll inside its own box at a 800px pane, short windows, and with the
+  pane scrolled?). The bound assumes the 800px scroll box derived from reading
+  `Dashboard` and `ViewContainer`; jsdom pins only the classes.
+
+## Follow-ups (not fixed)
+
+- Namesakes look identical in the typeahead and the merge picker (show aliases or counts).
+- On phones the list and the person share one scroll position.
+- Completing a todo from the person pane shows no in-row pending state until the refetch.
+- The done query in the person pane has no error or loading state.
 
 ## Deviations
 
@@ -189,7 +224,7 @@ created here (see Assumed).
   than asserting the literal string `person_id=7&completed=false`. `person_id` is
   appended after `completed` (the `topic_id` pattern), so the literal string would
   be `completed=false&person_id=7`; order does not matter to the backend.
-- Task 1: `Todo.people?` plus `UpdateTodoRequest.people?` broke `tsc` in
+- Task 1 (controller ruling): `Todo.people?` plus `UpdateTodoRequest.people?` broke `tsc` in
   `useTodoStore.ts` (the optimistic update spread typed `PersonIdRef[]` onto a
   `Todo`). The `people` drop (spec discrepancy 6) was therefore made here, in
   `onMutate`, ahead of Task 2; no test pins it yet (Task 2 adds it).
@@ -201,7 +236,7 @@ created here (see Assumed).
 - Task 4: `PeopleView` ignores its three props (`React.FC<PeopleViewProps> = () =>`),
   because `noUnusedParameters` rejects unused destructured props; Task 5 starts using them.
 - Task 5: `PeopleView` header is `ViewHeader` with empty `totals` and no refresh button; the
-  brief names no totals. The pane's "Nothing tagged." shows when no open todos, none loaded done,
+  brief names no totals. (Controller ruling) The pane's "Nothing tagged." shows when no open todos, none loaded done,
   and `done_count` is 0, because done todos only load while Show completed is on.
 - Task 5: phone/desktop layout is asserted by class (`hidden sm:block`, `sm:hidden`) via
   `data-testid` on the two wrappers; jsdom has no media queries. Not checked in a browser.
@@ -225,7 +260,7 @@ created here (see Assumed).
   field, so over-length input is explained rather than silently cut). Saving an unchanged
   edit closes without a request. Menu, dialogs and phone return-to-list were checked in jsdom
   only, not in a browser.
-- Task 7: Enter with the list open but no option moved to does nothing (and does not submit the
+- Task 7 (controller ruling): Enter with the list open but no option moved to does nothing (and does not submit the
   form); Enter never picks the first match by itself, so typing "Sam" + Enter cannot tag "Sam Lee".
   The 20 limit is `PEOPLE_PER_TODO_MAX` in `constants.ts`. On phones the "Add people" button carries
   the field `id`, and the label row is plain text (a `<label>` would rename the button to "People");

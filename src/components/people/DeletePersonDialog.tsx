@@ -32,7 +32,7 @@ const DeletePersonDialog: React.FC<DeletePersonDialogProps> = ({ person, onClose
     <Dialog title="Delete person" onClose={onClose} closeDisabled={isDeleting}>
       <div className="px-7 pt-3 text-[14.5px] text-ink-2">
         {`Delete "${person.display_name}"? Their tags are removed from ${todoCount} todos; the todos stay.`}
-        {error && <p className={fieldError}>{error}</p>}
+        {error && <p role="alert" className={fieldError}>{error}</p>}
       </div>
       <div className="flex items-center justify-end gap-1.5 pl-7 pr-5 pt-5 pb-5">
         <button type="button" onClick={onClose} disabled={isDeleting} className={ghostButton}>

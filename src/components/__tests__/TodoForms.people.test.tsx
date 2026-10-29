@@ -79,6 +79,30 @@ describe('todo forms: People field', () => {
     expect(api.createTodo.mock.calls[0][0].people).toEqual([{ person_id: 4 }, { person_id: 9 }]);
   });
 
+  it('add: a person created while the form closes does not leak into the next form', async () => {
+    let resolveCreate: (p: typeof ana) => void = () => {};
+    api.createPerson.mockReturnValue(new Promise((resolve) => { resolveCreate = resolve; }));
+    const Reopener = () => {
+      const [open, setOpen] = useState(true);
+      return (
+        <>
+          <button type="button" onClick={() => setOpen(true)}>Reopen</button>
+          <AddTodoModal isOpen={open} onClose={() => setOpen(false)} onTodoAdded={vi.fn()} />
+        </>
+      );
+    };
+    renderWithClient(<Reopener />);
+    await userEvent.type(screen.getByRole('combobox', { name: /People/ }), 'Zed');
+    await userEvent.click(await screen.findByRole('option', { name: /Create/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    resolveCreate(makePerson({ id: 77, display_name: 'Zed Late' }));
+    await new Promise((r) => setTimeout(r, 0));
+    await userEvent.click(screen.getByRole('button', { name: 'Reopen' }));
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Remove Zed Late' })).not.toBeInTheDocument();
+  });
+
   it('add: no people chosen sends no people key', async () => {
     renderWithClient(<AddHarness />);
     await userEvent.type(screen.getByLabelText('Title'), 'Plain');
