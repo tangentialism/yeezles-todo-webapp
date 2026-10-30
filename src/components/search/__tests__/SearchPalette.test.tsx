@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import SearchPalette from '../SearchPalette';
 import * as AreaContextModule from '../../../contexts/AreaContext';
@@ -20,6 +20,7 @@ vi.mock('../../EditTodoModal', async () => {
         <Dialog title="Edit" onClose={onClose}>
           <div data-testid="edit-stub">
             <span>{todo.title}</span>
+            <span data-testid="edit-completed">{String(todo.completed)}</span>
             <button onClick={onClose}>close-edit</button>
           </div>
         </Dialog>
@@ -53,6 +54,7 @@ const mockSearch = (results: Todo[], extra: Record<string, unknown> = {}) =>
 
 beforeEach(() => {
   vi.clearAllMocks();
+  refetch.mockResolvedValue(undefined);
   vi.spyOn(AreaContextModule, 'useArea').mockReturnValue(areaContextValue({ areas: [home, work] }));
   vi.mocked(TodoStore.useTodoStore).mockReturnValue(
     { toggleTodoCompletion } as unknown as ReturnType<typeof TodoStore.useTodoStore>
@@ -144,7 +146,36 @@ describe('SearchPalette', () => {
     expect(refetch).toHaveBeenCalledTimes(1);
     expect(screen.queryByTestId('edit-stub')).toBeNull();
     expect(input).toHaveValue('budget');
-    expect(within(options()[0]).getByRole('button', { name: 'Mark done' })).toBeInTheDocument();
+    await waitFor(() =>
+      expect(within(options()[0]).getByRole('button', { name: 'Mark done' })).toBeInTheDocument());
+  });
+
+  it('keeps toggled rows done until the refetch resolves, then clears overrides', async () => {
+    const user = userEvent.setup();
+    let resolve!: () => void;
+    refetch.mockReturnValue(new Promise<void>((r) => { resolve = r; }));
+    render(<SearchPalette onClose={vi.fn()} />);
+    await user.keyboard('{Meta>}{Enter}{/Meta}{Enter}');
+    await user.click(screen.getByText('close-edit'));
+    expect(within(options()[0]).getByRole('button', { name: 'Mark not done' })).toBeInTheDocument();
+    resolve();
+    await waitFor(() =>
+      expect(within(options()[0]).getByRole('button', { name: 'Mark done' })).toBeInTheDocument());
+  });
+
+  it('hands the editor the toggled state after Meta+Enter then Enter', async () => {
+    const user = userEvent.setup();
+    render(<SearchPalette onClose={vi.fn()} />);
+    await user.keyboard('{Meta>}{Enter}{/Meta}{Enter}');
+    expect(screen.getByTestId('edit-completed')).toHaveTextContent('true');
+  });
+
+  it('hands the editor the toggled state when the row is clicked after its checkbox', async () => {
+    const user = userEvent.setup();
+    render(<SearchPalette onClose={vi.fn()} />);
+    await user.click(within(options()[0]).getByRole('button', { name: 'Mark done' }));
+    await user.click(options()[0]);
+    expect(screen.getByTestId('edit-completed')).toHaveTextContent('true');
   });
 
   it('Escape closes the palette when no edit dialog is open', async () => {

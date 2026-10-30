@@ -57,8 +57,9 @@ const SearchPalette: React.FC<SearchPaletteProps> = ({ onClose }) => {
 
   // Known limitation: toggleTodoCompletion fires its mutation without awaiting,
   // so a failed toggle or an Undo in the "Completed" toast is invisible here and
-  // the override can disagree with the server. It resyncs when the edit dialog
-  // closes (overrides cleared + refetch) or the palette is reopened.
+  // the override can disagree with the server. It resyncs once the refetch
+  // after the edit dialog closes resolves (overrides cleared then), or when the
+  // palette is reopened (the search is never served from cache).
   const toggle = (todo: Todo) => {
     const done = isDone(todo);
     void toggleTodoCompletion({ ...todo, completed: done });
@@ -67,8 +68,8 @@ const SearchPalette: React.FC<SearchPaletteProps> = ({ onClose }) => {
 
   const closeEditor = () => {
     setEditing(null);
-    setOverrides(new Map());
-    refetch();
+    // Keep the overrides until the fresh rows arrive, or ticked rows flash open.
+    void Promise.resolve(refetch()).finally(() => setOverrides(new Map()));
     inputRef.current?.focus();
   };
 
@@ -84,7 +85,7 @@ const SearchPalette: React.FC<SearchPaletteProps> = ({ onClose }) => {
       event.preventDefault();
       if (!current) return;
       if (event.metaKey || event.ctrlKey) toggle(current);
-      else setEditing(current);
+      else setEditing({ ...current, completed: isDone(current) });
     }
   };
 
@@ -149,7 +150,7 @@ const SearchPalette: React.FC<SearchPaletteProps> = ({ onClose }) => {
                 id={optionId(todo.id)}
                 role="option"
                 aria-selected={isSelected}
-                onClick={() => setEditing(todo)}
+                onClick={() => setEditing({ ...todo, completed: isDone(todo) })}
                 onMouseMove={(e) => {
                   const last = lastPointer.current;
                   lastPointer.current = { x: e.clientX, y: e.clientY };

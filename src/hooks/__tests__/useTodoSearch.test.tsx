@@ -63,4 +63,20 @@ describe('useTodoSearch', () => {
 
     await waitFor(() => expect(result.current.error?.message).toBe('boom'), { timeout: SEARCH_DEBOUNCE_MS + 1500 });
   });
+
+  it('refetches when the same query is searched again after a remount', async () => {
+    // Mirror the app-wide defaults (App.tsx): a 5 minute staleTime must not serve stale rows.
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 5 * 60 * 1000 } } });
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    );
+    const first = renderHook(({ q }) => useTodoSearch(q), { wrapper, initialProps: { q: '' } });
+    first.rerender({ q: 'budg' });
+    await waitFor(() => expect(first.result.current.results).toHaveLength(1), { timeout: SEARCH_DEBOUNCE_MS + 1500 });
+    first.unmount();
+
+    const second = renderHook(({ q }) => useTodoSearch(q), { wrapper, initialProps: { q: '' } });
+    second.rerender({ q: 'budg' });
+    await waitFor(() => expect(getTodos).toHaveBeenCalledTimes(2), { timeout: SEARCH_DEBOUNCE_MS + 1500 });
+  });
 });

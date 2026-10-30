@@ -698,7 +698,7 @@ A command-palette-style pop-up, not a header box or a separate view.
 
 **Opening:**
 - `/` (outside text fields) or `⌘K` / `Ctrl+K` (anywhere), from any view
-- A 🔍 Search button, first in the Dashboard header; full-screen on phones with a Cancel button
+- A 🔍 Search button, first in the header's right-hand group (before New and the account menu); on phones the pop-up is full-screen with the dialog's ✕ Close button
 - Opens with an empty box and the cursor in it; before typing it shows a hint and no results
 
 **Results:**
@@ -712,7 +712,7 @@ A command-palette-style pop-up, not a header box or a separate view.
 - `Enter` opens the selected todo in the edit dialog
 - `⌘Enter` / `Ctrl+Enter` toggles done
 - `Esc` closes the pop-up; with the edit dialog open on top, it closes only the dialog
-- Footer lists the keys
+- Desktop only: the footer lists the keys, and the selected row shows a `⌘↵ Done` hint
 
 **Mouse / touch:** click a row to edit; click the checkbox to toggle done.
 
