@@ -161,7 +161,7 @@ const TodoActions: React.FC<TodoActionsProps> = ({ todo, onEdit, onUpdate, onTog
               disabled={isRemovingFromToday}
               className={menuItem}
             >
-              {isRemovingFromToday ? <Spinner className={menuIcon} /> : <SunIcon className={`${menuIcon} text-accent`} />}
+              {isRemovingFromToday ? <Spinner className={menuIcon} /> : <SunIcon className={`${menuIcon} text-today`} />}
               {isRemovingFromToday ? 'Removing…' : 'Remove from Today'}
             </button>
           ) : (

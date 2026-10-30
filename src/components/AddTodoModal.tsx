@@ -273,7 +273,7 @@ const AddTodoModal: React.FC<AddTodoModalProps> = ({ isOpen, onClose, onTodoAdde
           </div>
 
           <label htmlFor="isToday" className="flex items-center gap-3 py-3 border-t border-line cursor-pointer">
-            <SunIcon className="w-[18px] h-[18px] text-accent" />
+            <SunIcon className={`w-[18px] h-[18px] ${isToday ? 'text-today' : 'text-accent'}`} />
             <span className="flex-1 text-sm font-medium text-ink">Add to Today</span>
             <Switch id="isToday" checked={isToday} onChange={setIsToday} disabled={isSubmitting} />
           </label>

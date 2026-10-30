@@ -13,7 +13,7 @@ interface TodayToggleProps {
 
 /**
  * Sun button on a todo row that adds the todo to, or removes it from, Today.
- * Grey when off, cobalt on a soft circle when on; hover previews the on state.
+ * Grey when off, orange on a soft orange circle when on; hover previews the on state.
  */
 const TodayToggle: React.FC<TodayToggleProps> = ({ todo, onUpdate }) => {
   const { moveToToday, removeFromToday, isMovingToToday, isRemovingFromToday } = useTodoStore();
@@ -41,8 +41,8 @@ const TodayToggle: React.FC<TodayToggleProps> = ({ todo, onUpdate }) => {
       title={label}
       className={`inline-flex items-center justify-center w-10 h-10 flex-none rounded-full transition-colors disabled:cursor-wait ${
         isToday
-          ? 'text-accent bg-accent-soft'
-          : 'text-ink-faint hover:text-accent hover:bg-accent-soft'
+          ? 'text-today bg-today-soft'
+          : 'text-ink-faint hover:text-today hover:bg-today-soft'
       }`}
     >
       {isLoading ? <Spinner className="w-4 h-4" /> : <SunIcon className="w-[18px] h-[18px]" />}

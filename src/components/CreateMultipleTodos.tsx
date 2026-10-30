@@ -161,7 +161,7 @@ const CreateMultipleTodos: React.FC = () => {
             />
           </div>
           <label htmlFor="addToToday" className="sm:ml-auto flex items-center gap-2.5 min-h-[44px] cursor-pointer">
-            <SunIcon className={`w-[18px] h-[18px] ${addToToday ? 'text-accent' : 'text-ink-faint'}`} />
+            <SunIcon className={`w-[18px] h-[18px] ${addToToday ? 'text-today' : 'text-ink-faint'}`} />
             <span className="text-sm font-medium text-ink">Add to Today</span>
             <Switch id="addToToday" checked={addToToday} onChange={setAddToToday} />
           </label>
