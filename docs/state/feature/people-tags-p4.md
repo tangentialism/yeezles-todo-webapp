@@ -10,9 +10,8 @@ Backend half: yeezles-todo #88, merged as `2af55ea`.
 
 ## Next action
 
-Task 4: `PeoplerConnectionModal` and the `Peopler` account menu item, using
-`usePeoplerConnection` / `usePeoplerConnectionActions` and `peoplerErrorMessage`.
-Then Tasks 5–8. Failing test first.
+Task 5: link check once per person page open; stale and dormant lines.
+Then Tasks 6–8. Failing test first.
 
 ## Sequence
 
@@ -20,7 +19,7 @@ Then Tasks 5–8. Failing test first.
 1. [x] `peopler_link` on person shapes, `PeoplerConnection`/`PeoplerSearchResult`, `peoplerLinkOf`/`isFilledLink`, chip and list badge look. (`peoplerErrorMessage` is not in this task's brief; assumed to land with the task that first needs it.)
 2. [x] API client methods for the four `/peopler/*` routes, `peopler-check` and `peopler_id` on `PUT /people/:id`; the logging interceptor must not log a request body.
 3. [x] Connection store hook with the `PEOPLER_CONNECTION_CHANGED` broadcast (`usePeoplerStore`, `peoplerInvalidation`, `usePeopleStore` link-change invalidation, cross-tab case).
-4. `PeoplerConnectionModal` and the `Peopler` account menu item.
+4. [x] `PeoplerConnectionModal` and the `Peopler` account menu item.
 5. Link check once per person page open; stale and dormant lines.
 6. Link and relink dialog (search, already-linked result, merge button), Unlink.
 7. Chip and badge look per `peopler_link` (stale icon, accessible label); `npm run build`.
@@ -56,6 +55,7 @@ Then Tasks 5–8. Failing test first.
 
 - Task 2 (2026-10-30): RED: `api.peopler.test.ts` 7 failed, 1 passed (`updatePerson` null already worked); `peoplerErrors.test.ts` unresolved (module missing). After the methods landed, the token-log test alone failed (old interceptor logged the whole error). GREEN: check script `TSC_OK`, lint 5 (baseline 5, new files clean), vitest 914 total, 914 passed, 0 failing names (+19). Request interceptor and other `logger.*` calls in `api.ts` log no body (login logs status only).
 - Task 3 (2026-10-30): RED: `usePeoplerStore.test.tsx` unresolved (module missing), `useCrossTabSync.peopler.test.tsx` 1 failed of 2 (the ignore-own-tab test passed), `usePeopleStore.test.tsx` 1 failed of 11. GREEN: check script `TSC_OK`, lint 5 (baseline 5, new files clean), vitest 933 total, 933 passed, 0 failing names (+19). `connect`/`disconnect` call the api directly with `useState` flags, so no mutation cache entry exists and the token appears in no cache or broadcast (asserted).
+- Task 4 (2026-10-30): RED: `PeoplerConnectionModal.test.tsx` unresolved (module missing), `AccountMenu.test.tsx` 2 failed of 3 (the unchanged-items test passed). GREEN: check script `TSC_OK`, lint 5 (baseline 5, new files clean), vitest 949 total, 949 passed, 0 failing names (+16). Modal returns `null` when closed; token is held in `useState` only, passed once to `connect(token.trim())`, cleared on success and kept on a rejected connect; tests assert no `Storage.setItem` call contains it and that close/reopen empties the input.
 
 ## Deviations
 

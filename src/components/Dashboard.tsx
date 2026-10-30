@@ -5,6 +5,7 @@ import Navigation from './Navigation';
 import ViewContainer from './ViewContainer';
 import AddTodoModal from './AddTodoModal';
 import PasskeyManagementModal from './PasskeyManagementModal';
+import PeoplerConnectionModal from './PeoplerConnectionModal';
 import AccessTokenManagementModal from './AccessTokenManagementModal';
 import AccountMenu from './AccountMenu';
 import PhoneTabBar from './PhoneTabBar';
@@ -30,6 +31,7 @@ const Dashboard: React.FC = () => {
   const [currentView, setCurrentView] = useState('all');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isPasskeyModalOpen, setIsPasskeyModalOpen] = useState(false);
+  const [isPeoplerModalOpen, setIsPeoplerModalOpen] = useState(false);
   const [isTokenModalOpen, setIsTokenModalOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const openSearch = useCallback(() => setIsSearchOpen(true), []);
@@ -127,6 +129,7 @@ const Dashboard: React.FC = () => {
             <AccountMenu
               onManagePasskeys={() => setIsPasskeyModalOpen(true)}
               onManageTokens={() => setIsTokenModalOpen(true)}
+              onManagePeopler={() => setIsPeoplerModalOpen(true)}
             />
           </div>
         </div>
@@ -195,6 +198,12 @@ const Dashboard: React.FC = () => {
       <AccessTokenManagementModal
         isOpen={isTokenModalOpen}
         onClose={() => setIsTokenModalOpen(false)}
+      />
+
+      {/* Peopler Connection Modal */}
+      <PeoplerConnectionModal
+        isOpen={isPeoplerModalOpen}
+        onClose={() => setIsPeoplerModalOpen(false)}
       />
     </div>
   );
