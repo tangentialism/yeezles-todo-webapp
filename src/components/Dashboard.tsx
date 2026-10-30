@@ -14,6 +14,7 @@ import type { TopicsHandoff } from '../hooks/useTopicsHandoff';
 import { PlusIcon } from './ui/Icons';
 import { primaryButton } from './ui/styles';
 import { NEW_AREA_HIGHLIGHT_MS, VIEW_TRANSITION_DURATION_MS } from '../constants';
+import Wordmark from './ui/Wordmark';
 
 /**
  * Main authenticated layout: a single header (wordmark, view tabs, area
@@ -88,7 +89,7 @@ const Dashboard: React.FC = () => {
       {/* Phones: wordmark, area dot and avatar only; views move to the tab bar, New to the round button */}
       <header className="sticky top-0 z-20 bg-paper/90 backdrop-blur">
         <div className="max-w-[1120px] mx-auto pl-5 pr-3 pt-2.5 pb-1 sm:px-10 sm:py-4 flex items-center sm:gap-x-8">
-          <span className="font-serif font-medium text-xl sm:text-[22px] tracking-[-0.01em] text-ink">Yeezles</span>
+          <Wordmark className="font-serif font-medium text-xl sm:text-[22px] tracking-[-0.01em] text-ink" />
 
           <div className="flex flex-1 min-w-0">
             <Navigation

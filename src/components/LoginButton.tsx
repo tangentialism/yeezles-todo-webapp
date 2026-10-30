@@ -5,6 +5,7 @@ import Switch from './ui/Switch';
 import { Spinner } from './ui/Icons';
 import { logger } from '../utils/logger';
 import type { GoogleCredentialResponse } from '../types/auth';
+import Wordmark from './ui/Wordmark';
 
 /**
  * Full-page sign-in: passkey first, then Google's own button, then a
@@ -67,7 +68,7 @@ const LoginButton: React.FC = () => {
       <div className="w-full sm:max-w-[380px] flex flex-col flex-1 sm:flex-none">
         <div className="flex-1 sm:flex-none flex flex-col justify-center sm:text-center">
           <h1 className="font-serif font-medium text-4xl sm:text-[40px] leading-[1.1] tracking-[-0.015em] text-ink">
-            Yeezles
+            <Wordmark />
           </h1>
           <p className="mt-2 sm:mt-2.5 text-sm text-ink-muted">Sign in to continue</p>
         </div>
