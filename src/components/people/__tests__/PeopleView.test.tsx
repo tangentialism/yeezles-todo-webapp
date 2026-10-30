@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import PeopleView from '../PeopleView';
 import * as AreaContextModule from '../../../contexts/AreaContext';
 import * as PeopleStore from '../../../hooks/usePeopleStore';
+import * as PeoplerStore from '../../../hooks/usePeoplerStore';
 import * as TodoStore from '../../../hooks/useTodoStore';
 import { areaContextValue, makeArea } from '../../../test/topicFactories';
 import { makePerson } from '../../../test/personFactories';
@@ -12,6 +13,7 @@ import type { Todo } from '../../../types/todo';
 
 vi.mock('../../../contexts/AreaContext');
 vi.mock('../../../hooks/usePeopleStore');
+vi.mock('../../../hooks/usePeoplerStore');
 vi.mock('../../../hooks/useTodoStore');
 vi.mock('../../TodoActions', () => ({ default: () => null }));
 vi.mock('../../TodayToggle', () => ({ default: () => null }));
@@ -39,6 +41,12 @@ beforeEach(() => {
     asReturn<ReturnType<typeof PeopleStore.usePerson>>(query(id === 2 ? sam : priya))
   );
   vi.mocked(PeopleStore.usePersonTodos).mockReturnValue(asReturn<ReturnType<typeof PeopleStore.usePersonTodos>>(query([])));
+  vi.mocked(PeopleStore.usePeopleMutations).mockReturnValue(
+    asReturn<ReturnType<typeof PeopleStore.usePeopleMutations>>({ updatePerson: vi.fn() })
+  );
+  vi.mocked(PeoplerStore.usePeoplerConnection).mockReturnValue(
+    asReturn<ReturnType<typeof PeoplerStore.usePeoplerConnection>>({ data: { connected: false } })
+  );
   vi.mocked(TodoStore.useTodoStore).mockReturnValue(
     asReturn<ReturnType<typeof TodoStore.useTodoStore>>({
       toggleTodoCompletion: vi.fn(),

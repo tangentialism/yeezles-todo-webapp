@@ -1,10 +1,13 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { useArea } from '../../contexts/AreaContext';
 import { useDismiss } from '../../hooks/useDismiss';
-import { usePerson, usePersonTodos } from '../../hooks/usePeopleStore';
+import { usePeopleMutations, usePerson, usePersonTodos } from '../../hooks/usePeopleStore';
+import { usePeoplerCheckOnOpen, usePeoplerConnection } from '../../hooks/usePeoplerStore';
 import { useTodoStore } from '../../hooks/useTodoStore';
 import { isApiError } from '../../services/apiError';
 import { groupByArea } from '../../utils/groupByArea';
+import { peoplerErrorMessage } from '../../utils/peoplerErrors';
+import { peoplerLinkOf } from '../../utils/peoplerLink';
 import type { Todo } from '../../types/todo';
 import TodoRow from '../TodoRow';
 import DoneItem from '../DoneItem';
@@ -16,6 +19,8 @@ import { ghostButton, iconButton, menuItem, menuItemDanger, menuPanel, menuSepar
 import EditPersonDialog from './EditPersonDialog';
 import MergePersonDialog from './MergePersonDialog';
 import DeletePersonDialog from './DeletePersonDialog';
+import LinkPeoplerDialog from './LinkPeoplerDialog';
+import PeoplerLinkLine from './PeoplerLinkLine';
 
 /** Props for {@link PersonPane}. */
 export interface PersonPaneProps {
@@ -43,7 +48,13 @@ const PersonPane: React.FC<PersonPaneProps> = ({ personId, onBack, onMerged, onD
   const { toggleTodoCompletion, getTodoDisplayState } = useTodoStore();
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [dialog, setDialog] = useState<'edit' | 'merge' | 'delete' | null>(null);
+  const [dialog, setDialog] = useState<'edit' | 'merge' | 'delete' | 'link' | 'relink' | null>(null);
+  const [unlinkError, setUnlinkError] = useState<string | null>(null);
+  const [unlinking, setUnlinking] = useState(false);
+  const { updatePerson } = usePeopleMutations();
+  const connection = usePeoplerConnection();
+  // Once per open: PeopleView keys this pane by person id, so each open remounts it. Never gates rendering.
+  usePeoplerCheckOnOpen(person);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const closeMenu = useCallback(() => setMenuOpen(false), []);
@@ -73,6 +84,21 @@ const PersonPane: React.FC<PersonPaneProps> = ({ personId, onBack, onMerged, onD
       </div>
     );
   }
+
+  const link = peoplerLinkOf(person);
+  const peoplerReady = connection.data?.connected === true && connection.data.status === 'ok';
+
+  const unlink = async () => {
+    setUnlinkError(null);
+    setUnlinking(true);
+    try {
+      await updatePerson(person.id, { peopler_id: null });
+    } catch (e) {
+      setUnlinkError(peoplerErrorMessage(e));
+    } finally {
+      setUnlinking(false);
+    }
+  };
 
   const nothingTagged = openTodos.length === 0 && doneTodos.length === 0 && person.done_count === 0;
 
@@ -110,6 +136,15 @@ const PersonPane: React.FC<PersonPaneProps> = ({ personId, onBack, onMerged, onD
           <p className="mt-1.5 text-[13px] text-ink-muted">
             <span className="font-mono">{person.open_count} open · {person.done_count} done</span>
           </p>
+          <PeoplerLinkLine
+            person={person}
+            onRelink={() => setDialog('relink')}
+            onRemove={() => void unlink()}
+            busy={unlinking}
+          />
+          {unlinkError && (
+            <p role="alert" className="mt-1.5 text-[13px] text-danger">{unlinkError}</p>
+          )}
         </div>
         <div className="relative">
           <button
@@ -125,7 +160,7 @@ const PersonPane: React.FC<PersonPaneProps> = ({ personId, onBack, onMerged, onD
           </button>
           {menuOpen && (
             <div ref={panelRef} role="menu" aria-label="Person actions" className={`absolute right-0 top-11 z-30 w-56 ${menuPanel}`}>
-              {person.peopler_url && (
+              {link === 'ok' && person.peopler_url && (
                 <a
                   role="menuitem"
                   href={person.peopler_url}
@@ -136,6 +171,16 @@ const PersonPane: React.FC<PersonPaneProps> = ({ personId, onBack, onMerged, onD
                 >
                   Open in Peopler
                 </a>
+              )}
+              {link === 'ok' && (
+                <button type="button" role="menuitem" className={menuItem} onClick={() => { setMenuOpen(false); void unlink(); }}>
+                  Unlink from Peopler
+                </button>
+              )}
+              {link === 'none' && peoplerReady && (
+                <button type="button" role="menuitem" className={menuItem} onClick={() => { setMenuOpen(false); setDialog('link'); }}>
+                  Link to Peopler…
+                </button>
               )}
               <button type="button" role="menuitem" className={menuItem} onClick={() => { setMenuOpen(false); setDialog('edit'); }}>
                 Rename / edit aliases…
@@ -209,6 +254,14 @@ const PersonPane: React.FC<PersonPaneProps> = ({ personId, onBack, onMerged, onD
             setDialog(null);
             onMerged(intoId);
           }}
+        />
+      )}
+      {(dialog === 'link' || dialog === 'relink') && (
+        <LinkPeoplerDialog
+          person={person}
+          mode={dialog}
+          onClose={() => setDialog(null)}
+          onMergeInto={() => setDialog(null)}
         />
       )}
       {dialog === 'delete' && (
