@@ -86,6 +86,7 @@ describe('LinkPeoplerDialog', () => {
     const h = renderDialog();
     expect(screen.getByRole('button', { name: /Tomas Brandt/ })).toBeDisabled();
     expect(screen.getByText('Already linked to Tomas B.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Tomas Brandt/ })).toHaveAccessibleDescription(/Already linked to Tomas B\./);
     await userEvent.click(screen.getByRole('button', { name: 'Merge into Tomas B.…' }));
     expect(h.onMergeInto).toHaveBeenCalledWith(8);
   });

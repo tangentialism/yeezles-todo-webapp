@@ -94,14 +94,15 @@ const LinkPeoplerDialog: React.FC<LinkPeoplerDialogProps> = ({ person, mode, onC
                   <button
                     type="button"
                     disabled={takenByOther || picking}
+                    aria-describedby={takenByOther ? `peopler-taken-${r.id}` : undefined}
                     onClick={() => void pick(r)}
                     className="text-left px-3 py-2 rounded-lg border border-line-strong text-[14.5px] text-ink hover:bg-accent-soft disabled:opacity-60 disabled:hover:bg-transparent"
                   >
                     {resultLine(r)}
                   </button>
                   {takenByOther && (
-                    <div className="flex items-center gap-2 px-1 text-[13px] text-ink-muted">
-                      <span>{`Already linked to ${holderName(holderId)}`}</span>
+                    <div className="flex flex-wrap items-center gap-2 px-1 text-[13px] text-ink-muted">
+                      <span id={`peopler-taken-${r.id}`}>{`Already linked to ${holderName(holderId)}`}</span>
                       <button type="button" onClick={() => onMergeInto(holderId)} className={ghostButton}>
                         {`Merge into ${holderName(holderId)}…`}
                       </button>

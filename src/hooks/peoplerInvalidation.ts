@@ -12,6 +12,17 @@ type InvalidateOptions = { refetchType?: 'active' | 'inactive' | 'all' | 'none' 
 export const peoplerKeys = {
   connection: ['peoplerConnection'] as const,
   search: (q: string) => ['peoplerSearch', q] as const,
+  /** Prefix of every search key. */
+  searches: ['peoplerSearch'] as const,
+};
+
+/**
+ * Drop every cached Peopler search. A search result depends on which Peopler
+ * account is connected and on which results are already linked, so a
+ * connection or link change makes every cached one wrong.
+ */
+export const clearPeoplerSearches = (queryClient: QueryClient) => {
+  queryClient.removeQueries({ queryKey: peoplerKeys.searches });
 };
 
 /**
@@ -19,6 +30,7 @@ export const peoplerKeys = {
  * topic views, because chips on every row come from the todo's people.
  */
 export const invalidateAfterLinkChange = (queryClient: QueryClient, options: InvalidateOptions = {}) => {
+  clearPeoplerSearches(queryClient);
   invalidatePeopleViews(queryClient, options);
   invalidateTodoViews(queryClient, options);
   invalidateTopicViews(queryClient, options);

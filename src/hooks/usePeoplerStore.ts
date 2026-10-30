@@ -4,7 +4,8 @@ import { useApi } from './useApi';
 import { useCrossTabSync } from './useCrossTabSync';
 import { personKeys } from './peopleInvalidation';
 import { invalidateAfterLinkChange, peoplerKeys } from './peoplerInvalidation';
-import { retryUnlessClientError } from '../services/apiError';
+import { isApiError, retryUnlessClientError } from '../services/apiError';
+import { peoplerLinkOf } from '../utils/peoplerLink';
 import type { PeoplerConnection, PeoplerSearchResult } from '../types/peopler';
 import type { PersonWithCounts } from '../types/person';
 
@@ -17,7 +18,9 @@ export const usePeoplerConnection = () => {
     queryKey: peoplerKeys.connection,
     queryFn: () => api.getPeoplerConnection(),
     staleTime: 30_000,
-    retry: retryUnlessClientError,
+    // 503 PEOPLER_UNAVAILABLE (Peopler not configured) is the same on every attempt
+    retry: (failureCount, error) =>
+      isApiError(error, 'PEOPLER_UNAVAILABLE') && error.status === 503 ? false : retryUnlessClientError(failureCount, error),
   });
 };
 
@@ -72,6 +75,9 @@ export const usePeoplerSearch = (q: string) => {
     queryKey: peoplerKeys.search(q),
     queryFn: () => api.searchPeopler(q),
     enabled: q.trim() !== '',
+    // Results depend on the connected account and current links: never reuse them
+    staleTime: 0,
+    gcTime: 60_000,
     retry: retryUnlessClientError,
   });
 };
@@ -88,7 +94,7 @@ export const usePeoplerCheckOnOpen = (person: PersonWithCounts | undefined): voi
   const { broadcast } = useCrossTabSync();
   const checkedRef = useRef<Set<number>>(new Set());
   const personId = person?.id;
-  const shouldCheck = person !== undefined && person.peopler_link !== 'none';
+  const shouldCheck = person !== undefined && peoplerLinkOf(person) !== 'none';
 
   useEffect(() => {
     if (personId === undefined || !shouldCheck) return;

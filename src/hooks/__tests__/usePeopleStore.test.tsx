@@ -132,6 +132,20 @@ describe('usePeopleMutations', () => {
     expect(keysOf(spy)).not.toContain('["topicTodos"]');
   });
 
+  it('a link or unlink drops cached Peopler searches; a plain alias edit keeps them', async () => {
+    api.updatePerson.mockResolvedValue(makePerson({ id: 3 }));
+    for (const updates of [{ peopler_id: 7 }, { peopler_id: null }]) {
+      const { client, result } = setup();
+      client.setQueryData(['peoplerSearch', 'Avery'], [{ id: 1 }]);
+      await mutate(() => result.current.updatePerson(3, updates));
+      expect(client.getQueryCache().findAll({ queryKey: ['peoplerSearch'] })).toHaveLength(0);
+    }
+    const { client, result } = setup();
+    client.setQueryData(['peoplerSearch', 'Avery'], [{ id: 1 }]);
+    await mutate(() => result.current.updatePerson(3, { aliases: ['P'] }));
+    expect(client.getQueryCache().findAll({ queryKey: ['peoplerSearch'] })).toHaveLength(1);
+  });
+
   it('deletePerson invalidates people, todo and topic views and broadcasts the deleted id', async () => {
     api.deletePerson.mockResolvedValue(undefined);
     const { spy, result } = setup();

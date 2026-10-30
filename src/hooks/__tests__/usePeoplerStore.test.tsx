@@ -50,6 +50,14 @@ const connected = {
 beforeEach(() => vi.clearAllMocks());
 
 describe('usePeoplerConnection', () => {
+  it('does not retry a 503 PEOPLER_UNAVAILABLE (Peopler not configured), calling the api once', async () => {
+    api.getPeoplerConnection.mockRejectedValue(new ApiError(503, 'PEOPLER_UNAVAILABLE', 'not configured'));
+    const client = new QueryClient({ defaultOptions: { queries: { retryDelay: 1 } } });
+    const { result } = renderHook(() => usePeoplerConnection(), { wrapper: wrapperFor(client) });
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(api.getPeoplerConnection).toHaveBeenCalledTimes(1);
+  });
+
   it('fetches the connection under peoplerKeys.connection', async () => {
     api.getPeoplerConnection.mockResolvedValue(connected);
     const client = makeClient();
@@ -113,6 +121,22 @@ describe('usePeoplerConnectionActions', () => {
     expect(broadcast).toHaveBeenCalledWith('PEOPLER_CONNECTION_CHANGED', { id: 0, timestamp: expect.any(Number) });
     expect(result.current.isDisconnecting).toBe(false);
   });
+
+  it('connect and disconnect drop every cached Peopler search', async () => {
+    api.connectPeopler.mockResolvedValue(connected);
+    api.disconnectPeopler.mockResolvedValue(undefined);
+    const { client, result } = setup();
+    client.setQueryData(peoplerKeys.search('Avery'), [{ id: 1 }]);
+    await act(async () => {
+      await result.current.connect(TOKEN);
+    });
+    expect(client.getQueryCache().findAll({ queryKey: ['peoplerSearch'] })).toHaveLength(0);
+    client.setQueryData(peoplerKeys.search('Blake'), [{ id: 2 }]);
+    await act(async () => {
+      await result.current.disconnect();
+    });
+    expect(client.getQueryCache().findAll({ queryKey: ['peoplerSearch'] })).toHaveLength(0);
+  });
 });
 
 describe('usePeoplerSearch', () => {
@@ -133,6 +157,16 @@ describe('usePeoplerSearch', () => {
     expect(api.searchPeopler).toHaveBeenCalledTimes(1);
     expect(api.searchPeopler).toHaveBeenCalledWith('Avery');
     expect(client.getQueryData(peoplerKeys.search('Avery'))).toHaveLength(1);
+  });
+
+  it('never serves a cached search as fresh: staleTime 0 and a short gcTime', async () => {
+    api.searchPeopler.mockResolvedValue([]);
+    const client = makeClient();
+    renderHook(() => usePeoplerSearch('Avery'), { wrapper: wrapperFor(client) });
+    const query = client.getQueryCache().find({ queryKey: peoplerKeys.search('Avery') })!;
+    const options = query.observers[0].options;
+    expect(options.staleTime).toBe(0);
+    expect(options.gcTime).toBeLessThanOrEqual(60_000);
   });
 
   it('does not retry a 4xx, but retries a 5xx', async () => {

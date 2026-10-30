@@ -20,7 +20,9 @@ const PeoplerConnectionModal: React.FC<PeoplerConnectionModalProps> = ({ isOpen,
   if (!isOpen) return null;
   return (
     <Dialog title="Peopler" onClose={onClose}>
-      <PeoplerConnectionBody />
+      <div className="px-7 pt-3.5 pb-6">
+        <PeoplerConnectionBody />
+      </div>
     </Dialog>
   );
 };

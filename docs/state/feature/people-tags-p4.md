@@ -5,7 +5,7 @@
 People tags phase 4, webapp half: the Peopler connection modal, link state on
 chips and the person page, link and relink search, and the per-open link
 check. Spec: workspace `docs/superpowers/specs/2026-10-30-people-tags-p4-design.md`
-(§4.4–§4.7). Plan C: workspace `docs/superpowers/plans/` (webapp plan for P4).
+(§4.4–§4.7). Plan C: workspace `docs/superpowers/plans/2026-10-30-people-tags-p4-webapp.md`.
 Backend half: yeezles-todo #88, merged as `2af55ea`.
 
 ## Next action
@@ -15,7 +15,7 @@ real Peopler token). Do not push or open a PR without his go.
 
 ## Sequence
 
-0. Worktree, baseline, check script, state file (this commit).
+0. [x] Worktree, baseline, check script, state file.
 1. [x] `peopler_link` on person shapes, `PeoplerConnection`/`PeoplerSearchResult`, `peoplerLinkOf`/`isFilledLink`, chip and list badge look. (`peoplerErrorMessage` is not in this task's brief; assumed to land with the task that first needs it.)
 2. [x] API client methods for the four `/peopler/*` routes, `peopler-check` and `peopler_id` on `PUT /people/:id`; the logging interceptor must not log a request body.
 3. [x] Connection store hook with the `PEOPLER_CONNECTION_CHANGED` broadcast (`usePeoplerStore`, `peoplerInvalidation`, `usePeopleStore` link-change invalidation, cross-tab case).
@@ -59,7 +59,9 @@ real Peopler token). Do not push or open a PR without his go.
 - Task 5 (2026-10-30): RED: `PersonPane.peopler.test.tsx` 9 failed, 3 passed (the none/disconnected cases pass trivially). GREEN: check script `TSC_OK`, lint 5 (baseline 5, new files clean), vitest 961 total, 961 passed, 0 failing names (+12). `PersonPane` calls `usePeoplerCheckOnOpen(person)` itself (the keyed pane remounts per open). `LinkPeoplerDialog` is a stub returning `null` (Task 6). Existing tests: `PersonPane.test.tsx` and `PeopleView.test.tsx` gained `usePeoplerStore` and `usePeopleMutations` default mocks; one fixture in `PersonPane.test.tsx` got `peopler_link: 'ok'` (no assertion changed), as in Task 1.
 - Task 6 (2026-10-30): RED: `LinkPeoplerDialog.test.tsx` 17 failed (stub returned null), `PersonPane.peopler.test.tsx` 3 failed, `MergePersonDialog.test.tsx` 1 failed (the without-`initialIntoId` test passed): 21 failed. GREEN: check script `TSC_OK`, lint 5 (baseline 5, new files clean), vitest 984 total, 984 passed, 0 failing names (+23). Holder name comes from `usePeople({ limit: 100 })`; a holder outside that list reads `another person`. `PersonPane` hides an unlink error once the link state changes and clears it when a link dialog opens.
 
-- Task 7 (2026-10-30, docs only, no RED): check script `TSC_OK`, lint 5 (baseline 5), vitest 984 total, 984 passed, 0 failing names, no new failing names. `npm run build` ok: `dist/assets/index-D6Frg6MS.js` 519.32 kB (gzip 156.43 kB), css 40.39 kB; only the existing >500 kB chunk warning. The webapp has no `docs/API.md`, so no client-method doc was added.
+- Task 7 (2026-10-30, docs only, no RED): check script `TSC_OK`, lint 5 (baseline 5), vitest 984 total, 984 passed, 0 failing names, no new failing names. `npm run build` ok: `dist/assets/index-D6Frg6MS.js` 519.32 kB (gzip 156.43 kB), css 40.39 kB; only the existing >500 kB chunk warning. The webapp has `docs/api/API.md`, but it lists only `getTodos` client examples and no people or Peopler methods, so it was left unchanged.
+
+- Final review fixes (2026-10-30): RED: 6 failed across 5 files (search cache kept after connect/disconnect, after a cross-tab `PEOPLER_CONNECTION_CHANGED`, after link/unlink; search `staleTime` not 0; a 503 `PEOPLER_UNAVAILABLE` retried; the disabled result had no accessible description). GREEN: check script `TSC_OK`, lint 5 (baseline 5, changed files clean), vitest 989 total, 989 passed, 0 failing names (+5); `npm run build` ok. Fixes: `usePeoplerSearch` `staleTime: 0` / `gcTime: 60s`; `clearPeoplerSearches` (in `peoplerInvalidation`) runs from `invalidateAfterLinkChange` (connect, disconnect, cross-tab, check) and the `peopler_id` branch of `updatePerson`; Peopler modal body padded `px-7 pt-3.5 pb-6`; no retry for 503 `PEOPLER_UNAVAILABLE`; `peoplerLinkOf` in `shouldCheck`; merge-offer row `flex-wrap` and `aria-describedby`. `LinkPeoplerDialog` was already padded like `MergePersonDialog`. Padding has no unit test.
 
 ## Known limits
 
@@ -83,7 +85,7 @@ Contract differences found in Task 0 (merged API.md vs the plan's wire contract)
 - `PEOPLER_UNAVAILABLE` 503 is documented for the `/peopler/*` routes; `PEOPLER_NOT_CONNECTED` 400 can also come from a `{ peopler_id }` ref without a name.
 - Task 2: the response interceptor now logs one line, `API Error:` METHOD url status message, and nothing else (no error object, config or response data), for every request. The old extra lines `Response status:` and `Request configuration error:` are gone. No existing test asserted the old log shape, so none changed.
 - Task 3: `usePeoplerCheckOnOpen` takes the person's `peopler_link` from the argument, skips `none`, and treats an absent cached person as a changed link (invalidates and broadcasts). `PEOPLER_CONNECTION_CHANGED` also invalidates `['peoplerConnection']` with `refetchType: 'active'`.
-- Plan copy deviates from the spec's "connect in Settings": the webapp has no Settings (Global Constraints).
+- Plan copy deviates from the spec's "connect in Settings": the webapp has no Settings (the plan's Global Constraints section, in workspace `docs/superpowers/plans/2026-10-30-people-tags-p4-webapp.md`).
 
 ## Assumed
 
@@ -97,7 +99,17 @@ Contract differences found in Task 0 (merged API.md vs the plan's wire contract)
 Branch `feature/people-tags-p4` in
 `/Users/davidyee/Code/yeezles-todo-webapp-wt/people-tags-p4` (webapp, default
 branch `master`; use `git -C <abs path>` always; do not push or open a PR
-without David's go). Read this file, the Global Constraints and the Task 1
-brief in the workspace plan, then start Task 1 with a failing test. Check
-command: `/Users/davidyee/Code/yeezles-todo-webapp-wt/people-tags-p4-check.sh`
-(baseline: `TSC_OK`, lint 5, 877 tests, 0 failing names).
+without David's go). Tasks 0-7 and the final review fixes are done; resume at
+**Task 8, the local browser walkthrough**, which needs David's Google sign-in
+and a real Peopler token. Check command:
+`/Users/davidyee/Code/yeezles-todo-webapp-wt/people-tags-p4-check.sh`
+(now: `TSC_OK`, lint 5, 989 tests, 0 failing names; `npm run build` ok).
+Plan: workspace `docs/superpowers/plans/2026-10-30-people-tags-p4-webapp.md`.
+
+Task 8 checks beyond the plan:
+
+- Step 1 (connect): note whether Chrome offers to save the token as a password.
+- After reconnecting as a different Peopler account (B), Relink shows a fresh
+  search of B, not the old account's results.
+- A Link right after an Unlink shows the result as pickable, not "Already
+  linked to X".
