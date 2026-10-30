@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { inflateSync } from 'node:zlib';
 
 // Pins the Rising Hash icon set (workspace spec 2026-10-29-logo-and-today-color-design.md §5.1):
 // rounded tiles with alpha are "any", full-bleed flattened tiles are "maskable" and apple-touch.
@@ -17,6 +18,19 @@ const html = readFileSync(join(process.cwd(), 'index.html'), 'utf8');
 const ihdr = (p: string) => {
   const buf = readFileSync(pub(p));
   return { width: buf.readUInt32BE(16), height: buf.readUInt32BE(20), colorType: buf[25] };
+};
+
+/**
+ * Alpha of pixel (0,0) of an 8-bit RGBA PNG. Every PNG row filter predicts the
+ * first pixel of the first row from zeros, so its bytes are stored raw.
+ */
+const cornerAlpha = (p: string) => {
+  const buf = readFileSync(pub(p));
+  const idat: Buffer[] = [];
+  for (let off = 8; off < buf.length; off += 12 + buf.readUInt32BE(off)) {
+    if (buf.toString('ascii', off + 4, off + 8) === 'IDAT') idat.push(buf.subarray(off + 8, off + 8 + buf.readUInt32BE(off)));
+  }
+  return inflateSync(Buffer.concat(idat))[4]; // [0] is the row's filter byte, then R G B A
 };
 
 const APPLE_TOUCH = '/icons/apple-touch-icon-180x180.png';
@@ -66,6 +80,12 @@ describe('brand icons', () => {
     const rounded = manifest.icons.filter((i) => i.purpose === 'any').map((i) => i.src);
     expect(rounded.length).toBeGreaterThan(0);
     for (const src of rounded) expect({ src, colorType: ihdr(src).colorType }).toEqual({ src, colorType: 6 });
+  });
+
+  // Type 6 alone would pass a render whose background came out opaque (white corners).
+  it('rounded icons have transparent corners', () => {
+    const rounded = [...manifest.icons.filter((i) => i.purpose === 'any').map((i) => i.src), '/favicon-32.png'];
+    for (const src of rounded) expect({ src, alpha: cornerAlpha(src) }).toEqual({ src, alpha: 0 });
   });
 
   it('stale art is gone', () => {
