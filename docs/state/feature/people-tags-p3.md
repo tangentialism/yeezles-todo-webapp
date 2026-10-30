@@ -12,8 +12,8 @@ merged as `a9c7d63`.
 
 ## Next action
 
-Task 1 of the plan: types and draft state (`src/types/proposal.ts`,
-`src/types/person.ts`, `src/utils/proposalDraft.ts`), failing test first.
+Task 2 of the plan: the chip and chooser components (`ProposalPersonChip`,
+`PersonChooser`), built on the Task 1 draft state. Failing test first.
 
 ## Verified
 
@@ -22,6 +22,17 @@ Task 1 of the plan: types and draft state (`src/types/proposal.ts`,
   request #33; master had not moved since plan time). Upstream unset so a bare
   push cannot reach `master`. `npm ci` ok. Baseline: `tsc -b` exit 0
   (`TSC_OK`); eslint 5 problems; vitest 703 total, 703 passed, 0 failing names.
+- Task 1 (2026-10-29): types (`PersonRef`, `PersonCandidateDetail`, `RefState`,
+  `ResolvedRef`, `ResolvedPeopleChange`, `PeopleChange`) and draft state
+  (`DraftPersonRef`, `DraftPeopleRow`, `choosePerson`/`addPerson`/
+  `togglePeopleRow`/`toggleRemoval`, `needsYou`, `peopleNeedingYou`, serialize,
+  attachErrors). New `proposalDraft.people.test.ts` 32 tests; RED was 29 failed
+  | 3 passed before the implementation, GREEN `proposalDraft.*` 4 files, 97
+  tests. Existing `proposalDraft.{init,reducer,serialize}` tests unchanged.
+  Deviation: `PathIndex.people_changes` and `refPaths` are optional and left
+  out when empty, because an existing serialize test `toEqual`s the whole
+  pathIndex. Check script: TSC_OK, lint 5 (baseline 5), 735 tests total, 735
+  passed, 0 new failing names.
 - Check script (outside the repo, never committed):
   `/Users/davidyee/Code/yeezles-todo-webapp-wt/people-tags-p3-check.sh`, a copy
   of P2's with paths and prefix changed; run it with no argument to compare,

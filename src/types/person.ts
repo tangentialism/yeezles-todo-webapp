@@ -37,7 +37,30 @@ export interface UpdatePersonRequest {
   aliases?: string[];
 }
 
-/** The only PersonRef form the webapp sends in P2 (spec §4). */
+/** A person ref that names an existing person by id: what the webapp sends most. */
 export interface PersonIdRef {
   person_id: number;
+}
+
+/**
+ * A person reference in a proposal (people spec §5). The webapp only ever
+ * sends `{ person_id }`, `{ create }` and `{ link }`; `{ peopler_id, name? }`
+ * and `{ name }` arrive from MCP callers and are resolved by the server.
+ */
+export type PersonRef =
+  | PersonIdRef
+  | { peopler_id: number; name?: string }
+  | { name: string }
+  | { create: { name: string; peopler_id?: number } }
+  | { link: { person_id: number; peopler_id: number } };
+
+/** A candidate person the review chooser offers, with the counts that tell people apart. */
+export interface PersonCandidateDetail {
+  id: number;
+  display_name: string;
+  aliases: string[];
+  peopler_id: number | null;
+  open_count: number;
+  done_count: number;
+  latest_open_title: string | null;
 }

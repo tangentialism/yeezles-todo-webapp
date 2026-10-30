@@ -5,7 +5,10 @@
  * and attachErrors maps a 422's paths back to items. Components only render
  * and dispatch.
  */
-import type { ProposedTodo, ResolvedProposal, TopicChangesPayload } from '../types/proposal';
+import type { PersonRef, TodoPerson } from '../types/person';
+import type {
+  PeopleChange, ProposedTodo, RefState, ResolvedPeopleChange, ResolvedProposal, ResolvedRef, TopicChangesPayload,
+} from '../types/proposal';
 import type { TopicRef, TopicWithCounts } from '../types/topic';
 import { TOPIC_NAME_MAX } from '../constants';
 
@@ -72,6 +75,47 @@ export interface DraftNote {
   error: string | null;
 }
 
+/** What the user chose for a person ref in the chooser (people spec §6). */
+export type ChooserPick =
+  /** A candidate, "Pick someone…" or "Just tag". */
+  | { kind: 'person'; person: TodoPerson }
+  | { kind: 'create'; name: string; peopler_id?: number }
+  | { kind: 'link'; person: TodoPerson; peopler_id: number }
+  | { kind: 'drop' };
+
+/** One person chip on a new todo or a people row. */
+export interface DraftPersonRef {
+  /** `p:<owner key>:<j>` from the proposal, `p:<owner key>:a<seq>` when the user added it. */
+  key: string;
+  resolved: ResolvedRef;
+  /** Null until the user picks; then it overrides how the ref is sent. */
+  chosen: ChooserPick | null;
+  /** From a 422; makes the chip needs-you again. */
+  error: string | null;
+}
+
+/** A removal on a people row. */
+export interface DraftRemoval {
+  person_id: number;
+  /** Null when the person no longer exists; apply treats that removal as a no-op. */
+  person: TodoPerson | null;
+  /** True: the removal stays in the proposal and the person will be removed. False: the user chose to keep them. */
+  kept: boolean;
+}
+
+/** A proposed people change on an existing todo. */
+export interface DraftPeopleRow {
+  /** `pc:<index>` into the stored `people_changes`. */
+  key: string;
+  index: number;
+  change: ResolvedPeopleChange;
+  /** A row whose todo is missing is never accepted. */
+  accepted: boolean;
+  add: DraftPersonRef[];
+  remove: DraftRemoval[];
+  error: string | null;
+}
+
 /** A todo the proposal would create. */
 export interface DraftNewTodo {
   /** `n:<index>` into the stored `new_todos`. */
@@ -85,6 +129,8 @@ export interface DraftNewTodo {
   movedFrom: string | null;
   /** The proposed topic name, when that topic no longer exists. */
   missingTopic: string | null;
+  /** The people tagged on it; empty for a proposal without people. */
+  people: DraftPersonRef[];
   error: string | null;
 }
 
@@ -98,6 +144,7 @@ export interface Draft {
   rows: DraftRow[];
   notes: DraftNote[];
   newTodos: DraftNewTodo[];
+  peopleRows: DraftPeopleRow[];
   areaTopics: TopicWithCounts[];
   unassigned: Array<{ id: number; title: string }>;
   /**
@@ -161,20 +208,35 @@ export const isNoteIncluded = (draft: Draft, note: DraftNote) => note.accepted &
 export const counts = (draft: Draft) => {
   const newTopics = draft.topics.filter((t) => t.kind === 'new');
   return {
-    total: draft.rows.length + newTopics.length + draft.notes.length + draft.newTodos.length,
+    total: draft.rows.length + newTopics.length + draft.notes.length + draft.newTodos.length + draft.peopleRows.length,
     accepted:
       draft.rows.filter((r) => isRowIncluded(draft, r)).length +
       newTopics.filter((t) => t.accepted).length +
       draft.notes.filter((n) => isNoteIncluded(draft, n)).length +
-      draft.newTodos.filter((t) => t.accepted).length,
+      draft.newTodos.filter((t) => t.accepted).length +
+      draft.peopleRows.filter((r) => r.accepted).length,
   };
 };
 
 const hasNameProblem = (topic: DraftTopic) => topic.kind === 'new' && topic.accepted && (topic.taken || topic.nameError !== null);
 
+const NEEDS_YOU_STATES: RefState[] = ['new', 'ambiguous', 'link_candidate', 'possible_match', 'gone'];
+
+/** A person chip the user must settle: unchosen in a state the server cannot decide, or refused by a 422. */
+export const needsYou = (ref: DraftPersonRef): boolean =>
+  ref.error !== null || (ref.chosen === null && NEEDS_YOU_STATES.includes(ref.resolved.state));
+
+/** Chips that need the user, over accepted new todos and accepted people rows only: a todo that is not created needs no people. */
+export const peopleNeedingYou = (draft: Draft): number =>
+  draft.newTodos.filter((t) => t.accepted).reduce((n, t) => n + t.people.filter(needsYou).length, 0) +
+  draft.peopleRows.filter((r) => r.accepted).reduce((n, r) => n + r.add.filter(needsYou).length, 0);
+
 /** Why Apply is disabled, or null. */
 export const applyBlocker = (draft: Draft): string | null => {
   if (counts(draft).accepted === 0) return 'Nothing accepted. Reject instead.';
+  const people = peopleNeedingYou(draft);
+  if (people === 1) return '1 person needs you.';
+  if (people > 1) return `${people} people need you.`;
   const bad = draft.topics.filter(hasNameProblem).length;
   if (bad === 1) return 'Fix 1 topic name first.';
   if (bad > 1) return `Fix ${bad} topic names first.`;
@@ -284,6 +346,9 @@ export const initDraft = (resolved: ResolvedProposal): Draft => {
     error: null,
   }));
 
+  const refsFor = (owner: string, refs: ResolvedRef[] = []): DraftPersonRef[] =>
+    refs.map((resolvedRef, j) => ({ key: `p:${owner}:${j}`, resolved: resolvedRef, chosen: null, error: null }));
+
   // A new todo's topic: a key, or No topic when it has none or no longer exists.
   const newTodos: DraftNewTodo[] = (resolved.new_todos ?? []).map((todo, index) => {
     const known = todo.topic === null ? undefined : keyByName.get(normName(todo.topic));
@@ -300,9 +365,20 @@ export const initDraft = (resolved: ResolvedProposal): Draft => {
       accepted: true,
       movedFrom: null,
       missingTopic: missing ? todo.topic : null,
+      people: refsFor(`n:${index}`, resolved.people?.new_todos[index]),
       error: null,
     };
   });
+
+  const peopleRows: DraftPeopleRow[] = (resolved.people?.people_changes ?? []).map((change, index) => ({
+    key: `pc:${index}`,
+    index,
+    change,
+    accepted: !change.missing,
+    add: refsFor(`pc:${index}`, change.add),
+    remove: change.remove.map((r) => ({ person_id: r.person_id, person: r.person, kept: true })),
+    error: null,
+  }));
 
   // Ruling L10: all resolved names count, except a still-free new name, which
   // is checked via `topics` so renaming that topic to its own name is allowed.
@@ -318,6 +394,7 @@ export const initDraft = (resolved: ResolvedProposal): Draft => {
     rows,
     notes,
     newTodos,
+    peopleRows,
     areaTopics: resolved.area_topics,
     unassigned: resolved.unassigned,
     knownNames: [...new Set(knownNames)],
@@ -340,6 +417,10 @@ export interface PathIndex {
   assignments: string[];
   note_edits: string[];
   new_todos: string[];
+  /** Row keys of the submitted people_changes; absent when there are none. */
+  people_changes?: string[];
+  /** Submitted ref path (`new_todos[0].people[1]`, `people_changes[0].add[0]`) to the ref's key; absent when empty. */
+  refPaths?: Record<string, string>;
 }
 
 export type DraftAction =
@@ -356,11 +437,17 @@ export type DraftAction =
   | { type: 'toggleNote'; key: string }
   | { type: 'editNote'; key: string; text: string }
   | { type: 'setUnassigned'; todoId: number; target: string | null }
+  | { type: 'choosePerson'; owner: string; refKey: string; pick: ChooserPick }
+  /** `owner` is a new-todo key or a people-row key. */
+  | { type: 'addPerson'; owner: string; person: TodoPerson }
+  | { type: 'togglePeopleRow'; key: string }
+  | { type: 'toggleRemoval'; key: string; personId: number }
   | { type: 'attachErrors'; errors: Array<{ path: string; reason: string }>; pathIndex: PathIndex };
 
 const mapRows = (draft: Draft, fn: (row: DraftRow) => DraftRow): Draft => ({ ...draft, rows: draft.rows.map(fn) });
 const mapNotes = (draft: Draft, fn: (note: DraftNote) => DraftNote): Draft => ({ ...draft, notes: draft.notes.map(fn) });
 const mapNewTodos = (draft: Draft, fn: (todo: DraftNewTodo) => DraftNewTodo): Draft => ({ ...draft, newTodos: draft.newTodos.map(fn) });
+const mapPeopleRows = (draft: Draft, fn: (row: DraftPeopleRow) => DraftPeopleRow): Draft => ({ ...draft, peopleRows: draft.peopleRows.map(fn) });
 const mapTopic = (draft: Draft, key: string, fn: (topic: DraftTopic) => DraftTopic): Draft => ({
   ...draft,
   topics: draft.topics.map((t) => (t.key === key ? fn(t) : t)),
@@ -391,6 +478,50 @@ const redirectNewTodo = (draft: Draft, todoKey: string, target: string | null): 
   const next = target === NO_TOPIC ? draft : ensureTopic(draft, target);
   if (target !== NO_TOPIC && !topicUsable(next, target)) return draft;
   return mapNewTodos(next, (t) => (t.key === todoKey ? { ...t, target, movedFrom: null, error: null } : t));
+};
+
+/** The chips of an owner: a new todo's people, or a people row's adds. */
+const ownerRefs = (draft: Draft, owner: string): DraftPersonRef[] | undefined =>
+  draft.newTodos.find((t) => t.key === owner)?.people ?? draft.peopleRows.find((r) => r.key === owner)?.add;
+
+const mapOwnerRefs = (draft: Draft, owner: string, fn: (refs: DraftPersonRef[]) => DraftPersonRef[]): Draft => ({
+  ...draft,
+  newTodos: draft.newTodos.map((t) => (t.key === owner ? { ...t, people: fn(t.people) } : t)),
+  peopleRows: draft.peopleRows.map((r) => (r.key === owner ? { ...r, add: fn(r.add) } : r)),
+});
+
+/** The person a chip will tag, when it is known without creating anyone. */
+const chipPersonId = (ref: DraftPersonRef): number | null => {
+  if (ref.chosen) return ref.chosen.kind === 'person' || ref.chosen.kind === 'link' ? ref.chosen.person.id : null;
+  return ref.resolved.person?.id ?? null;
+};
+
+/**
+ * Settles a chip. Drop removes it. Picking a person the owner already has
+ * collapses the picked chip into the existing one (never two chips).
+ */
+const choosePerson = (draft: Draft, owner: string, refKey: string, pick: ChooserPick): Draft =>
+  mapOwnerRefs(draft, owner, (refs) => {
+    if (!refs.some((r) => r.key === refKey)) return refs;
+    if (pick.kind === 'drop') return refs.filter((r) => r.key !== refKey);
+    const personId = pick.kind === 'create' ? null : pick.person.id;
+    if (personId !== null && refs.some((r) => r.key !== refKey && chipPersonId(r) === personId)) {
+      return refs.filter((r) => r.key !== refKey);
+    }
+    return refs.map((r) => (r.key === refKey ? { ...r, chosen: pick, error: null } : r));
+  });
+
+/** Adds a known person as a matched chip; a no-op when the owner already has them. */
+const addPerson = (draft: Draft, owner: string, person: TodoPerson): Draft => {
+  const refs = ownerRefs(draft, owner);
+  if (!refs || refs.some((r) => chipPersonId(r) === person.id)) return draft;
+  const added: DraftPersonRef = {
+    key: `p:${owner}:a${draft.nextSeq}`,
+    resolved: { ref: { person_id: person.id }, state: 'matched', name: person.display_name, person, candidates: [] },
+    chosen: null,
+    error: null,
+  };
+  return { ...mapOwnerRefs(draft, owner, (list) => [...list, added]), nextSeq: draft.nextSeq + 1 };
 };
 
 const setUnassigned = (draft: Draft, todoId: number, target: string | null): Draft => {
@@ -553,12 +684,51 @@ export const draftReducer = (draft: Draft, action: DraftAction): Draft => {
       return mapNotes(draft, (n) => (n.key === action.key ? { ...n, text: action.text, cascaded: false, error: null } : n));
     case 'setUnassigned':
       return setUnassigned(draft, action.todoId, action.target);
+    case 'choosePerson':
+      return choosePerson(draft, action.owner, action.refKey, action.pick);
+    case 'addPerson':
+      return addPerson(draft, action.owner, action.person);
+    case 'togglePeopleRow':
+      return mapPeopleRows(draft, (r) => (r.key === action.key && !r.change.missing ? { ...r, accepted: !r.accepted, error: null } : r));
+    case 'toggleRemoval':
+      return mapPeopleRows(draft, (r) =>
+        r.key === action.key
+          ? { ...r, remove: r.remove.map((m) => (m.person_id === action.personId ? { ...m, kept: !m.kept } : m)), error: null }
+          : r
+      );
     case 'attachErrors':
       return attachErrors(draft, action.errors, action.pathIndex);
   }
 };
 
 // ── Serialize and errors ──────────────────────────────────────────────
+
+/**
+ * A chip as the exact ref apply takes, or null when it cannot be sent yet.
+ * Never `{ name }` or `{ peopler_id, name }`: the server's strict mode refuses them.
+ */
+const wireRef = (item: DraftPersonRef): PersonRef | null => {
+  const { chosen } = item;
+  if (chosen) {
+    if (chosen.kind === 'person') return { person_id: chosen.person.id };
+    if (chosen.kind === 'link') return { link: { person_id: chosen.person.id, peopler_id: chosen.peopler_id } };
+    if (chosen.kind === 'create') {
+      return { create: chosen.peopler_id === undefined ? { name: chosen.name } : { name: chosen.name, peopler_id: chosen.peopler_id } };
+    }
+    return null;
+  }
+  const { ref, state, person } = item.resolved;
+  if (state === 'new_confirmed') return 'create' in ref ? { create: ref.create } : null;
+  if ((state === 'matched' || state === 'matched_by_name') && person) return 'link' in ref ? { link: ref.link } : { person_id: person.id };
+  return null;
+};
+
+/** The sendable refs of a chip list, with the key behind each position. */
+const wireRefs = (items: DraftPersonRef[]): Array<{ ref: PersonRef; key: string }> =>
+  items.flatMap((item) => {
+    const ref = wireRef(item);
+    return ref ? [{ ref, key: item.key }] : [];
+  });
 
 /** The `accepted` payload for apply, and the draft key behind each index. */
 export const serialize = (draft: Draft): { accepted: TopicChangesPayload; pathIndex: PathIndex } => {
@@ -567,25 +737,48 @@ export const serialize = (draft: Draft): { accepted: TopicChangesPayload; pathIn
   const rows = draft.rows.filter((r) => isRowIncluded(draft, r));
   const notes = draft.notes.filter((n) => isNoteIncluded(draft, n));
   const newTodos = draft.newTodos.filter((t) => t.accepted);
+  const refPaths: Record<string, string> = {};
+  const todoPayloads = newTodos.map((t, i) => {
+    const todo: ProposedTodo = { ...t.todo, topic: t.target === NO_TOPIC ? null : nameOf(t.target) };
+    // The people key stays out unless there is something to say (an old payload round-trips unchanged).
+    if (t.people.length === 0 && !('people' in t.todo)) return todo;
+    const wires = wireRefs(t.people);
+    wires.forEach((w, j) => { refPaths[`new_todos[${i}].people[${j}]`] = w.key; });
+    return { ...todo, people: wires.map((w) => w.ref) };
+  });
+  const peopleChanges: PeopleChange[] = [];
+  const peopleKeys: string[] = [];
+  draft.peopleRows.filter((r) => r.accepted && !r.change.missing).forEach((r) => {
+    const wires = wireRefs(r.add);
+    const remove = r.remove.filter((m) => m.kept).map((m) => m.person_id);
+    if (wires.length === 0 && remove.length === 0) return;
+    wires.forEach((w, j) => { refPaths[`people_changes[${peopleChanges.length}].add[${j}]`] = w.key; });
+    peopleChanges.push({ todo_id: r.change.todo_id, add: wires.map((w) => w.ref), remove });
+    peopleKeys.push(r.key);
+  });
   return {
     accepted: {
       area_id: draft.areaId,
       new_topics: newTopics.map((t) => ({ name: t.name.trim(), description: t.description?.trim() ? t.description.trim() : null })),
       assignments: rows.map((r) => ({ todo_id: r.todoId, topic: nameOf(r.target) })),
       note_edits: notes.map((n) => ({ topic: nameOf(n.key), status_note: n.text })),
-      // Apply wants every field echoed as resolved; only the topic may differ.
-      new_todos: newTodos.map((t) => ({ ...t.todo, topic: t.target === NO_TOPIC ? null : nameOf(t.target) })),
+      // Apply wants every field echoed as resolved; only the topic (and people) may differ.
+      new_todos: todoPayloads,
+      ...(peopleChanges.length > 0 ? { people_changes: peopleChanges } : {}),
     },
     pathIndex: {
       new_topics: newTopics.map((t) => t.key),
       assignments: rows.map((r) => r.key),
       note_edits: notes.map((n) => n.key),
       new_todos: newTodos.map((t) => t.key),
+      ...(peopleKeys.length > 0 ? { people_changes: peopleKeys } : {}),
+      ...(Object.keys(refPaths).length > 0 ? { refPaths } : {}),
     },
   };
 };
 
 const ITEM_PATH = /^(new_topics|assignments|note_edits|new_todos)\[(\d+)\]/;
+const PEOPLE_ROW_PATH = /^people_changes\[(\d+)\]/;
 
 /**
  * Puts a 422's `{ path, reason }` items on the draft items they index, using
@@ -598,12 +791,26 @@ export const attachErrors = (draft: Draft, errors: Array<{ path: string; reason:
     topics: draft.topics.map((t) => ({ ...t, error: null })),
     rows: draft.rows.map((r) => ({ ...r, error: null })),
     notes: draft.notes.map((n) => ({ ...n, error: null })),
-    newTodos: draft.newTodos.map((t) => ({ ...t, error: null })),
+    newTodos: draft.newTodos.map((t) => ({ ...t, error: null, people: t.people.map((p) => ({ ...p, error: null })) })),
+    peopleRows: draft.peopleRows.map((r) => ({ ...r, error: null, add: r.add.map((p) => ({ ...p, error: null })) })),
     pageErrors: [],
   };
   return errors.reduce<Draft>((d, { path, reason }) => {
+    // A chip's own path first: `new_todos[0].people[1]` would otherwise match the todo.
+    const refKey = pathIndex.refPaths?.[path];
+    if (refKey) {
+      const mark = (p: DraftPersonRef) => (p.key === refKey ? { ...p, error: reason } : p);
+      return {
+        ...d,
+        newTodos: d.newTodos.map((t) => ({ ...t, people: t.people.map(mark) })),
+        peopleRows: d.peopleRows.map((r) => ({ ...r, add: r.add.map(mark) })),
+      };
+    }
+    const rowMatch = PEOPLE_ROW_PATH.exec(path);
+    const rowKey = rowMatch ? pathIndex.people_changes?.[Number(rowMatch[1])] : undefined;
+    if (rowKey) return { ...d, peopleRows: d.peopleRows.map((r) => (r.key === rowKey ? { ...r, error: reason } : r)) };
     const match = ITEM_PATH.exec(path);
-    const list = match?.[1] as keyof PathIndex | undefined;
+    const list = match?.[1] as 'new_topics' | 'assignments' | 'note_edits' | 'new_todos' | undefined;
     const key = match && list ? pathIndex[list][Number(match[2])] : undefined;
     if (list === 'new_topics' && key) return { ...d, topics: d.topics.map((t) => (t.key === key ? { ...t, error: reason } : t)) };
     if (list === 'assignments' && key) return { ...d, rows: d.rows.map((r) => (r.key === key ? { ...r, error: reason } : r)) };
@@ -618,7 +825,8 @@ export const hasErrors = (draft: Draft): boolean =>
   draft.topics.some((t) => t.error !== null) ||
   draft.rows.some((r) => r.error !== null) ||
   draft.notes.some((n) => n.error !== null) ||
-  draft.newTodos.some((t) => t.error !== null);
+  draft.newTodos.some((t) => t.error !== null || t.people.some((p) => p.error !== null)) ||
+  draft.peopleRows.some((r) => r.error !== null || r.add.some((p) => p.error !== null));
 
 /** "2 new todos, 2 new topics, 38 assignments, 1 note" (zero parts omitted). */
 export const summarizeAccepted = (payload: TopicChangesPayload): string => {
@@ -628,6 +836,7 @@ export const summarizeAccepted = (payload: TopicChangesPayload): string => {
     part(payload.new_topics.length, 'new topic', 'new topics'),
     part(payload.assignments.length, 'assignment', 'assignments'),
     part(payload.note_edits.length, 'note', 'notes'),
+    part(payload.people_changes?.length ?? 0, 'people change', 'people changes'),
   ]
     .filter((p): p is string => p !== null)
     .join(', ');

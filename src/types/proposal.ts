@@ -2,6 +2,7 @@
  * Proposal types (topics spec §4.3, §5.4–5.6, as shipped in yeezles-todo
  * #40). Mirrors `ResolvedProposal` in the backend's src/models/Proposal.ts.
  */
+import type { PersonCandidateDetail, PersonRef, TodoPerson } from './person';
 import type { TopicRef, TopicWithCounts } from './topic';
 
 /** A todo the proposal would create; `topic` is a name or null (no topic). */
@@ -12,6 +13,15 @@ export interface ProposedTodo {
   is_today: boolean;
   completed: boolean;
   topic: string | null;
+  /** Absent on rows stored before people tags: treat as `[]`. */
+  people?: PersonRef[];
+}
+
+/** One todo's people change: refs to add, person ids to remove. */
+export interface PeopleChange {
+  todo_id: number;
+  add: PersonRef[];
+  remove: number[];
 }
 
 /** The topic-change payload, as stored (normalized) and as sent to apply. */
@@ -22,6 +32,8 @@ export interface TopicChangesPayload {
   note_edits: Array<{ topic: string; status_note: string }>;
   /** Absent on rows stored before create proposals existed. */
   new_todos?: ProposedTodo[];
+  /** Absent on rows stored before people tags. */
+  people_changes?: PeopleChange[];
 }
 
 export type ProposalStatus = 'pending' | 'applied' | 'rejected';
@@ -86,6 +98,39 @@ export interface ResolvedNoteEdit {
   current_status_note: string | null;
 }
 
+/** How the server resolved one person ref. */
+export type RefState =
+  | 'matched'
+  | 'matched_by_name'
+  | 'new_confirmed'
+  | 'new'
+  | 'ambiguous'
+  | 'link_candidate'
+  | 'possible_match'
+  | 'gone';
+
+/** One person ref, with the server's reading of it. `person` is set only for matched and matched_by_name. */
+export interface ResolvedRef {
+  ref: PersonRef;
+  state: RefState;
+  name: string;
+  person: TodoPerson | null;
+  candidates: PersonCandidateDetail[];
+}
+
+/** One proposed people change, with the todo as it is now. */
+export interface ResolvedPeopleChange {
+  todo_id: number;
+  /** Deleted, or not the caller's; apply refuses it. */
+  missing: boolean;
+  title: string | null;
+  area_id: number | null;
+  current_topic: TopicRef | null;
+  add: ResolvedRef[];
+  /** `person` is null for a person who no longer exists; apply treats that removal as a no-op. */
+  remove: Array<{ person_id: number; person: TodoPerson | null }>;
+}
+
 /** `GET /proposals/:id`. */
 export interface ResolvedProposal {
   proposal: ProposalRecord;
@@ -101,6 +146,8 @@ export interface ResolvedProposal {
   area_topics: TopicWithCounts[];
   /** Open, topic-less todos in the area that the payload does not name. */
   unassigned: Array<{ id: number; title: string }>;
+  /** Absent from a backend older than people tags: treat as empty. */
+  people?: { new_todos: ResolvedRef[][]; people_changes: ResolvedPeopleChange[] };
 }
 
 /** `POST /proposals/:id/apply`. */
