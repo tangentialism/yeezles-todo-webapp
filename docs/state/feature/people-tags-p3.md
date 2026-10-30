@@ -12,8 +12,9 @@ merged as `a9c7d63`.
 
 ## Next action
 
-Task 2 of the plan: the chip and chooser components (`ProposalPersonChip`,
-`PersonChooser`), built on the Task 1 draft state. Failing test first.
+Task 3 of the plan: wire `ProposalPersonChip` into the review rows (new todo
+rows and the People section), with the removal chips and "+ person". Failing
+test first.
 
 ## Verified
 
@@ -33,6 +34,14 @@ Task 2 of the plan: the chip and chooser components (`ProposalPersonChip`,
   out when empty, because an existing serialize test `toEqual`s the whole
   pathIndex. Check script: TSC_OK, lint 5 (baseline 5), 735 tests total, 735
   passed, 0 new failing names.
+- Task 2 (2026-10-29): `ProposalPersonChip`, `PersonChooser`, `PeopleField`
+  `compact`, `chipConfirmed`/`chipNeedsYou` in `ui/styles.ts`. New
+  `ProposalPeople.test.tsx` 30 tests plus 1 `PeopleField` compact test; RED was
+  the new file failing to import and the compact test failing, GREEN
+  `src/components/proposals` + `src/components/people` all passing. Check
+  script: TSC_OK, lint 5 (baseline 5), 766 tests total, 766 passed, 0 new
+  failing names. Chip colours use existing tokens (`ok`, `accent`), no
+  deviation. Not yet used by any screen (Task 3 wires it).
 - Check script (outside the repo, never committed):
   `/Users/davidyee/Code/yeezles-todo-webapp-wt/people-tags-p3-check.sh`, a copy
   of P2's with paths and prefix changed; run it with no argument to compare,

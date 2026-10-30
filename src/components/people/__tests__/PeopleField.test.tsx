@@ -235,3 +235,22 @@ describe('PeopleField on phones', () => {
     expect(screen.getByRole('dialog', { name: 'New todo' })).toBeInTheDocument();
   });
 });
+
+describe('PeopleField compact', () => {
+  it('renders only the combobox and appends the one picked person', async () => {
+    const onChange = vi.fn();
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <PeopleField id="compact" compact value={[chosen]} onChange={onChange} />
+      </QueryClientProvider>
+    );
+    expect(screen.queryByText('Pri Chosen')).not.toBeInTheDocument();
+    expect(screen.queryByText('optional')).not.toBeInTheDocument();
+    await userEvent.type(screen.getByRole('combobox'), 'pri');
+    await userEvent.click(await screen.findByRole('option', { name: 'Priya Raman' }));
+    expect(onChange).toHaveBeenCalledWith([
+      chosen,
+      { id: 1, display_name: 'Priya Raman', peopler_id: 42, peopler_url: 'https://peopler.example/p/42' },
+    ]);
+  });
+});
