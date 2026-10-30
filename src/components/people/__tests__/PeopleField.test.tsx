@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useState } from 'react';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -267,5 +267,63 @@ describe('PeopleField compact', () => {
     await waitFor(() => expect(api.getPeople).toHaveBeenCalled());
     expect(screen.queryByRole('option')).not.toBeInTheDocument();
     expect(api.createPerson).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * The "+ person" list on a proposal's last row, measured in a real browser at
+ * 1280×714: listbox 611–665 under an Apply bar whose top was 649. The bar marks
+ * itself `data-viewport-floor`.
+ */
+describe('PeopleField list placement', () => {
+  type Box = { top: number; bottom: number };
+  const box = ({ top, bottom }: Box) =>
+    ({ top, bottom, left: 20, right: 300, x: 20, y: top, width: 280, height: bottom - top, toJSON: () => ({}) }) as DOMRect;
+
+  const stubLayout = ({ input, list, bar }: { input: Box; list: Box; bar: Box }) =>
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      if (this.getAttribute('role') === 'listbox') return box(list);
+      if (this.getAttribute('role') === 'combobox') return box(input);
+      if (this.hasAttribute('data-viewport-floor')) return box(bar);
+      return new DOMRect();
+    });
+
+  let bar: HTMLElement;
+  beforeEach(() => {
+    vi.stubGlobal('innerHeight', 714);
+    bar = document.createElement('div');
+    bar.setAttribute('data-viewport-floor', '');
+    document.body.appendChild(bar);
+  });
+  afterEach(() => {
+    bar.remove();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  const renderCompact = () =>
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <PeopleField id="compact" compact value={[]} onChange={vi.fn()} />
+      </QueryClientProvider>
+    );
+
+  it('opens the list upward when the Apply bar would cover it', async () => {
+    stubLayout({ input: { top: 571, bottom: 607 }, list: { top: 611, bottom: 665 }, bar: { top: 649, bottom: 714 } });
+    renderCompact();
+    await userEvent.type(screen.getByRole('combobox'), 'pri');
+    const list = await screen.findByRole('listbox');
+    await waitFor(() => expect(list.className).toContain('bottom-full'));
+    expect(list.className).not.toContain('top-full');
+  });
+
+  it('keeps the list below the input when it clears the bar', async () => {
+    stubLayout({ input: { top: 300, bottom: 336 }, list: { top: 340, bottom: 394 }, bar: { top: 649, bottom: 714 } });
+    renderCompact();
+    await userEvent.type(screen.getByRole('combobox'), 'pri');
+    const list = await screen.findByRole('listbox');
+    await screen.findByRole('option', { name: 'Priya Raman' });
+    expect(list.className).toContain('top-full');
+    expect(list.className).not.toContain('bottom-full');
   });
 });

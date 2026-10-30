@@ -123,6 +123,13 @@ describe('ProposalReview', () => {
     expect(within(screen.getByRole('region', { name: 'Garden' })).getByText('todo is in a different area')).toBeInTheDocument();
   });
 
+  it('the fixed Apply bar marks itself as the floor popovers must stay above', () => {
+    renderAt();
+    const bar = applyButton().closest('.fixed');
+    expect(bar).not.toBeNull();
+    expect(bar).toHaveAttribute('data-viewport-floor');
+  });
+
   it('a 409 on apply also refreshes the pending list (final review M2)', async () => {
     applyProposal.mockRejectedValueOnce(new ApiError(409, 'PROPOSAL_RESOLVED', 'Proposal is already applied'));
     renderAt();

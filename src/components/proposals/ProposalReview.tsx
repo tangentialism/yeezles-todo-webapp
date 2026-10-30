@@ -157,7 +157,8 @@ const ProposalReview: React.FC = () => {
   );
 
   const footer = (applyArea: React.ReactNode) => (
-    <div className="fixed inset-x-0 bottom-0 z-20 bg-paper/95 backdrop-blur border-t border-line-strong">
+    // data-viewport-floor: popovers (person chooser, "+ person" list) open upward rather than under this bar.
+    <div data-viewport-floor className="fixed inset-x-0 bottom-0 z-20 bg-paper/95 backdrop-blur border-t border-line-strong">
       <div className="max-w-[760px] mx-auto px-4 py-3 flex items-center gap-3">
         <button type="button" className={dangerTextButton} onClick={() => setConfirmReject(true)} disabled={busy}>
           Reject all…
