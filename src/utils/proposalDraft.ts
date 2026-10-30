@@ -226,6 +226,12 @@ const NEEDS_YOU_STATES: RefState[] = ['new', 'ambiguous', 'link_candidate', 'pos
 export const needsYou = (ref: DraftPersonRef): boolean =>
   ref.error !== null || (ref.chosen === null && NEEDS_YOU_STATES.includes(ref.resolved.state));
 
+/** The person a chip will tag, when the chip already names one. */
+export const refPerson = (ref: DraftPersonRef): TodoPerson | null =>
+  ref.chosen
+    ? ref.chosen.kind === 'person' || ref.chosen.kind === 'link' ? ref.chosen.person : null
+    : ref.resolved.person;
+
 /** Chips that need the user, over accepted new todos and accepted people rows only: a todo that is not created needs no people. */
 export const peopleNeedingYou = (draft: Draft): number =>
   draft.newTodos.filter((t) => t.accepted).reduce((n, t) => n + t.people.filter(needsYou).length, 0) +

@@ -12,9 +12,7 @@ merged as `a9c7d63`.
 
 ## Next action
 
-Task 3 of the plan: wire `ProposalPersonChip` into the review rows (new todo
-rows and the People section), with the removal chips and "+ person". Failing
-test first.
+Task 4 of the plan (see the plan for its scope). Failing test first.
 
 ## Verified
 
@@ -42,6 +40,15 @@ test first.
   script: TSC_OK, lint 5 (baseline 5), 771 tests total, 771 passed (after fix round 1), 0 new
   failing names. Chip colours use existing tokens (`ok`, `accent`), no
   deviation. Not yet used by any screen (Task 3 wires it).
+- Task 3 (2026-10-29): `PeopleChangesSection`, `PersonRefChips`, people line
+  and `+ person` in `NewTodoRow`, section wired into `ProposalReview`, people
+  summary line in `ReadOnlyProposal`; `refPerson` helper in `proposalDraft.ts`.
+  RED: ProposalSections file failed to import `PeopleChangesSection`, 2
+  ProposalReview people tests failed; GREEN `src/components/proposals` 85
+  passed. Check script: TSC_OK, lint 5 (baseline 5), 779 tests total, 779
+  passed, 0 new failing names. Removal toggle: button `Keep <name>` (aria-label
+  `Remove <name>` once kept, aria-pressed); the group's `Remove <name>` label
+  applies only while the removal stands.
 - Check script (outside the repo, never committed):
   `/Users/davidyee/Code/yeezles-todo-webapp-wt/people-tags-p3-check.sh`, a copy
   of P2's with paths and prefix changed; run it with no argument to compare,
