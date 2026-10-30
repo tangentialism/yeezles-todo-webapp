@@ -51,12 +51,6 @@ PR for `spec/people-tags-p3` (merge `origin/main` into it first).
   passed, 0 new failing names. Removal toggle: button `Keep <name>` (aria-label
   `Remove <name>` once kept, aria-pressed); the group's `Remove <name>` label
   applies only while the removal stands.
-- Check script (outside the repo, never committed):
-  `/Users/davidyee/Code/yeezles-todo-webapp-wt/people-tags-p3-check.sh`, a copy
-  of P2's with paths and prefix changed; run it with no argument to compare,
-  `baseline` to rewrite. Baseline files `people-tags-p3-baseline-lint.txt` and
-  `people-tags-p3-baseline-tests.txt` sit beside it.
-
 - Task 4 (2026-10-29): docs only. `docs/FEATURES.md` gains "People on
   proposals (phase 3)" under People; `docs/STATUS.md` gains a "People on
   proposals (phase 3b)" entry and the P3 line comes off the phase 2 "later"
@@ -64,6 +58,11 @@ PR for `spec/people-tags-p3` (merge `origin/main` into it first).
   passed, 0 new failing names. `npm run build`: `tsc -b` + vite ok, "built in
   863ms", `dist/assets/index-NjQ_UTMX.js` 501.00 kB (150.57 kB gzip); only
   the existing >500 kB chunk-size warning.
+- Check script (outside the repo, never committed):
+  `/Users/davidyee/Code/yeezles-todo-webapp-wt/people-tags-p3-check.sh`, a copy
+  of P2's with paths and prefix changed; run it with no argument to compare,
+  `baseline` to rewrite. Baseline files `people-tags-p3-baseline-lint.txt` and
+  `people-tags-p3-baseline-tests.txt` sit beside it.
 
 ## Deviations and rulings
 
@@ -78,7 +77,7 @@ Controller rulings, as built:
 - P7: `addPerson` keys are `p:<owner>:a<nextSeq>`, bumping `draft.nextSeq`.
 - P8: `hasErrors` counts ref errors and people-row errors; `choosePerson` clears that ref's error.
 - P9: a removal whose person is null does not count toward the blocker; renders struck through as `person <id>`; still sent if kept.
-- P10: not separately recorded in the brief or context; no deviation noted.
+- P10: a chip whose `chosen` is set renders as its pick (a person or link pick as that person's name; a create pick as `+ <name> · new` in chipConfirmed) with a × remove button.
 - P11: `PeopleField` `compact` is match-only; no Create, no POST /people from the review screen. New people are made at apply.
 - P12: Escape anywhere while the chooser is open closes only the chooser (capture-phase listener; defers to an open combobox list first).
 - P13: keep-removal is a separate toggle per removal chip; un-kept removals render unstruck; one leading "+" per additions group; no "+ person" on people rows.
