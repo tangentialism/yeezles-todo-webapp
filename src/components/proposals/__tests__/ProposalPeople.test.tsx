@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { makePerson, makeTodoPerson } from '../../../test/personFactories';
@@ -235,6 +235,15 @@ describe('PersonChooser picks', () => {
     await userEvent.click(await screen.findByRole('option', { name: 'Sam Nine' }));
     expect(onPick).toHaveBeenCalledWith({ kind: 'person', person: { id: 9, display_name: 'Sam Nine', peopler_id: null, peopler_url: null } });
   });
+
+  it('Pick someone… lists its matches inside the chooser, not floating over Drop', async () => {
+    renderChip(draftRef(makeCandidateRef('new', 'Dana')));
+    const dialog = await openChooser('? Dana');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Pick someone…' }));
+    await userEvent.type(within(dialog).getByRole('combobox'), 'sam');
+    await within(dialog).findByRole('option', { name: 'Sam Nine' });
+    expect(within(dialog).getByRole('listbox').className).not.toContain('absolute');
+  });
 });
 
 describe('PersonChooser dismissal', () => {
@@ -401,6 +410,32 @@ describe('PersonChooser vertical placement', () => {
     cleanupBar = renderOverBar(draftRef(makeCandidateRef('new', 'Dana')));
     const dialog = await openChooser('? Dana');
     expect(dialog.className).toContain('top-full');
+  });
+
+  it('flips upward when Pick someone… matches make a below chooser reach the bar', async () => {
+    const resized: Array<() => void> = [];
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(callback: ResizeObserverCallback) {
+          resized.push(() => callback([], this as unknown as ResizeObserver));
+        }
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      }
+    );
+    const chooser = { top: 432, bottom: 600 };
+    stubLayout({ chip: { top: 400, bottom: 428 }, chooser, bar: { top: 649, bottom: 714 } });
+    cleanupBar = renderOverBar(draftRef(makeCandidateRef('new', 'Dana')));
+    const dialog = await openChooser('? Dana');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Pick someone…' }));
+    await userEvent.type(within(dialog).getByRole('combobox'), 'sam');
+    await within(dialog).findByRole('option', { name: 'Sam Nine' });
+    expect(dialog.className).toContain('top-full');
+    chooser.bottom = 760; // the in-flow matches made it taller, past the bar
+    act(() => resized.forEach((fire) => fire()));
+    expect(dialog.className).toContain('bottom-full');
   });
 
   it('Escape still closes only the chooser after it opened upward', async () => {
