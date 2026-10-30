@@ -10,8 +10,8 @@ Backend half: yeezles-todo #88, merged as `2af55ea`.
 
 ## Next action
 
-Task 7: chip and badge look per `peopler_link` (stale icon, accessible label);
-`npm run build`. Then Task 8. Failing test first.
+Task 8: local browser walkthrough. It needs David to sign in with Google (and a
+real Peopler token). Do not push or open a PR without his go.
 
 ## Sequence
 
@@ -22,8 +22,8 @@ Task 7: chip and badge look per `peopler_link` (stale icon, accessible label);
 4. [x] `PeoplerConnectionModal` and the `Peopler` account menu item.
 5. [x] Link check once per person page open; stale and dormant lines.
 6. [x] Link and relink dialog (search, already-linked result, merge button), Unlink.
-7. Chip and badge look per `peopler_link` (stale icon, accessible label); `npm run build`.
-8. Docs (FEATURES, STATUS), final check, `npm run build`, walkthrough.
+7. [x] Docs (FEATURES, STATUS), final check, `npm run build`. (The chip and badge look landed in Task 1 and `PersonList`/`PersonChip`; this list's old Task 7 text was stale.)
+8. Browser walkthrough (needs David to sign in with Google).
 
 ## Verified
 
@@ -58,6 +58,16 @@ Task 7: chip and badge look per `peopler_link` (stale icon, accessible label);
 - Task 4 (2026-10-30): RED: `PeoplerConnectionModal.test.tsx` unresolved (module missing), `AccountMenu.test.tsx` 2 failed of 3 (the unchanged-items test passed). GREEN: check script `TSC_OK`, lint 5 (baseline 5, new files clean), vitest 949 total, 949 passed, 0 failing names (+16). Modal returns `null` when closed; token is held in `useState` only, passed once to `connect(token.trim())`, cleared on success and kept on a rejected connect; tests assert no `Storage.setItem` call contains it and that close/reopen empties the input.
 - Task 5 (2026-10-30): RED: `PersonPane.peopler.test.tsx` 9 failed, 3 passed (the none/disconnected cases pass trivially). GREEN: check script `TSC_OK`, lint 5 (baseline 5, new files clean), vitest 961 total, 961 passed, 0 failing names (+12). `PersonPane` calls `usePeoplerCheckOnOpen(person)` itself (the keyed pane remounts per open). `LinkPeoplerDialog` is a stub returning `null` (Task 6). Existing tests: `PersonPane.test.tsx` and `PeopleView.test.tsx` gained `usePeoplerStore` and `usePeopleMutations` default mocks; one fixture in `PersonPane.test.tsx` got `peopler_link: 'ok'` (no assertion changed), as in Task 1.
 - Task 6 (2026-10-30): RED: `LinkPeoplerDialog.test.tsx` 17 failed (stub returned null), `PersonPane.peopler.test.tsx` 3 failed, `MergePersonDialog.test.tsx` 1 failed (the without-`initialIntoId` test passed): 21 failed. GREEN: check script `TSC_OK`, lint 5 (baseline 5, new files clean), vitest 984 total, 984 passed, 0 failing names (+23). Holder name comes from `usePeople({ limit: 100 })`; a holder outside that list reads `another person`. `PersonPane` hides an unlink error once the link state changes and clears it when a link dialog opens.
+
+- Task 7 (2026-10-30, docs only, no RED): check script `TSC_OK`, lint 5 (baseline 5), vitest 984 total, 984 passed, 0 failing names, no new failing names. `npm run build` ok: `dist/assets/index-D6Frg6MS.js` 519.32 kB (gzip 156.43 kB), css 40.39 kB; only the existing >500 kB chunk warning. The webapp has no `docs/API.md`, so no client-method doc was added.
+
+## Known limits
+
+Deferred findings from the task reviews:
+
+- A holder outside the first 100 people shows "Already linked to another person", and the merge dialog cannot preselect them (the holder name comes from `usePeople({ limit: 100 })`).
+- A failed `/peopler/search` logs its URL, including the `q` name, to the dev console only. The logger is a no-op in production.
+- No browser walkthrough has run yet (Task 8).
 
 ## Deviations
 
