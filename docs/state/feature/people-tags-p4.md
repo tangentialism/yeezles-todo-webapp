@@ -1,6 +1,6 @@
 <!-- verified-at: HEAD -->
 
-# feature/people-tags-p4 — in flight
+# feature/people-tags-p4 — ready for PR
 
 People tags phase 4, webapp half: the Peopler connection modal, link state on
 chips and the person page, link and relink search, and the per-open link
@@ -10,8 +10,9 @@ Backend half: yeezles-todo #88, merged as `2af55ea`.
 
 ## Next action
 
-Task 8: local browser walkthrough. It needs David to sign in with Google (and a
-real Peopler token). Do not push or open a PR without his go.
+All of Plan C is done, including Task 8 (the walkthrough) and Task 8a (its
+two fixes). Next: David decides on the push and on `gh pr create` against
+`master`. After merge, the workspace pin bump is a separate `HEAD:main` commit.
 
 ## Sequence
 
@@ -23,7 +24,8 @@ real Peopler token). Do not push or open a PR without his go.
 5. [x] Link check once per person page open; stale and dormant lines.
 6. [x] Link and relink dialog (search, already-linked result, merge button), Unlink.
 7. [x] Docs (FEATURES, STATUS), final check, `npm run build`. (The chip and badge look landed in Task 1 and `PersonList`/`PersonChip`; this list's old Task 7 text was stale.)
-8. Browser walkthrough (needs David to sign in with Google).
+8. [x] Browser walkthrough with David, 2026-10-30 (results under Verified).
+8a. [x] Walkthrough fixes: recheck on every person open; clear the stale link-dialog error.
 
 ## Verified
 
@@ -64,6 +66,23 @@ real Peopler token). Do not push or open a PR without his go.
 - Final review fixes (2026-10-30): RED: 6 failed across 5 files (search cache kept after connect/disconnect, after a cross-tab `PEOPLER_CONNECTION_CHANGED`, after link/unlink; search `staleTime` not 0; a 503 `PEOPLER_UNAVAILABLE` retried; the disabled result had no accessible description). GREEN: check script `TSC_OK`, lint 5 (baseline 5, changed files clean), vitest 989 total, 989 passed, 0 failing names (+5); `npm run build` ok. Fixes: `usePeoplerSearch` `staleTime: 0` / `gcTime: 60s`; `clearPeoplerSearches` (in `peoplerInvalidation`) runs from `invalidateAfterLinkChange` (connect, disconnect, cross-tab, check) and the `peopler_id` branch of `updatePerson`; Peopler modal body padded `px-7 pt-3.5 pb-6`; no retry for 503 `PEOPLER_UNAVAILABLE`; `peoplerLinkOf` in `shouldCheck`; merge-offer row `flex-wrap` and `aria-describedby`. `LinkPeoplerDialog` was already padded like `MergePersonDialog`. Padding has no unit test.
 
 - Task 8a (walkthrough fixes, 2026-10-30): RED: 3 failed in 3 files (`Dashboard.people` re-opening the same person did not bump the counter; `PeopleView` same-person remount on counter change; `LinkPeoplerDialog` stale error stayed after typing). GREEN: check script `TSC_OK`, lint 5 (baseline 5), vitest 992 total, 992 passed, 0 failing names (+3); `npm run build` ok (existing >500 kB chunk warning only). Fix 1: `Dashboard` keeps `openPersonSeq`, bumped by every `openPerson` call; passed through `ViewContainer` to `PeopleView`, and `PersonPane` is keyed `id:seq`, so each explicit open remounts it and `usePeoplerCheckOnOpen` runs again. Fix 2: `LinkPeoplerDialog` clears `error` when the search text changes.
+  - Re-run by the controller at `7b84ff5`: the check script printed `TSC_OK`, `tests: 992 total, 992 passed, 0 failing names`, `lint now: 5  baseline: 5`. Task review (spec and quality): approved, with two Minors deferred: no test covers the `openPersonSeq` passthrough from `Dashboard` through `ViewContainer`, and the Fix 2 test types only one character.
+- **Task 8, browser walkthrough (2026-10-30), run against real local services.** David signed in with Google, and pasted each Peopler token straight into the modal; no token entered the conversation or any log.
+  - **Setup.** Throwaway data only; nothing from it is committed.
+    - Peopler `1ace42d`, on a fresh data directory, at `http://localhost:8080`. User `walk-a@example.test` had Avery Quill (1), Avery Q. Quill (2) and Tomas Brandt (3). User `walk-b@example.test` (display name "Walk B") had Avery Quill (1).
+    - Backend: yeezles-todo `origin/main` `d6bb222` (docs-only past `2af55ea`), on its own Postgres DB `yeezles_todo_walk_p4`, migrations 15 applied, with `PEOPLER_PUBLIC_URL=http://localhost:8080` and a fresh `PEOPLER_TOKEN_KEY`.
+    - Webapp: this branch, `vite` on `:5173`.
+  - **Steps:**
+    1. Connect: **PASS.** A wrong token got a real 422 and the rejected sentence. A's token showed `Connected as walk-a@example.test` (A has no display name). The connection survived a reload. Local Storage held only `user`; Session Storage was empty. Extra check: **Chrome offered to save the token as a password** despite `autoComplete="off"` (recorded, not changed).
+    2. Link: **PASS.** "Avery" listed both Averys with title and company. Picking one filled the todo chip without a reload. Open in Peopler pointed at `http://localhost:8080/people/1`. Extra check **PASS**: a Link right after an Unlink showed the result as pickable.
+    3. Merge in Peopler, then the quiet id update: **PASS after a fresh mount.** `peopler_id` went 1→2 with the survivor's `created_at`, still `ok`, with no message, and Open in Peopler pointed at `/people/2`. **FAIL first:** reopening the same person sent no check (finding F1, fixed in Task 8a).
+    4. Not-a-person in Peopler, then stale: **PASS.** The stale line with Relink… and Remove link showed. The chip was bare with a warning mark and the label `(Peopler link out of date)`. The list badge is `role="img"` with that label.
+    5. Relink, then already linked: **PASS with a substitution.** The plan's relink of Yeezles "Avery Quill" to Peopler "Tomas Brandt" was refused with 422 and the name-mismatch sentence. That is correct: the backend name-tests `PUT /people/:id { peopler_id }`. Relinking to the restored Avery Q. Quill gave `ok`. A second Yeezles person, Priya Raman, then saw it disabled with `Already linked to Avery Quill` and `Merge into Avery Quill…`.
+    6. Second account, then stale: **PASS.** Reconnecting as B showed `Connected as Walk B (walk-b@example.test)`. The A-stamped link read stale at once, without opening the page. Extra check **PASS**: Relink searched B's account only. Relinking to B's Avery Quill gave `ok` (`peopler_id 1`, account 2).
+    7. Disconnect, then dormant: **PASS.** After the in-page confirm, the chips went bare, and the person menu dropped Open in Peopler and Unlink. The page showed only `Linked to Peopler — connect Peopler from the account menu to use it.` A second signed-in tab updated without a reload.
+    8. At 390px: **PASS, judged by David's eye in DevTools device mode.** The connected and disconnected modals fit. The link dialog opens as a full-height sheet, and the merge button wraps onto its own line.
+  - **After Task 8a, in the browser:** opening Avery from the chip, then All, then the chip again sent a second `POST /people/1/peopler-check`. The backend log count went 5→6→7, and `link_checked_at` advanced both times from an aged value. Fix 2 was not re-run in the browser; only its unit test covers it.
+  - The P2 and P3 browser walkthroughs (still not run) are now unblocked by this same local setup. They are not P4 scope.
 
 ## Known limits
 
@@ -71,7 +90,10 @@ Deferred findings from the task reviews:
 
 - A holder outside the first 100 people shows "Already linked to another person", and the merge dialog cannot preselect them (the holder name comes from `usePeople({ limit: 100 })`).
 - A failed `/peopler/search` logs its URL, including the `q` name, to the dev console only. The logger is a no-op in production.
-- No browser walkthrough has run yet (Task 8).
+- Chrome offers to save the Peopler token as a password, even though the input sets `autoComplete="off"`.
+- Returning to the People tab with a person already open does not re-check that person's link; only an explicit open does (a chip, the list, or merge navigation). This was the controller's ruling in Task 8a.
+- Re-opening the same person remounts the pane, which resets its local state ("Show completed", any open dialog).
+- Locally, "Stay signed in" does not work, so every page reload signs you out. This is a backend dev-mode cookie problem: yeezles-todo #91.
 
 ## Deviations
 
@@ -92,27 +114,21 @@ Contract differences found in Task 0 (merged API.md vs the plan's wire contract)
 
 ## Assumed
 
-- The backend at the merged P4 commit serves §4.4–§4.7 as its API.md documents.
-- The backend has never called a real Peopler: Plan B's walkthrough was skipped, so every response shape here comes from API.md and the backend's mocks.
-- No browser walkthrough has run yet.
-- No real backend has been called by the webapp; every test in this plan uses mocks.
+- **Production is untested.** Nothing here has run against the deployed backend (api-todo.yeezles.com) or the production Peopler. The walkthrough used local services only.
+- **Fix 2 is covered only by its unit test.** The stale-error clear was not re-run in the browser.
+- **The 390px check was by eye**, through DevTools device emulation, not on a phone.
+- **API.md is stricter than the code.** It says `PEOPLER_PUBLIC_URL` "must be a bare https origin", but the backend accepted `http://localhost:8080`; the code only strips trailing slashes. This is a doc mismatch, not a webapp concern.
+- **The redirect fingerprint ran once, live.** `redirected_from_created_at` matched exactly against a running Peopler in step 3, and was not exercised further.
 
 ## Resume
 
 Branch `feature/people-tags-p4` in
 `/Users/davidyee/Code/yeezles-todo-webapp-wt/people-tags-p4` (webapp, default
 branch `master`; use `git -C <abs path>` always; do not push or open a PR
-without David's go). Tasks 0-7 and the final review fixes are done; resume at
-**Task 8, the local browser walkthrough**, which needs David's Google sign-in
-and a real Peopler token. Check command:
+without David's go). Plan C is complete: Tasks 0–8, the final-review fixes,
+and Task 8a (walkthrough fixes). What remains is David's call: push, then
+`gh pr create` against `master`, then after merge the workspace pin bump as
+its own `HEAD:main` commit. Check command:
 `/Users/davidyee/Code/yeezles-todo-webapp-wt/people-tags-p4-check.sh`
-(now: `TSC_OK`, lint 5, 989 tests, 0 failing names; `npm run build` ok).
+(now: `TSC_OK`, lint 5, 992 tests, 0 failing names; `npm run build` ok).
 Plan: workspace `docs/superpowers/plans/2026-10-30-people-tags-p4-webapp.md`.
-
-Task 8 checks beyond the plan:
-
-- Step 1 (connect): note whether Chrome offers to save the token as a password.
-- After reconnecting as a different Peopler account (B), Relink shows a fresh
-  search of B, not the old account's results.
-- A Link right after an Unlink shows the result as pickable, not "Already
-  linked to X".
