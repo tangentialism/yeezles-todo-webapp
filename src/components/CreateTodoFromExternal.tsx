@@ -184,7 +184,7 @@ const CreateTodoFromExternal: React.FC = () => {
             </div>
 
             <label htmlFor="isToday" className="flex items-center gap-3 py-3 border-t border-line cursor-pointer">
-              <SunIcon className={`w-[18px] h-[18px] ${isToday ? 'text-accent' : 'text-ink-faint'}`} />
+              <SunIcon className={`w-[18px] h-[18px] ${isToday ? 'text-today' : 'text-ink-faint'}`} />
               <span className="flex-1 text-sm font-medium text-ink">Add to Today</span>
               <Switch id="isToday" checked={isToday} onChange={setIsToday} />
             </label>

@@ -219,7 +219,7 @@ const EditTodoModal: React.FC<EditTodoModalProps> = ({ todo, isOpen, onClose, on
 
           <div className="border-t border-line">
             <label htmlFor="edit-isToday" className="flex items-center gap-3 py-3 cursor-pointer">
-              <SunIcon className="w-[18px] h-[18px] text-accent" />
+              <SunIcon className={`w-[18px] h-[18px] ${isToday ? 'text-today' : 'text-accent'}`} />
               <span className="flex-1 text-sm font-medium text-ink">Add to Today</span>
               <Switch id="edit-isToday" checked={isToday} onChange={setIsToday} disabled={isSubmitting} />
             </label>
