@@ -7,6 +7,8 @@ import PersonPane from './PersonPane';
 interface PeopleViewProps {
   /** The person selected in the People view, or null for none. */
   openPersonId: number | null;
+  /** Bumped on every explicit open, including re-opening the selected person. */
+  openPersonSeq: number;
   onOpenPerson: (id: number) => void;
   onClosePerson: () => void;
 }
@@ -17,7 +19,7 @@ interface PeopleViewProps {
  * a back control inside the pane. CSS only, no JS breakpoint. It ignores the
  * area switcher: people span every area.
  */
-const PeopleView: React.FC<PeopleViewProps> = ({ openPersonId, onOpenPerson, onClosePerson }) => {
+const PeopleView: React.FC<PeopleViewProps> = ({ openPersonId, openPersonSeq, onOpenPerson, onClosePerson }) => {
   const selected = openPersonId !== null;
   return (
     <div>
@@ -30,10 +32,11 @@ const PeopleView: React.FC<PeopleViewProps> = ({ openPersonId, onOpenPerson, onC
           <PersonList selectedId={openPersonId} onOpen={onOpenPerson} />
         </div>
         <div data-testid="people-detail-pane" className={selected ? '' : 'hidden sm:block'}>
-          {/* Keyed by id: switching people starts a fresh pane (Show completed, dialogs). */}
+          {/* Keyed by id and open counter: switching people starts a fresh pane (Show completed, dialogs),
+              and re-opening the same person remounts it so the Peopler link check runs on every open. */}
           {selected ? (
             <PersonPane
-              key={openPersonId}
+              key={`${openPersonId}:${openPersonSeq}`}
               personId={openPersonId}
               onBack={onClosePerson}
               onMerged={onOpenPerson}

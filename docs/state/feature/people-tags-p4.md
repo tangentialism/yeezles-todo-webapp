@@ -63,6 +63,8 @@ real Peopler token). Do not push or open a PR without his go.
 
 - Final review fixes (2026-10-30): RED: 6 failed across 5 files (search cache kept after connect/disconnect, after a cross-tab `PEOPLER_CONNECTION_CHANGED`, after link/unlink; search `staleTime` not 0; a 503 `PEOPLER_UNAVAILABLE` retried; the disabled result had no accessible description). GREEN: check script `TSC_OK`, lint 5 (baseline 5, changed files clean), vitest 989 total, 989 passed, 0 failing names (+5); `npm run build` ok. Fixes: `usePeoplerSearch` `staleTime: 0` / `gcTime: 60s`; `clearPeoplerSearches` (in `peoplerInvalidation`) runs from `invalidateAfterLinkChange` (connect, disconnect, cross-tab, check) and the `peopler_id` branch of `updatePerson`; Peopler modal body padded `px-7 pt-3.5 pb-6`; no retry for 503 `PEOPLER_UNAVAILABLE`; `peoplerLinkOf` in `shouldCheck`; merge-offer row `flex-wrap` and `aria-describedby`. `LinkPeoplerDialog` was already padded like `MergePersonDialog`. Padding has no unit test.
 
+- Task 8a (walkthrough fixes, 2026-10-30): RED: 3 failed in 3 files (`Dashboard.people` re-opening the same person did not bump the counter; `PeopleView` same-person remount on counter change; `LinkPeoplerDialog` stale error stayed after typing). GREEN: check script `TSC_OK`, lint 5 (baseline 5), vitest 992 total, 992 passed, 0 failing names (+3); `npm run build` ok (existing >500 kB chunk warning only). Fix 1: `Dashboard` keeps `openPersonSeq`, bumped by every `openPerson` call; passed through `ViewContainer` to `PeopleView`, and `PersonPane` is keyed `id:seq`, so each explicit open remounts it and `usePeoplerCheckOnOpen` runs again. Fix 2: `LinkPeoplerDialog` clears `error` when the search text changes.
+
 ## Known limits
 
 Deferred findings from the task reviews:
@@ -86,6 +88,7 @@ Contract differences found in Task 0 (merged API.md vs the plan's wire contract)
 - Task 2: the response interceptor now logs one line, `API Error:` METHOD url status message, and nothing else (no error object, config or response data), for every request. The old extra lines `Response status:` and `Request configuration error:` are gone. No existing test asserted the old log shape, so none changed.
 - Task 3: `usePeoplerCheckOnOpen` takes the person's `peopler_link` from the argument, skips `none`, and treats an absent cached person as a changed link (invalidates and broadcasts). `PEOPLER_CONNECTION_CHANGED` also invalidates `['peoplerConnection']` with `refetchType: 'active'`.
 - Plan copy deviates from the spec's "connect in Settings": the webapp has no Settings (the plan's Global Constraints section, in workspace `docs/superpowers/plans/2026-10-30-people-tags-p4-webapp.md`).
+- Task 8a: re-opening the same person remounts `PersonPane` through an open counter (`openPersonSeq`) in the key, because the dashboard keeps views mounted and `openPersonId` alone does not change. `usePeoplerCheckOnOpen` is unchanged (once per mount).
 
 ## Assumed
 

@@ -70,7 +70,10 @@ const LinkPeoplerDialog: React.FC<LinkPeoplerDialogProps> = ({ person, mode, onC
             id="link-peopler-search"
             type="text"
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(e) => {
+              setText(e.target.value);
+              setError(null);
+            }}
             className={fieldInput}
             autoComplete="off"
             spellCheck={false}

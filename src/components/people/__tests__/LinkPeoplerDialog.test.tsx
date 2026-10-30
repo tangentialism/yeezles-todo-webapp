@@ -172,4 +172,13 @@ describe('LinkPeoplerDialog', () => {
     renderDialog();
     expect(screen.getByRole('alert')).toHaveTextContent('Connect Peopler from the account menu first.');
   });
+
+  it('typing a new search clears a stale error line', async () => {
+    updatePerson.mockRejectedValue(new ApiError(422, 'PEOPLER_NAME_MISMATCH', 'x'));
+    renderDialog();
+    await userEvent.click(screen.getByRole('button', { name: /Tomas Brandt/ }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('different name');
+    await userEvent.type(screen.getByLabelText('Search your Peopler'), 'x');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
 });

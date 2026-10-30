@@ -30,8 +30,8 @@ const asReturn = <T,>(value: unknown) => value as T;
 const mockPeople = (people = [priya, sam]) =>
   vi.mocked(PeopleStore.usePeople).mockReturnValue(asReturn<ReturnType<typeof PeopleStore.usePeople>>(query(people)));
 
-const renderView = (openPersonId: number | null = null, handlers = { onOpenPerson: vi.fn(), onClosePerson: vi.fn() }) =>
-  render(<PeopleView openPersonId={openPersonId} {...handlers} />);
+const renderView = (openPersonId: number | null = null, handlers = { onOpenPerson: vi.fn(), onClosePerson: vi.fn() }, openPersonSeq = 0) =>
+  render(<PeopleView openPersonId={openPersonId} openPersonSeq={openPersonSeq} {...handlers} />);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -195,5 +195,21 @@ describe('PeopleView layout', () => {
     expect(await screen.findByText('Pick a person to see their todos.')).toBeInTheDocument();
     expect(screen.getByTestId('people-list-pane')).not.toHaveClass('hidden');
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+});
+
+describe('PeopleView: every open rechecks the Peopler link', () => {
+  it('remounts the pane when the open counter changes for the same person, and not otherwise', () => {
+    const mounted = vi.fn();
+    vi.mocked(PeoplerStore.usePeoplerCheckOnOpen).mockImplementation(() => {
+      React.useEffect(() => { mounted(); }, []);
+    });
+    const handlers = { onOpenPerson: vi.fn(), onClosePerson: vi.fn() };
+    const { rerender } = render(<PeopleView openPersonId={1} openPersonSeq={1} {...handlers} />);
+    expect(mounted).toHaveBeenCalledTimes(1);
+    rerender(<PeopleView openPersonId={1} openPersonSeq={1} {...handlers} />);
+    expect(mounted).toHaveBeenCalledTimes(1);
+    rerender(<PeopleView openPersonId={1} openPersonSeq={2} {...handlers} />);
+    expect(mounted).toHaveBeenCalledTimes(2);
   });
 });

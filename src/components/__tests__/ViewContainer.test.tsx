@@ -26,6 +26,7 @@ describe('ViewContainer', () => {
         onCloseTopic={vi.fn()}
         highlightTopicIds={[]}
         openPersonId={null}
+        openPersonSeq={0}
         onOpenPerson={vi.fn()}
         onClosePerson={vi.fn()}
       />,
@@ -47,6 +48,7 @@ describe('ViewContainer', () => {
         onCloseTopic={vi.fn()}
         highlightTopicIds={[]}
         openPersonId={null}
+        openPersonSeq={0}
         onOpenPerson={vi.fn()}
         onClosePerson={vi.fn()}
       />,

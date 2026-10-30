@@ -65,10 +65,13 @@ const Dashboard: React.FC = () => {
   }, [handleViewChange]);
 
   const [openPersonId, setOpenPersonId] = useState<number | null>(null);
+  // Counts explicit opens so re-opening the selected person remounts its pane (Peopler link recheck)
+  const [openPersonSeq, setOpenPersonSeq] = useState(0);
 
   // A person chip anywhere in the dashboard opens that person in the People view
   const openPerson = useCallback((personId: number) => {
     setOpenPersonId(personId);
+    setOpenPersonSeq((n) => n + 1);
     handleViewChange('people');
   }, [handleViewChange]);
 
@@ -148,6 +151,7 @@ const Dashboard: React.FC = () => {
           onCloseTopic={() => setOpenTopicId(null)}
           highlightTopicIds={highlightTopicIds}
           openPersonId={openPersonId}
+          openPersonSeq={openPersonSeq}
           onOpenPerson={openPerson}
           onClosePerson={() => setOpenPersonId(null)}
         />
