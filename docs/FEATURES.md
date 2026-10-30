@@ -692,32 +692,37 @@ person can be tagged on todos in any area (workspace spec
 ---
 
 ### Search
-**Status:** ⚠️ Backend Ready, Frontend Planned
+**Status:** ✅ Implemented (search pop-up). Unit-tested only; not yet seen in a browser.
 
-**Requirements:**
-- Full-text search across title and description
-- Search highlighting
-- Search suggestions
-- Search history
-- Combine search with filters
+A command-palette-style pop-up, not a header box or a separate view.
 
-**Success Criteria:**
-- ✅ Backend FTS5 search working
-- 🔄 Frontend search bar
-- 🔄 Search highlighting
-- 🔄 Search as you type
-- 🔄 Search history
+**Opening:**
+- `/` (outside text fields) or `⌘K` / `Ctrl+K` (anywhere), from any view
+- A 🔍 Search button, first in the Dashboard header; full-screen on phones with a Cancel button
+- Opens with an empty box and the cursor in it; before typing it shows a hint and no results
 
-**Backend Support:**
-- ✅ SQLite FTS5 full-text search
-- ✅ Search across title and description
-- ✅ Relevance ranking
+**Results:**
+- Search covers all areas, open and done todos, in relevance order, capped at 30 results
+- Updates as you type after a 200ms debounce
+- Each row: checkbox, title with matched text highlighted, then area colour dot and name, topic, and tagged people
+- Completed todos are struck through and dimmed
 
-**Frontend Implementation:**
-- 🔄 Search bar in header (planned)
-- 🔄 Search results page (planned)
-- 🔄 Search highlighting (planned)
-- 🔄 Search suggestions (planned)
+**Keyboard:**
+- `↑` / `↓` move the selection (first result selected by default)
+- `Enter` opens the selected todo in the edit dialog
+- `⌘Enter` / `Ctrl+Enter` toggles done
+- `Esc` closes the pop-up; with the edit dialog open on top, it closes only the dialog
+- Footer lists the keys
+
+**Mouse / touch:** click a row to edit; click the checkbox to toggle done.
+
+**After acting:**
+- Marking done keeps the pop-up open and flips the row in place with no re-sort, so several can be ticked off in a row
+- Closing the edit dialog returns to the same query and results, refreshed
+
+**Known limitation:** after marking done from the pop-up, the toast's Undo (or a failed save) is not reflected in the pop-up row until the edit dialog closes or the pop-up is reopened.
+
+**Not built:** search history, suggestions, combining search with the area/status filters.
 
 ---
 
@@ -755,13 +760,11 @@ person can be tagged on todos in any area (workspace spec
 ### Priority 1 (P1) - Near Term
 
 #### Enhanced Search
-**Status:** 🔄 Planned
+**Status:** 🔄 Planned (the basic search pop-up is done; see Search above)
 
 **Features:**
-- Full-text search bar in header
-- Search as you type with suggestions
-- Search highlighting in results
 - Search history
+- Search suggestions
 - Combined search + filters
 
 #### Tag Management
