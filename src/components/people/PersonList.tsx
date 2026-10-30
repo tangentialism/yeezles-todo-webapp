@@ -1,7 +1,8 @@
 import React from 'react';
 import { usePeople } from '../../hooks/usePeopleStore';
 import { ViewError, ViewLoading } from '../ViewChrome';
-import { LinkIcon } from '../ui/Icons';
+import { peoplerLinkOf } from '../../utils/peoplerLink';
+import { AlertTriangleIcon, LinkIcon } from '../ui/Icons';
 
 /** The list asks for the backend maximum; exactly this many back means there may be more. */
 const LIST_LIMIT = 100;
@@ -35,6 +36,7 @@ const PersonList: React.FC<PersonListProps> = ({ selectedId, onOpen }) => {
       <ul aria-label="People" className="flex flex-col gap-0.5">
         {people.map((person) => {
           const selected = person.id === selectedId;
+          const link = peoplerLinkOf(person);
           const tone = person.open_count === 0 ? 'text-ink-faint' : 'text-ink';
           return (
             <li key={person.id}>
@@ -45,9 +47,14 @@ const PersonList: React.FC<PersonListProps> = ({ selectedId, onOpen }) => {
                 className={`flex w-full items-center gap-2 min-h-[44px] sm:min-h-[40px] px-3 rounded-[10px] text-left text-[14.5px] hover:bg-hover ${tone} ${selected ? 'bg-hover font-medium' : ''}`}
               >
                 <span className="flex-1 min-w-0 truncate">{person.display_name}</span>
-                {person.peopler_id !== null && (
+                {link === 'ok' && (
                   <span role="img" aria-label="Linked to Peopler" className="flex-none text-accent">
                     <LinkIcon className="w-3.5 h-3.5" />
+                  </span>
+                )}
+                {link === 'stale' && (
+                  <span role="img" aria-label="Peopler link out of date" className="flex-none text-danger">
+                    <AlertTriangleIcon className="w-3.5 h-3.5" />
                   </span>
                 )}
                 <span className="font-mono text-[12.5px] flex-none">{person.open_count}</span>

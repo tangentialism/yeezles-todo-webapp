@@ -8,6 +8,7 @@ export const makePerson = (overrides: Partial<PersonWithCounts> = {}): PersonWit
   aliases: [],
   peopler_id: null,
   peopler_url: null,
+  peopler_link: 'none',
   created_at: '2026-10-01T00:00:00.000Z',
   updated_at: '2026-10-01T00:00:00.000Z',
   open_count: 0,
@@ -21,5 +22,6 @@ export const makeTodoPerson = (overrides: Partial<TodoPerson> = {}): TodoPerson 
   display_name: 'Priya Raman',
   peopler_id: null,
   peopler_url: null,
+  peopler_link: 'none',
   ...overrides,
 });

@@ -16,7 +16,7 @@ vi.mock('../../../hooks/useIsPhone', () => ({ useIsPhone: () => phone.isPhone })
 import PeopleField from '../PeopleField';
 import Dialog from '../../ui/Dialog';
 
-const priya = makePerson({ id: 1, display_name: 'Priya Raman', peopler_id: 42, peopler_url: 'https://peopler.example/p/42' });
+const priya = makePerson({ id: 1, display_name: 'Priya Raman', peopler_id: 42, peopler_url: 'https://peopler.example/p/42', peopler_link: 'ok' });
 const chosen = makeTodoPerson({ id: 2, display_name: 'Pri Chosen' });
 
 interface HarnessProps {
@@ -89,7 +89,7 @@ describe('PeopleField', () => {
     expect(screen.getByRole('option', { name: 'Priya Raman' })).toHaveAttribute('aria-selected', 'true');
     await userEvent.keyboard('{Enter}');
     expect(onChange).toHaveBeenCalledWith([
-      { id: 1, display_name: 'Priya Raman', peopler_id: 42, peopler_url: 'https://peopler.example/p/42' },
+      { id: 1, display_name: 'Priya Raman', peopler_id: 42, peopler_url: 'https://peopler.example/p/42', peopler_link: 'ok' },
     ]);
     expect(input).toHaveValue('');
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
@@ -121,7 +121,7 @@ describe('PeopleField', () => {
     expect(await screen.findByRole('option', { name: 'Creating…' })).toBeInTheDocument();
     resolveCreate(makePerson({ id: 77, display_name: 'Sam' }));
     await waitFor(() =>
-      expect(onChange).toHaveBeenCalledWith([{ id: 77, display_name: 'Sam', peopler_id: null, peopler_url: null }])
+      expect(onChange).toHaveBeenCalledWith([{ id: 77, display_name: 'Sam', peopler_id: null, peopler_url: null, peopler_link: 'none' }])
     );
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(input).toHaveValue('');
@@ -252,7 +252,7 @@ describe('PeopleField compact', () => {
     await userEvent.click(screen.getByRole('option', { name: 'Priya Raman' }));
     expect(onChange).toHaveBeenCalledWith([
       chosen,
-      { id: 1, display_name: 'Priya Raman', peopler_id: 42, peopler_url: 'https://peopler.example/p/42' },
+      { id: 1, display_name: 'Priya Raman', peopler_id: 42, peopler_url: 'https://peopler.example/p/42', peopler_link: 'ok' },
     ]);
   });
 

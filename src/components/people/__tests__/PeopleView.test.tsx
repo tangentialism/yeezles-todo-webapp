@@ -19,7 +19,7 @@ vi.mock('../../EditTodoModal', () => ({ default: () => null }));
 
 const home = makeArea({ id: 1, name: 'Home' });
 const work = makeArea({ id: 2, name: 'Work', color: '#1E88E5' });
-const priya = makePerson({ id: 1, display_name: 'Priya Raman', open_count: 3, done_count: 1, peopler_id: 1 });
+const priya = makePerson({ id: 1, display_name: 'Priya Raman', open_count: 3, done_count: 1, peopler_id: 1, peopler_link: 'ok' });
 const sam = makePerson({ id: 2, display_name: 'Sam Lee', open_count: 0, done_count: 2 });
 
 const query = <T,>(data: T) => ({ data, isLoading: false, error: null, refetch: vi.fn() });
@@ -48,6 +48,19 @@ beforeEach(() => {
 });
 
 describe('PeopleView list', () => {
+  it.each([
+    ['ok', 'Linked to Peopler', 'Peopler link out of date'],
+    ['stale', 'Peopler link out of date', 'Linked to Peopler'],
+    ['dormant', null, 'Linked to Peopler'],
+    ['none', null, 'Linked to Peopler'],
+  ] as const)('badge for %s', (link, shown, absent) => {
+    mockPeople([makePerson({ id: 3, display_name: 'Avery Quill', peopler_id: link === 'none' ? null : 9, peopler_link: link })]);
+    renderView();
+    if (shown) expect(screen.getByRole('img', { name: shown })).toBeInTheDocument();
+    else expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: absent })).not.toBeInTheDocument();
+  });
+
   it('bounds the sticky list so its lower rows scroll inside it (classes only; jsdom has no layout)', () => {
     renderView();
     const pane = screen.getByTestId('people-list-pane');

@@ -10,14 +10,13 @@ Backend half: yeezles-todo #88, merged as `2af55ea`.
 
 ## Next action
 
-Task 1: wire types and `peoplerErrorMessage` (failing test first). Then
-Task 2 (api client, with the `api.ts` interceptor leaving the token out of
-logs), Tasks 3–8.
+Task 2: api client methods (with the `api.ts` interceptor leaving the token
+out of logs). Then Tasks 3–8. Failing test first.
 
 ## Sequence
 
 0. Worktree, baseline, check script, state file (this commit).
-1. Wire types (`PeoplerLink`, `PeoplerConnection`, `PeoplerSearchResult`, `peopler_link` on person shapes) and `peoplerErrorMessage`.
+1. [x] `peopler_link` on person shapes, `PeoplerConnection`/`PeoplerSearchResult`, `peoplerLinkOf`/`isFilledLink`, chip and list badge look. (`peoplerErrorMessage` is not in this task's brief; assumed to land with the task that first needs it.)
 2. API client methods for the four `/peopler/*` routes, `peopler-check` and `peopler_id` on `PUT /people/:id`; the logging interceptor must not log a request body.
 3. Connection store hook with the `PEOPLER_CONNECTION_CHANGED` broadcast.
 4. `PeoplerConnectionModal` and the `Peopler` account menu item.
@@ -51,6 +50,8 @@ logs), Tasks 3–8.
   argument to compare, `baseline` to rewrite. Baseline files
   `people-tags-p4-baseline-lint.txt` (5) and `people-tags-p4-baseline-tests.txt`
   (empty) sit beside it.
+- Task 1 (2026-10-30): RED on the four touched test files: 11 failed, 61 passed, plus `peoplerLink.test.ts` unresolved (module missing). GREEN: check script `TSC_OK`, lint 5 (baseline 5, new files clean), vitest 895 total, 895 passed, 0 failing names (baseline 877; +18). Existing tests that built `peopler_id: N` people now set `peopler_link: 'ok'`.
+- `makeCandidate` has no `peopler_link` default (optional on candidates; a default of `'none'` would break P3's "in Peopler" tests). `PersonPane` untouched (Task 5).
 
 ## Deviations
 
