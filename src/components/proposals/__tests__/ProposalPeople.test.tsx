@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -249,5 +249,63 @@ describe('PersonChooser dismissal', () => {
     await userEvent.click(screen.getByRole('button', { name: '? Dana' }));
     await userEvent.click(screen.getByRole('button', { name: '? Dana' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('Escape with focus on the chip closes the chooser only', async () => {
+    const onClose = vi.fn();
+    renderChip(draftRef(makeCandidateRef('new', 'Dana')), onClose);
+    await userEvent.click(screen.getByRole('button', { name: '? Dana' }));
+    screen.getByRole('button', { name: '? Dana' }).focus();
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog', { name: "Dana isn't one of your people." })).not.toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: '? Dana' })).toHaveFocus();
+  });
+
+  it('Escape in an open combobox list closes the list first, then the chooser, never the dialog', async () => {
+    const onClose = vi.fn();
+    renderChip(draftRef(makeCandidateRef('new', 'Dana')), onClose);
+    await userEvent.click(screen.getByRole('button', { name: '? Dana' }));
+    const dialog = screen.getByRole('dialog', { name: "Dana isn't one of your people." });
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Pick someone…' }));
+    await userEvent.type(within(dialog).getByRole('combobox'), 'sam');
+    await screen.findByRole('listbox');
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: "Dana isn't one of your people." })).toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog', { name: "Dana isn't one of your people." })).not.toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+});
+
+describe('PersonChooser placement', () => {
+  const stubRect = (rect: { left: number; right: number }) =>
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      return (this.getAttribute('role') === 'dialog'
+        ? { ...rect, top: 0, bottom: 0, x: rect.left, y: 0, width: rect.right - rect.left, height: 0, toJSON: () => ({}) }
+        : new DOMRect()) as DOMRect;
+    });
+
+  beforeEach(() => {
+    vi.stubGlobal('innerWidth', 390);
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('slides left when it would run off the right edge of a 390px viewport', async () => {
+    stubRect({ left: 250, right: 538 });
+    renderChip(draftRef(makeCandidateRef('new', 'Dana')));
+    const dialog = await openChooser('? Dana');
+    expect(dialog).toHaveStyle({ left: '-156px' });
+  });
+
+  it('stays put when it already fits', async () => {
+    stubRect({ left: 20, right: 308 });
+    renderChip(draftRef(makeCandidateRef('new', 'Dana')));
+    const dialog = await openChooser('? Dana');
+    expect(dialog.style.left).toBe('');
   });
 });

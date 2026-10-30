@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useRef, useState } from 'react';
+import React, { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import type { PersonCandidateDetail, PersonRef, TodoPerson } from '../../types/person';
 import type { ChooserPick, DraftPersonRef } from '../../utils/proposalDraft';
 import PeopleField from '../people/PeopleField';
@@ -65,6 +65,8 @@ const PersonChooser: React.FC<PersonChooserProps> = ({ item, onPick, onClose }) 
   const headingId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const [picking, setPicking] = useState(false);
+  // Horizontal nudge (px, relative to the chip) that keeps the popover on screen.
+  const [shift, setShift] = useState(0);
   const { name, candidates } = item.resolved;
   const kind = layoutFor(item);
   const peopler_id = peoplerIdOf(item.resolved.ref);
@@ -80,17 +82,36 @@ const PersonChooser: React.FC<PersonChooserProps> = ({ item, onPick, onClose }) 
     return () => document.removeEventListener('mousedown', onMouseDown);
   }, [onClose]);
 
+  // Measured once, at its natural place under the chip: slide left if it would
+  // run off the right edge, then right if that pushed it off the left edge.
+  useLayoutEffect(() => {
+    const rect = rootRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const margin = 8;
+    let dx = Math.min(0, window.innerWidth - margin - rect.right);
+    if (rect.left + dx < margin) dx = margin - rect.left;
+    setShift(dx);
+  }, []);
+
+  // While open, Escape anywhere closes the chooser only. Capture phase, so the
+  // review Dialog's document listener never sees it; a combobox with its list
+  // open keeps its own Escape (closes the list first).
+  useEffect(() => {
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      const target = event.target;
+      if (target instanceof HTMLElement && target.getAttribute('role') === 'combobox' && target.getAttribute('aria-expanded') === 'true') return;
+      event.preventDefault();
+      event.stopPropagation();
+      onClose();
+    };
+    document.addEventListener('keydown', onEscape, true);
+    return () => document.removeEventListener('keydown', onEscape, true);
+  }, [onClose]);
+
   useEffect(() => {
     rootRef.current?.querySelector<HTMLElement>('button')?.focus();
   }, []);
-
-  const onKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key !== 'Escape') return;
-    // Close the chooser only: a parent Dialog's document listener must not also fire.
-    event.preventDefault();
-    event.stopPropagation();
-    onClose();
-  };
 
   const option = (label: string, pick: ChooserPick, key = label) => (
     <button key={key} type="button" onClick={() => onPick(pick)} className={OPTION}>
@@ -105,7 +126,7 @@ const PersonChooser: React.FC<PersonChooserProps> = ({ item, onPick, onClose }) 
       ref={rootRef}
       role="dialog"
       aria-labelledby={headingId}
-      onKeyDown={onKeyDown}
+      style={shift === 0 ? undefined : { left: shift }}
       className="absolute left-0 top-full z-20 mt-1 w-72 max-w-[calc(100vw-2rem)] bg-surface border border-line rounded-[14px] shadow-menu p-1.5"
     >
       <p id={headingId} className="px-2.5 py-1.5 text-[13px] text-ink-muted">

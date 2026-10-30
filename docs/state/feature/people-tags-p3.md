@@ -39,7 +39,7 @@ test first.
   `ProposalPeople.test.tsx` 30 tests plus 1 `PeopleField` compact test; RED was
   the new file failing to import and the compact test failing, GREEN
   `src/components/proposals` + `src/components/people` all passing. Check
-  script: TSC_OK, lint 5 (baseline 5), 766 tests total, 766 passed, 0 new
+  script: TSC_OK, lint 5 (baseline 5), 771 tests total, 771 passed (after fix round 1), 0 new
   failing names. Chip colours use existing tokens (`ok`, `accent`), no
   deviation. Not yet used by any screen (Task 3 wires it).
 - Check script (outside the repo, never committed):
