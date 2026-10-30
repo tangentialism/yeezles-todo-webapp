@@ -49,7 +49,9 @@ const PersonPane: React.FC<PersonPaneProps> = ({ personId, onBack, onMerged, onD
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [dialog, setDialog] = useState<'edit' | 'merge' | 'delete' | 'link' | 'relink' | null>(null);
-  const [unlinkError, setUnlinkError] = useState<string | null>(null);
+  // Remembers the link state the error was raised in, so a changed state hides it.
+  const [unlinkError, setUnlinkError] = useState<{ message: string; link: string } | null>(null);
+  const [mergeIntoId, setMergeIntoId] = useState<number | undefined>(undefined);
   const [unlinking, setUnlinking] = useState(false);
   const { updatePerson } = usePeopleMutations();
   const connection = usePeoplerConnection();
@@ -94,10 +96,15 @@ const PersonPane: React.FC<PersonPaneProps> = ({ personId, onBack, onMerged, onD
     try {
       await updatePerson(person.id, { peopler_id: null });
     } catch (e) {
-      setUnlinkError(peoplerErrorMessage(e));
+      setUnlinkError({ message: peoplerErrorMessage(e), link });
     } finally {
       setUnlinking(false);
     }
+  };
+
+  const openLinkDialog = (mode: 'link' | 'relink') => {
+    setUnlinkError(null);
+    setDialog(mode);
   };
 
   const nothingTagged = openTodos.length === 0 && doneTodos.length === 0 && person.done_count === 0;
@@ -138,12 +145,12 @@ const PersonPane: React.FC<PersonPaneProps> = ({ personId, onBack, onMerged, onD
           </p>
           <PeoplerLinkLine
             person={person}
-            onRelink={() => setDialog('relink')}
+            onRelink={() => openLinkDialog('relink')}
             onRemove={() => void unlink()}
             busy={unlinking}
           />
-          {unlinkError && (
-            <p role="alert" className="mt-1.5 text-[13px] text-danger">{unlinkError}</p>
+          {unlinkError && unlinkError.link === link && (
+            <p role="alert" className="mt-1.5 text-[13px] text-danger">{unlinkError.message}</p>
           )}
         </div>
         <div className="relative">
@@ -178,14 +185,14 @@ const PersonPane: React.FC<PersonPaneProps> = ({ personId, onBack, onMerged, onD
                 </button>
               )}
               {link === 'none' && peoplerReady && (
-                <button type="button" role="menuitem" className={menuItem} onClick={() => { setMenuOpen(false); setDialog('link'); }}>
+                <button type="button" role="menuitem" className={menuItem} onClick={() => { setMenuOpen(false); openLinkDialog('link'); }}>
                   Link to Peopler…
                 </button>
               )}
               <button type="button" role="menuitem" className={menuItem} onClick={() => { setMenuOpen(false); setDialog('edit'); }}>
                 Rename / edit aliases…
               </button>
-              <button type="button" role="menuitem" className={menuItem} onClick={() => { setMenuOpen(false); setDialog('merge'); }}>
+              <button type="button" role="menuitem" className={menuItem} onClick={() => { setMenuOpen(false); setMergeIntoId(undefined); setDialog('merge'); }}>
                 Merge into…
               </button>
               <div className={menuSeparator} />
@@ -249,6 +256,7 @@ const PersonPane: React.FC<PersonPaneProps> = ({ personId, onBack, onMerged, onD
       {dialog === 'merge' && (
         <MergePersonDialog
           person={person}
+          initialIntoId={mergeIntoId}
           onClose={() => setDialog(null)}
           onMerged={(intoId) => {
             setDialog(null);
@@ -261,7 +269,10 @@ const PersonPane: React.FC<PersonPaneProps> = ({ personId, onBack, onMerged, onD
           person={person}
           mode={dialog}
           onClose={() => setDialog(null)}
-          onMergeInto={() => setDialog(null)}
+          onMergeInto={(holderId) => {
+            setMergeIntoId(holderId);
+            setDialog('merge');
+          }}
         />
       )}
       {dialog === 'delete' && (

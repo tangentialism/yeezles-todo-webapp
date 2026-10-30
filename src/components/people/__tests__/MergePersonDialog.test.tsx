@@ -34,11 +34,11 @@ const amy = makePerson({ id: 9, display_name: 'Amy First' });
 
 const makeClient = () => new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
-const renderDialog = () => {
+const renderDialog = (initialIntoId?: number) => {
   const handlers = { onClose: vi.fn(), onMerged: vi.fn() };
   render(
     <QueryClientProvider client={makeClient()}>
-      <MergePersonDialog person={priya} {...handlers} />
+      <MergePersonDialog person={priya} initialIntoId={initialIntoId} {...handlers} />
     </QueryClientProvider>
   );
   return handlers;
@@ -75,6 +75,21 @@ describe('MergePersonDialog', () => {
     expect(
       screen.getByText('Merge "Priya Raman" into "Amy First"? Priya Raman\'s todos move to Amy First, and "Priya Raman" becomes one of Amy First\'s aliases.')
     ).toBeInTheDocument();
+  });
+
+  it('initialIntoId preselects that person and enables Merge', async () => {
+    const { onMerged } = renderDialog(9);
+    const select = await picker();
+    await waitFor(() => expect(select).toHaveValue('9'));
+    expect(screen.getByRole('button', { name: 'Merge' })).toBeEnabled();
+    await confirm();
+    await waitFor(() => expect(onMerged).toHaveBeenCalledWith(9));
+    expect(api.mergePerson).toHaveBeenCalledWith(4, 9);
+  });
+
+  it('without initialIntoId nothing is preselected', async () => {
+    renderDialog();
+    expect(await picker()).toHaveValue('');
   });
 
   it('merges and calls onMerged with the chosen id', async () => {

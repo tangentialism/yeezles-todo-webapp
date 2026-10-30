@@ -21,7 +21,16 @@ vi.mock('../../TodoActions', () => ({ default: () => null }));
 vi.mock('../../TodayToggle', () => ({ default: () => null }));
 vi.mock('../../EditTodoModal', () => ({ default: () => null }));
 vi.mock('../LinkPeoplerDialog', () => ({
-  default: ({ mode }: { mode: string }) => <div data-testid="link-dialog">{mode}</div>,
+  default: ({ mode, onMergeInto, onClose }: { mode: string; onMergeInto: (id: number) => void; onClose: () => void }) => (
+    <div data-testid="link-dialog">
+      {mode}
+      <button type="button" onClick={() => onMergeInto(8)}>mock merge into 8</button>
+      <button type="button" onClick={onClose}>mock close</button>
+    </div>
+  ),
+}));
+vi.mock('../MergePersonDialog', () => ({
+  default: ({ initialIntoId }: { initialIntoId?: number }) => <div data-testid="merge-dialog">{String(initialIntoId)}</div>,
 }));
 
 const home = makeArea({ id: 1, name: 'Home' });
@@ -117,6 +126,48 @@ describe('PersonPane Peopler link', () => {
     await openMenu();
     await userEvent.click(screen.getByRole('menuitem', { name: 'Link to Peopler…' }));
     expect(screen.getByTestId('link-dialog')).toHaveTextContent('link');
+  });
+
+  it('Merge into from the link dialog swaps it for the merge dialog preselected on the holder', async () => {
+    setPerson(unlinked);
+    renderPane();
+    await openMenu();
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Link to Peopler…' }));
+    await userEvent.click(screen.getByRole('button', { name: 'mock merge into 8' }));
+    expect(screen.queryByTestId('link-dialog')).not.toBeInTheDocument();
+    expect(screen.getByTestId('merge-dialog')).toHaveTextContent('8');
+  });
+
+  it('the menu Merge into… opens the merge dialog with no preselection', async () => {
+    renderPane();
+    await openMenu();
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Merge into…' }));
+    expect(screen.getByTestId('merge-dialog')).toHaveTextContent('undefined');
+  });
+
+  it('opening the link dialog clears an earlier unlink error', async () => {
+    updatePerson.mockRejectedValue(new ApiError(502, 'PEOPLER_UNAVAILABLE', 'x'));
+    setPerson({ ...linked, peopler_link: 'stale', peopler_url: null });
+    renderPane();
+    await userEvent.click(screen.getByRole('button', { name: 'Remove link' }));
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Relink…' }));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('a change in the person link state clears an earlier unlink error', async () => {
+    updatePerson.mockRejectedValue(new ApiError(502, 'PEOPLER_UNAVAILABLE', 'x'));
+    const { rerender } = renderPane();
+    await openMenu();
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Unlink from Peopler' }));
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    setPerson({ ...linked, peopler_link: 'stale', peopler_url: null });
+    rerender(
+      <PersonNavigationContext.Provider value={vi.fn()}>
+        <PersonPane personId={1} onBack={vi.fn()} onMerged={vi.fn()} onDeleted={vi.fn()} />
+      </PersonNavigationContext.Provider>
+    );
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
   it.each([
