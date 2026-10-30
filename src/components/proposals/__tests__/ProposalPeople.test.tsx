@@ -323,3 +323,100 @@ describe('PersonChooser placement', () => {
     expect(dialog.style.left).toBe('');
   });
 });
+
+/**
+ * The review screen's Apply bar is fixed over the bottom of the viewport and
+ * marks itself `data-viewport-floor`. Measured in a real browser at 1280×714:
+ * bar top 649; a chooser opened from a last-row chip ran 455–695, so its last
+ * options sat under the bar.
+ */
+describe('PersonChooser vertical placement', () => {
+  type Box = { top: number; bottom: number };
+  const box = ({ top, bottom }: Box) =>
+    ({ top, bottom, left: 20, right: 308, x: 20, y: top, width: 288, height: bottom - top, toJSON: () => ({}) }) as DOMRect;
+
+  /** Stubs the chooser, the chip it hangs from, and (when given) the Apply bar. */
+  const stubLayout = ({ chooser, chip, bar }: { chooser: Box; chip: Box; bar?: Box }) =>
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      if (this.getAttribute('role') === 'dialog') return box(chooser);
+      if (this.hasAttribute('data-viewport-floor')) return bar ? box(bar) : new DOMRect();
+      if (this.lastElementChild?.getAttribute('role') === 'dialog') return box(chip);
+      return new DOMRect();
+    });
+
+  const renderOverBar = (item: DraftPersonRef) => {
+    renderChip(item);
+    const bar = document.createElement('div');
+    bar.setAttribute('data-viewport-floor', '');
+    document.body.appendChild(bar);
+    return () => bar.remove();
+  };
+
+  let cleanupBar: (() => void) | undefined;
+  beforeEach(() => {
+    vi.stubGlobal('innerWidth', 1280);
+    vi.stubGlobal('innerHeight', 714);
+  });
+  afterEach(() => {
+    cleanupBar?.();
+    cleanupBar = undefined;
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('opens upward when the Apply bar would cover its bottom (1280×714, bar at 649)', async () => {
+    stubLayout({ chip: { top: 423, bottom: 451 }, chooser: { top: 455, bottom: 695 }, bar: { top: 649, bottom: 714 } });
+    cleanupBar = renderOverBar(draftRef(makeCandidateRef('link_candidate', 'Sam')));
+    const dialog = await openChooser('? Sam');
+    expect(dialog.className).toContain('bottom-full');
+    expect(dialog.className).not.toContain('top-full');
+  });
+
+  it('opens upward at 390×844 when the bar (top 779) would cover Drop', async () => {
+    vi.stubGlobal('innerWidth', 390);
+    vi.stubGlobal('innerHeight', 844);
+    stubLayout({ chip: { top: 540, bottom: 568 }, chooser: { top: 572, bottom: 796 }, bar: { top: 779, bottom: 844 } });
+    cleanupBar = renderOverBar(draftRef(makeCandidateRef('new', 'Dana')));
+    const dialog = await openChooser('? Dana');
+    expect(dialog.className).toContain('bottom-full');
+  });
+
+  it('stays below the chip when it clears the bar', async () => {
+    stubLayout({ chip: { top: 200, bottom: 228 }, chooser: { top: 232, bottom: 472 }, bar: { top: 649, bottom: 714 } });
+    cleanupBar = renderOverBar(draftRef(makeCandidateRef('new', 'Dana')));
+    const dialog = await openChooser('? Dana');
+    expect(dialog.className).toContain('top-full');
+    expect(dialog.className).not.toContain('bottom-full');
+  });
+
+  it('with no bar, still opens upward when it would run off the bottom of the window', async () => {
+    stubLayout({ chip: { top: 560, bottom: 588 }, chooser: { top: 592, bottom: 832 } });
+    renderChip(draftRef(makeCandidateRef('new', 'Dana')));
+    const dialog = await openChooser('? Dana');
+    expect(dialog.className).toContain('bottom-full');
+  });
+
+  it('stays below when there is more room below than above, even if it does not fully fit', async () => {
+    stubLayout({ chip: { top: 60, bottom: 88 }, chooser: { top: 92, bottom: 700 }, bar: { top: 649, bottom: 714 } });
+    cleanupBar = renderOverBar(draftRef(makeCandidateRef('new', 'Dana')));
+    const dialog = await openChooser('? Dana');
+    expect(dialog.className).toContain('top-full');
+  });
+
+  it('Escape still closes only the chooser after it opened upward', async () => {
+    stubLayout({ chip: { top: 423, bottom: 451 }, chooser: { top: 455, bottom: 695 }, bar: { top: 649, bottom: 714 } });
+    const onClose = vi.fn();
+    renderChip(draftRef(makeCandidateRef('new', 'Dana')), onClose);
+    const bar = document.createElement('div');
+    bar.setAttribute('data-viewport-floor', '');
+    document.body.appendChild(bar);
+    cleanupBar = () => bar.remove();
+    await userEvent.click(screen.getByRole('button', { name: '? Dana' }));
+    const dialog = screen.getByRole('dialog', { name: "Dana isn't one of your people." });
+    expect(dialog.className).toContain('bottom-full');
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog', { name: "Dana isn't one of your people." })).not.toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: '? Dana' })).toHaveFocus();
+  });
+});

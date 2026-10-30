@@ -1,9 +1,10 @@
-import React, { useEffect, useId, useRef, useState } from 'react';
+import React, { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import type { TodoPerson } from '../../types/person';
 import { usePeople, usePeopleMutations } from '../../hooks/usePeopleStore';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { useIsPhone } from '../../hooks/useIsPhone';
 import { PEOPLE_PER_TODO_MAX } from '../../constants';
+import { shouldOpenUpward } from '../../utils/popoverPlacement';
 import Dialog from '../ui/Dialog';
 import { CloseIcon, PlusIcon } from '../ui/Icons';
 import { chipBare, chipLinked, fieldError, fieldHint, fieldInput, fieldLabel, fieldOptional, outlineButton, primaryButton } from '../ui/styles';
@@ -125,6 +126,23 @@ const PeopleCombobox: React.FC<{
   const active = activeKey === null ? -1 : options.findIndex((option) => optionKey(option) === activeKey);
   const optionId = (index: number) => `${listboxId}-option-${index}`;
 
+  // The list opens above the input when below would run under a fixed bar
+  // (the proposal review's Apply bar) or off the window. Measured below each
+  // time it opens and as matches arrive; once above, it grows upward.
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+  const [listUpward, setListUpward] = useState(false);
+  useLayoutEffect(() => {
+    if (!expanded) {
+      setListUpward(false);
+      return;
+    }
+    if (listUpward) return;
+    const list = listRef.current?.getBoundingClientRect();
+    const input = inputRef.current?.getBoundingClientRect();
+    if (list && input && shouldOpenUpward(list, input.top, 4)) setListUpward(true);
+  }, [expanded, options.length, listUpward]);
+
   const reset = () => {
     setText('');
     setOpen(false);
@@ -182,6 +200,7 @@ const PeopleCombobox: React.FC<{
   return (
     <div className="relative">
       <input
+        ref={inputRef}
         id={inputId}
         type="text"
         role="combobox"
@@ -208,10 +227,11 @@ const PeopleCombobox: React.FC<{
       />
       {expanded && (
         <ul
+          ref={listRef}
           id={listboxId}
           role="listbox"
           aria-label="People"
-          className="absolute left-0 right-0 z-10 mt-1 max-h-72 overflow-y-auto bg-surface border border-line rounded-[14px] shadow-menu p-1.5"
+          className={`absolute left-0 right-0 ${listUpward ? 'bottom-full mb-1' : 'top-full mt-1'} z-10 max-h-72 overflow-y-auto bg-surface border border-line rounded-[14px] shadow-menu p-1.5`}
         >
           {options.map((option, index) => (
             <li

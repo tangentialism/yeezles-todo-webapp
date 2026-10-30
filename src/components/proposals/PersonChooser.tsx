@@ -2,6 +2,7 @@ import React, { useEffect, useId, useLayoutEffect, useRef, useState } from 'reac
 import type { PersonCandidateDetail, PersonRef, TodoPerson } from '../../types/person';
 import type { ChooserPick, DraftPersonRef } from '../../utils/proposalDraft';
 import PeopleField from '../people/PeopleField';
+import { shouldOpenUpward } from '../../utils/popoverPlacement';
 
 /** Props for {@link PersonChooser}. */
 interface PersonChooserProps {
@@ -67,6 +68,8 @@ const PersonChooser: React.FC<PersonChooserProps> = ({ item, onPick, onClose }) 
   const [picking, setPicking] = useState(false);
   // Horizontal nudge (px, relative to the chip) that keeps the popover on screen.
   const [shift, setShift] = useState(0);
+  // Open above the chip instead, when below would run under the Apply bar or off the window.
+  const [upward, setUpward] = useState(false);
   const { name, candidates } = item.resolved;
   const kind = layoutFor(item);
   const peopler_id = peoplerIdOf(item.resolved.ref);
@@ -92,6 +95,16 @@ const PersonChooser: React.FC<PersonChooserProps> = ({ item, onPick, onClose }) 
     if (rect.left + dx < margin) dx = margin - rect.left;
     setShift(dx);
   }, []);
+
+  // Measured below the chip, again when "Pick someone…" makes it taller: flip
+  // above the chip if it would reach the review's Apply bar (or the window
+  // bottom). Once above, it stays there; it grows upward from the chip.
+  useLayoutEffect(() => {
+    if (upward) return;
+    const rect = rootRef.current?.getBoundingClientRect();
+    const anchor = rootRef.current?.parentElement?.getBoundingClientRect();
+    if (rect && anchor && shouldOpenUpward(rect, anchor.top, 4)) setUpward(true);
+  }, [picking, upward]);
 
   // While open, Escape anywhere closes the chooser only. Capture phase, so the
   // review Dialog's document listener never sees it; a combobox with its list
@@ -127,7 +140,7 @@ const PersonChooser: React.FC<PersonChooserProps> = ({ item, onPick, onClose }) 
       role="dialog"
       aria-labelledby={headingId}
       style={shift === 0 ? undefined : { left: shift }}
-      className="absolute left-0 top-full z-20 mt-1 w-72 max-w-[calc(100vw-2rem)] bg-surface border border-line rounded-[14px] shadow-menu p-1.5"
+      className={`absolute left-0 ${upward ? 'bottom-full mb-1' : 'top-full mt-1'} z-20 w-72 max-w-[calc(100vw-2rem)] bg-surface border border-line rounded-[14px] shadow-menu p-1.5`}
     >
       <p id={headingId} className="px-2.5 py-1.5 text-[13px] text-ink-muted">
         {HEADINGS[kind](name)}
