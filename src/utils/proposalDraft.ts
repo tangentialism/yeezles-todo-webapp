@@ -204,6 +204,10 @@ export const rowReason = (draft: Draft, row: DraftRow): string | null => {
 export const isRowIncluded = (draft: Draft, row: DraftRow) => row.accepted && rowCheckable(draft, row);
 export const isNoteIncluded = (draft: Draft, note: DraftNote) => note.accepted && topicUsable(draft, note.key);
 
+/** An accepted people row counts only when it has something to send: an add not dropped, or a removal still kept. */
+const peopleRowCounts = (r: DraftPeopleRow): boolean =>
+  r.accepted && !r.change.missing && (r.add.some((p) => wireRef(p) !== null) || r.remove.some((m) => m.kept));
+
 /** "N of M accepted": rows, new topics, note edits and new todos. */
 export const counts = (draft: Draft) => {
   const newTopics = draft.topics.filter((t) => t.kind === 'new');
@@ -214,7 +218,7 @@ export const counts = (draft: Draft) => {
       newTopics.filter((t) => t.accepted).length +
       draft.notes.filter((n) => isNoteIncluded(draft, n)).length +
       draft.newTodos.filter((t) => t.accepted).length +
-      draft.peopleRows.filter((r) => r.accepted).length,
+      draft.peopleRows.filter(peopleRowCounts).length,
   };
 };
 

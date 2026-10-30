@@ -403,6 +403,24 @@ describe('ProposalReview', () => {
       expect(within(row).getByText('person is gone').closest('[role="alert"]')).toBeInTheDocument();
       expect(within(row).getByRole('button', { name: '? Dana' })).toBeInTheDocument();
       expect(applyButton()).toBeDisabled();
+      // Final review I1: the chip error marks its row, so the page scrolls to it.
+      expect(row).toHaveAttribute('data-draft-error', 'true');
+    });
+
+    it('a pre-P3 proposal shows no chips and no People section, and applies with the same payload (final review M5)', async () => {
+      applyProposal.mockResolvedValue({ proposal: { id: 7, status: 'applied' }, created_topics: [] });
+      const resolved = enabledAtLoad();
+      resolved.new_todos = [makeProposedTodo({ title: 'Buy grout', topic: 'Garden' })];
+      expect(resolved.people).toBeUndefined();
+      mockProposal(resolved);
+      renderAt();
+      expect(screen.queryByRole('region', { name: 'People' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^\? / })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^Remove / })).not.toBeInTheDocument();
+      await userEvent.click(applyButton());
+      const body = applyProposal.mock.calls[0][1];
+      expect(body).not.toHaveProperty('people_changes');
+      expect(body.new_todos[0]).not.toHaveProperty('people');
     });
   });
 });

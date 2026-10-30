@@ -96,6 +96,20 @@ describe('ProposalPersonChip labels', () => {
     expect(screen.getByText('Sam Lee')).toBeInTheDocument();
   });
 
+  it('a chosen Link pick renders linked (final review M2)', () => {
+    renderChip(draftRef(makeCandidateRef('link_candidate', 'Sam'), { chosen: { kind: 'link', person: makeTodoPerson({ id: 5, display_name: 'Sam Lee', peopler_id: null }), peopler_id: 77 } }));
+    expect(screen.getByText('Sam Lee').className).toContain('bg-accent-soft');
+  });
+
+  it.each([
+    ['create', draftRef(makeCandidateRef('new', 'Dana'), { chosen: { kind: 'create', name: 'Dana' } }), 'Remove Dana'],
+    ['person', draftRef(makeCandidateRef('ambiguous', 'Sam'), { chosen: { kind: 'person', person: makeTodoPerson({ id: 5, display_name: 'Sam Lee' }) } }), 'Remove Sam Lee'],
+    ['unchosen', draftRef(makeMatchedRef(1, 'Priya Raman')), 'Remove Priya Raman'],
+  ])('the x names the person, not the chip text: %s (final review M3)', (_k, item, name) => {
+    renderChip(item);
+    expect(screen.getByRole('button', { name })).toBeInTheDocument();
+  });
+
   it('the remove button calls onRemove', async () => {
     const { onRemove } = renderChip(draftRef(makeMatchedRef(1, 'Priya Raman')));
     await userEvent.click(screen.getByRole('button', { name: 'Remove Priya Raman' }));

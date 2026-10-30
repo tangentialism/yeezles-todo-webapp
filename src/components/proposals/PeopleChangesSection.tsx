@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import Checkbox from '../ui/Checkbox';
 import { chipBare, fieldError } from '../ui/styles';
 import type { Draft, DraftAction, DraftPeopleRow } from '../../utils/proposalDraft';
@@ -20,18 +20,18 @@ const RemovalChip: React.FC<{ row: DraftPeopleRow; index: number; dispatch: Reac
   return (
     <span
       role="group"
-      aria-label={removal.kept ? `Remove ${name}` : undefined}
+      aria-label={removal.kept ? `Remove ${name}` : `Keeping ${name}`}
       className={`${CHIP} ${chipBare} gap-1.5`}
     >
       <span className={removal.kept ? 'line-through text-ink-faint' : ''}>{name}</span>
       <button
         type="button"
         aria-pressed={!removal.kept}
-        aria-label={removal.kept ? `Keep ${name}` : `Remove ${name}`}
+        aria-label={`Keep ${name}`}
         onClick={() => dispatch({ type: 'toggleRemoval', key: row.key, personId: removal.person_id })}
         className="text-[11px] font-mono text-accent-ink hover:underline"
       >
-        {removal.kept ? 'keep' : 'undo'}
+        keep
       </button>
     </span>
   );
@@ -42,13 +42,14 @@ const PeopleRow: React.FC<{ row: DraftPeopleRow; dispatch: React.Dispatch<DraftA
   const { change } = row;
   const title = change.title ?? `Todo #${change.todo_id}`;
   const checked = row.accepted && !change.missing;
+  const checkboxRef = useRef<HTMLSpanElement>(null);
   return (
     <div
       role="listitem"
-      data-draft-error={row.error ? 'true' : undefined}
+      data-draft-error={row.error || row.add.some((p) => p.error) ? 'true' : undefined}
       className={`flex flex-wrap items-start gap-x-3 gap-y-2 py-3 border-b border-line ${checked ? '' : 'opacity-70'}`}
     >
-      <span className="pt-0.5">
+      <span ref={checkboxRef} className="pt-0.5">
         <Checkbox
           checked={checked}
           disabled={change.missing}
@@ -64,7 +65,12 @@ const PeopleRow: React.FC<{ row: DraftPeopleRow; dispatch: React.Dispatch<DraftA
         {!change.missing && (
           <div className="mt-1.5 flex flex-wrap items-start gap-1.5">
             {row.add.length > 0 && <span aria-hidden="true" className="h-7 inline-flex items-center text-ink-muted">+</span>}
-            <PersonRefChips owner={row.key} refs={row.add} dispatch={dispatch} />
+            <PersonRefChips
+              owner={row.key}
+              refs={row.add}
+              dispatch={dispatch}
+              fallbackFocus={() => checkboxRef.current?.querySelector('input')?.focus()}
+            />
             {row.remove.map((r, i) => <RemovalChip key={r.person_id} row={row} index={i} dispatch={dispatch} />)}
           </div>
         )}

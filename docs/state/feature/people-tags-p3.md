@@ -58,6 +58,22 @@ PR for `spec/people-tags-p3` (merge `origin/main` into it first).
   passed, 0 new failing names. `npm run build`: `tsc -b` + vite ok, "built in
   863ms", `dist/assets/index-NjQ_UTMX.js` 501.00 kB (150.57 kB gzip); only
   the existing >500 kB chunk-size warning.
+- Final-review fix wave (2026-10-29): 422 on a chip now marks its row
+  (`data-draft-error`) so the page scrolls to it; the removal toggle has a
+  stable `Keep <name>` name with `aria-pressed`; focus lands on the settled
+  chip's x after a pick, on the next chip (else "+ person", or the row
+  checkbox on people rows) after a Drop, and on "+ person" after an add; a
+  people row with nothing left to send no longer counts as accepted; a Link
+  pick renders linked; the x names the person; the "+ person" field closes on
+  Escape and outside click; a pre-P3 proposal test. Check script: TSC_OK,
+  lint 5 (baseline 5), 794 tests total, 794 passed, 0 new failing names.
+  The final review found Review Focus 2's premise out of date: unchecking a
+  new topic moves its todos to No topic and keeps them accepted (existing
+  Decision 6), so their people still count, which is correct.
+- Pre-P3 payloads: against the real backend, whose stored payload gives every
+  new todo `people: []` (yeezles-todo `src/models/Proposal.ts:142`), a pre-P3
+  proposal sends `people: []` per todo (same meaning, harmless). The identical
+  round trip holds only for payloads lacking the key (mocks, older rows).
 - Check script (outside the repo, never committed):
   `/Users/davidyee/Code/yeezles-todo-webapp-wt/people-tags-p3-check.sh`, a copy
   of P2's with paths and prefix changed; run it with no argument to compare,
@@ -100,6 +116,12 @@ session directly in the DB was refused earlier and must not be tried.
 P2's owed walkthrough (`docs/state/feature/people-tags.md`) is still owed too.
 
 ## Assumed / not run
+
+- Open for David: (a) "+ person" appears on pre-P3 proposals too; spec §6.3
+  (every row) vs Review Focus 1 ("no people line"); kept per spec. (b) With two
+  unlinked namesakes the link_candidate options "Link Sam Lee to Peopler" /
+  "Just tag Sam Lee" repeat identically; adding candidate detail would change
+  fixed plan copy, so it is David's call.
 
 - Walkthrough items 1-4 above: not run. The look of the chips, the chooser
   placement and the 390px fit are unseen in a real browser.

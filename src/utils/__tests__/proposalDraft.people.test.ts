@@ -344,8 +344,19 @@ describe('attachErrors people', () => {
 });
 
 describe('counts and summary with people', () => {
+  it('a people row with nothing left to send is not accepted, so Apply says Nothing accepted (final review M1)', () => {
+    const row = makeResolvedPeopleChange({ add: [makeMatchedRef(2, 'Lee')], remove: [{ person_id: 1, person: makeTodoPerson() }] });
+    const base = initDraft(makeResolved());
+    const only = { ...base, rows: [], notes: [], newTodos: [], topics: [] };
+    const d = draftOf(makeResolvedWithPeople({ people_changes: [row] }));
+    const dropped = draftReducer(draftReducer(d, { type: 'choosePerson', owner: 'pc:0', refKey: d.peopleRows[0].add[0].key, pick: { kind: 'drop' } }), { type: 'toggleRemoval', key: 'pc:0', personId: 1 });
+    expect(counts(dropped).accepted).toBe(counts(d).accepted - 1);
+    const lone = { ...only, peopleRows: dropped.peopleRows };
+    expect(applyBlocker(lone)).toBe('Nothing accepted. Reject instead.');
+  });
+
   it('counts people rows in total and accepted', () => {
-    const d = initDraft(makeResolvedWithPeople({ people_changes: [makeResolvedPeopleChange(), makeResolvedPeopleChange({ todo_id: 6, missing: true })] }));
+    const d = initDraft(makeResolvedWithPeople({ people_changes: [makeResolvedPeopleChange({ add: [makeMatchedRef(2, 'Lee')] }), makeResolvedPeopleChange({ todo_id: 6, missing: true })] }));
     const base = initDraft(makeResolved());
     expect(counts(d).total - counts(base).total).toBe(2);
     expect(counts(d).accepted - counts(base).accepted).toBe(1);
