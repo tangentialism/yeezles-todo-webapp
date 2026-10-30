@@ -30,6 +30,9 @@ const SearchPalette: React.FC<SearchPaletteProps> = ({ onClose }) => {
   const [editing, setEditing] = useState<Todo | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
+  // Scrolling the selection into view can make the browser fire a synthetic
+  // mousemove under a still pointer; only real movement may change selection.
+  const lastPointer = useRef<{ x: number; y: number } | null>(null);
   const listId = useId();
   const optionId = (id: number) => `${listId}-opt-${id}`;
 
@@ -52,6 +55,10 @@ const SearchPalette: React.FC<SearchPaletteProps> = ({ onClose }) => {
 
   const isDone = (todo: Todo) => overrides.get(todo.id) ?? todo.completed;
 
+  // Known limitation: toggleTodoCompletion fires its mutation without awaiting,
+  // so a failed toggle or an Undo in the "Completed" toast is invisible here and
+  // the override can disagree with the server. It resyncs when the edit dialog
+  // closes (overrides cleared + refetch) or the palette is reopened.
   const toggle = (todo: Todo) => {
     const done = isDone(todo);
     void toggleTodoCompletion({ ...todo, completed: done });
@@ -66,6 +73,7 @@ const SearchPalette: React.FC<SearchPaletteProps> = ({ onClose }) => {
   };
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.nativeEvent.isComposing) return; // IME: Enter confirms the composition
     if (event.key === 'ArrowDown') {
       event.preventDefault();
       setSelected(Math.min(index + 1, Math.max(results.length - 1, 0)));
@@ -142,7 +150,12 @@ const SearchPalette: React.FC<SearchPaletteProps> = ({ onClose }) => {
                 role="option"
                 aria-selected={isSelected}
                 onClick={() => setEditing(todo)}
-                onMouseMove={() => !isSelected && setSelected(i)}
+                onMouseMove={(e) => {
+                  const last = lastPointer.current;
+                  lastPointer.current = { x: e.clientX, y: e.clientY };
+                  if (last && last.x === e.clientX && last.y === e.clientY) return;
+                  if (!isSelected) setSelected(i);
+                }}
                 className={`flex items-start gap-3 px-2.5 py-2 rounded-[9px] cursor-pointer ${isSelected ? 'bg-hover' : ''}`}
               >
                 <button

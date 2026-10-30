@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import SearchPalette from '../SearchPalette';
 import * as AreaContextModule from '../../../contexts/AreaContext';
@@ -12,15 +12,20 @@ import type { Todo } from '../../../types/todo';
 vi.mock('../../../contexts/AreaContext');
 vi.mock('../../../hooks/useTodoStore');
 vi.mock('../../../hooks/useTodoSearch');
-vi.mock('../../EditTodoModal', () => ({
-  default: ({ todo, isOpen, onClose }: { todo: Todo | null; isOpen: boolean; onClose: () => void }) =>
-    isOpen && todo ? (
-      <div data-testid="edit-stub">
-        <span>{todo.title}</span>
-        <button onClick={onClose}>close-edit</button>
-      </div>
-    ) : null,
-}));
+vi.mock('../../EditTodoModal', async () => {
+  const { default: Dialog } = await import('../../ui/Dialog');
+  return {
+    default: ({ todo, isOpen, onClose }: { todo: Todo | null; isOpen: boolean; onClose: () => void }) =>
+      isOpen && todo ? (
+        <Dialog title="Edit" onClose={onClose}>
+          <div data-testid="edit-stub">
+            <span>{todo.title}</span>
+            <button onClick={onClose}>close-edit</button>
+          </div>
+        </Dialog>
+      ) : null,
+  };
+});
 
 const work = makeArea({ id: 2, name: 'Work', color: '#1E88E5' });
 const home = makeArea({ id: 1, name: 'Home' });
@@ -142,12 +147,50 @@ describe('SearchPalette', () => {
     expect(within(options()[0]).getByRole('button', { name: 'Mark done' })).toBeInTheDocument();
   });
 
-  it('Escape closes the palette, but only the edit dialog when it is open', async () => {
+  it('Escape closes the palette when no edit dialog is open', async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
     render(<SearchPalette onClose={onClose} />);
     await user.keyboard('{Escape}');
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('Escape closes only the edit dialog when it is open, then the palette', async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    render(<SearchPalette onClose={onClose} />);
+    await user.keyboard('{Enter}');
+    expect(screen.getByTestId('edit-stub')).toBeInTheDocument();
+    await user.keyboard('{Escape}');
+    expect(screen.queryByTestId('edit-stub')).toBeNull();
+    expect(refetch).toHaveBeenCalledTimes(1);
+    expect(onClose).not.toHaveBeenCalled();
+    await user.keyboard('{Escape}');
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores keys while an IME composition is in progress', () => {
+    render(<SearchPalette onClose={vi.fn()} />);
+    const input = screen.getByRole('combobox');
+    fireEvent.keyDown(input, { key: 'Enter', isComposing: true });
+    fireEvent.keyDown(input, { key: 'ArrowDown', isComposing: true });
+    expect(screen.queryByTestId('edit-stub')).toBeNull();
+    expect(options()[0]).toHaveAttribute('aria-selected', 'true');
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(screen.getByTestId('edit-stub')).toBeInTheDocument();
+  });
+
+  it('hover selects only when the pointer actually moved', () => {
+    render(<SearchPalette onClose={vi.fn()} />);
+    fireEvent.mouseMove(options()[1], { clientX: 10, clientY: 10 });
+    expect(options()[1]).toHaveAttribute('aria-selected', 'true');
+    fireEvent.keyDown(screen.getByRole('combobox'), { key: 'ArrowDown' });
+    expect(options()[2]).toHaveAttribute('aria-selected', 'true');
+    // Synthetic mousemove from scrolling: same coordinates, must not steal selection.
+    fireEvent.mouseMove(options()[1], { clientX: 10, clientY: 10 });
+    expect(options()[2]).toHaveAttribute('aria-selected', 'true');
+    fireEvent.mouseMove(options()[1], { clientX: 12, clientY: 10 });
+    expect(options()[1]).toHaveAttribute('aria-selected', 'true');
   });
 
   it('keeps the selection when the same ids come back, resets when they change', async () => {
