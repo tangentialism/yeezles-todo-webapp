@@ -22,6 +22,12 @@ interface PeopleFieldProps {
    * it never offers Create, because it must not create a person as a side effect.
    */
   compact?: boolean;
+  /**
+   * With `compact`: the matches render in the flow, under the input, instead
+   * of floating over what follows. For a field inside a popover (the person
+   * chooser), whose own options the floating list would cover.
+   */
+  inlineList?: boolean;
 }
 
 /** How many matches the typeahead asks for. */
@@ -83,7 +89,9 @@ const PeopleCombobox: React.FC<{
   autoFocus?: boolean;
   /** Offer matches only: no `Create "‹text›"` option, so nothing is created as a side effect. */
   matchOnly?: boolean;
-}> = ({ inputId, value, onChange, disabled, autoFocus = false, matchOnly = false }) => {
+  /** Render the list in the flow under the input, not floating (see {@link PeopleFieldProps.inlineList}). */
+  inlineList?: boolean;
+}> = ({ inputId, value, onChange, disabled, autoFocus = false, matchOnly = false, inlineList = false }) => {
   const listboxId = useId();
   const errorId = useId();
   const [text, setText] = useState('');
@@ -137,11 +145,11 @@ const PeopleCombobox: React.FC<{
       setListUpward(false);
       return;
     }
-    if (listUpward) return;
+    if (listUpward || inlineList) return;
     const list = listRef.current?.getBoundingClientRect();
     const input = inputRef.current?.getBoundingClientRect();
     if (list && input && shouldOpenUpward(list, input.top, 4)) setListUpward(true);
-  }, [expanded, options.length, listUpward]);
+  }, [expanded, options.length, listUpward, inlineList]);
 
   const reset = () => {
     setText('');
@@ -231,7 +239,7 @@ const PeopleCombobox: React.FC<{
           id={listboxId}
           role="listbox"
           aria-label="People"
-          className={`absolute left-0 right-0 ${listUpward ? 'bottom-full mb-1' : 'top-full mt-1'} z-10 max-h-72 overflow-y-auto bg-surface border border-line rounded-[14px] shadow-menu p-1.5`}
+          className={`${inlineList ? 'mt-1' : `absolute left-0 right-0 ${listUpward ? 'bottom-full mb-1' : 'top-full mt-1'} z-10`} max-h-72 overflow-y-auto bg-surface border border-line rounded-[14px] shadow-menu p-1.5`}
         >
           {options.map((option, index) => (
             <li
@@ -271,7 +279,7 @@ const PeopleCombobox: React.FC<{
  * chips and a typeahead that picks or creates a person. On phones the
  * typeahead opens in a full-screen "People" sheet that edits `value` live.
  */
-const PeopleField: React.FC<PeopleFieldProps> = ({ id, value, onChange, disabled = false, compact = false }) => {
+const PeopleField: React.FC<PeopleFieldProps> = ({ id, value, onChange, disabled = false, compact = false, inlineList = false }) => {
   const isPhone = useIsPhone();
   const [sheetOpen, setSheetOpen] = useState(false);
 
@@ -281,7 +289,7 @@ const PeopleField: React.FC<PeopleFieldProps> = ({ id, value, onChange, disabled
         <label htmlFor={id} className="sr-only">
           People
         </label>
-        <PeopleCombobox inputId={id} value={value} onChange={onChange} disabled={disabled} autoFocus matchOnly />
+        <PeopleCombobox inputId={id} value={value} onChange={onChange} disabled={disabled} autoFocus matchOnly inlineList={inlineList} />
       </div>
     );
   }

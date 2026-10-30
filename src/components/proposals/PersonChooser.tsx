@@ -96,14 +96,23 @@ const PersonChooser: React.FC<PersonChooserProps> = ({ item, onPick, onClose }) 
     setShift(dx);
   }, []);
 
-  // Measured below the chip, again when "Pick someone…" makes it taller: flip
-  // above the chip if it would reach the review's Apply bar (or the window
-  // bottom). Once above, it stays there; it grows upward from the chip.
+  // Measured below the chip, again whenever it grows ("Pick someone…", then
+  // its matches): flip above the chip if it would reach the review's Apply bar
+  // (or the window bottom). Once above, it stays there; it grows upward from the chip.
   useLayoutEffect(() => {
     if (upward) return;
-    const rect = rootRef.current?.getBoundingClientRect();
-    const anchor = rootRef.current?.parentElement?.getBoundingClientRect();
-    if (rect && anchor && shouldOpenUpward(rect, anchor.top, 4)) setUpward(true);
+    const root = rootRef.current;
+    if (!root) return;
+    const measure = () => {
+      const rect = root.getBoundingClientRect();
+      const anchor = root.parentElement?.getBoundingClientRect();
+      if (anchor && shouldOpenUpward(rect, anchor.top, 4)) setUpward(true);
+    };
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(root);
+    return () => observer.disconnect();
   }, [picking, upward]);
 
   // While open, Escape anywhere closes the chooser only. Capture phase, so the
@@ -153,6 +162,7 @@ const PersonChooser: React.FC<PersonChooserProps> = ({ item, onPick, onClose }) 
               <PeopleField
                 id={`${headingId}-people`}
                 compact
+                inlineList
                 value={[]}
                 onChange={(next) => {
                   const person = next[next.length - 1];
