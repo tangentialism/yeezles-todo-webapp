@@ -34,6 +34,10 @@ export default {
           DEFAULT: token('danger'),
           soft: token('danger-soft'),
         },
+        today: {
+          DEFAULT: token('today'),
+          soft: token('today-soft'),
+        },
         ok: token('ok'),
       },
       fontFamily: {
