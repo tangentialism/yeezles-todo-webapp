@@ -11,8 +11,10 @@ import PhoneTabBar from './PhoneTabBar';
 import { usePendingProposalCount, useTodayOpenCount } from '../hooks/useNavCounts';
 import { useTopicsHandoff } from '../hooks/useTopicsHandoff';
 import type { TopicsHandoff } from '../hooks/useTopicsHandoff';
-import { PlusIcon } from './ui/Icons';
-import { primaryButton } from './ui/styles';
+import SearchPalette from './search/SearchPalette';
+import { useSearchShortcut } from '../hooks/useSearchShortcut';
+import { PlusIcon, SearchIcon } from './ui/Icons';
+import { iconButton, primaryButton } from './ui/styles';
 import { NEW_AREA_HIGHLIGHT_MS, VIEW_TRANSITION_DURATION_MS } from '../constants';
 import Wordmark from './ui/Wordmark';
 
@@ -29,6 +31,9 @@ const Dashboard: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isPasskeyModalOpen, setIsPasskeyModalOpen] = useState(false);
   const [isTokenModalOpen, setIsTokenModalOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const openSearch = useCallback(() => setIsSearchOpen(true), []);
+  useSearchShortcut(openSearch, !isSearchOpen);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [newTodoId, setNewTodoId] = useState<number | null>(null);
   const [isViewTransitioning, setIsViewTransitioning] = useState(false);
@@ -103,6 +108,15 @@ const Dashboard: React.FC = () => {
           <div className="flex items-center gap-3">
             <button
               type="button"
+              aria-label="Search"
+              onClick={openSearch}
+              className={iconButton}
+            >
+              <SearchIcon className="w-[18px] h-[18px]" />
+            </button>
+
+            <button
+              type="button"
               onClick={() => setIsAddModalOpen(true)}
               className={`${primaryButton} pl-3.5 hidden sm:inline-flex`}
             >
@@ -155,6 +169,8 @@ const Dashboard: React.FC = () => {
       />
       </PersonNavigationContext.Provider>
       </TopicNavigationContext.Provider>
+
+      {isSearchOpen && <SearchPalette onClose={() => setIsSearchOpen(false)} />}
 
       {/* Add Todo Modal */}
       <AddTodoModal

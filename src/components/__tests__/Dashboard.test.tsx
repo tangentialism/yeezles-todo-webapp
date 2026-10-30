@@ -21,6 +21,18 @@ vi.mock('../ApiStatus', () => ({ default: () => null }));
 vi.mock('../Navigation', () => ({ default: () => null }));
 vi.mock('../ViewContainer', () => ({ default: () => null }));
 vi.mock('../AddTodoModal', () => ({ default: () => null }));
+vi.mock('../search/SearchPalette', () => ({
+  default: ({ onClose }: { onClose: () => void }) => (
+    <div data-testid="search-palette">
+      <button onClick={onClose}>Close stub</button>
+    </div>
+  ),
+  SearchPalette: ({ onClose }: { onClose: () => void }) => (
+    <div data-testid="search-palette">
+      <button onClick={onClose}>Close stub</button>
+    </div>
+  ),
+}));
 vi.mock('../../hooks/useNavCounts', () => ({ useTodayOpenCount: () => null, usePendingProposalCount: () => null }));
 vi.mock('../../hooks/useTopicsHandoff', () => ({ useTopicsHandoff: () => {} }));
 
@@ -87,5 +99,34 @@ describe('Dashboard - passkey management entry point', () => {
     await user.click(screen.getByRole('button', { name: 'Close' }));
 
     expect(screen.queryByText(/no passkeys yet/i)).not.toBeInTheDocument();
+  });
+});
+
+describe('Dashboard - search', () => {
+  it('opens the palette from the header Search button and closes it again', async () => {
+    const user = userEvent.setup();
+    renderDashboard();
+    expect(screen.queryByTestId('search-palette')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Search' }));
+    expect(screen.getByTestId('search-palette')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Close stub' }));
+    expect(screen.queryByTestId('search-palette')).not.toBeInTheDocument();
+  });
+
+  it('opens the palette with "/"', async () => {
+    const user = userEvent.setup();
+    renderDashboard();
+    await user.keyboard('/');
+    expect(screen.getByTestId('search-palette')).toBeInTheDocument();
+  });
+
+  it('keeps a single palette when Cmd-K is pressed while it is open', async () => {
+    const user = userEvent.setup();
+    renderDashboard();
+    await user.keyboard('/');
+    const event = new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true, cancelable: true });
+    document.body.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(false); // shortcut disabled while open
+    expect(screen.getAllByTestId('search-palette')).toHaveLength(1);
   });
 });

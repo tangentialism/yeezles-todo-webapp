@@ -107,14 +107,15 @@ export interface TodayView {
 
 /** Query parameters accepted by `GET /todos`. All fields are optional. */
 export interface TodoFilters {
-  completed?: boolean;
+  /** Open only (false), done only (true), or both ('all'). */
+  completed?: boolean | 'all';
   tags?: string[];
   /** Whether multiple tags must all match ('AND') or any match ('OR'). */
   tag_mode?: 'AND' | 'OR';
   due_date_from?: string;
   due_date_to?: string;
   search?: string;
-  sort_by?: 'created_at' | 'updated_at' | 'due_date' | 'completed_at';
+  sort_by?: 'created_at' | 'updated_at' | 'due_date' | 'completed_at' | 'relevance';
   sort_order?: 'ASC' | 'DESC';
   limit?: number;
   /** Request server-rendered HTML fields in the response. */

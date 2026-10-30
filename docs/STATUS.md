@@ -386,6 +386,18 @@ The Yeezles Todo Web Application is fully functional and deployed in production 
 - ⚠️ A proposal can review clean and 422 at apply (yeezles-todo #77); not pre-detected
 - 🔄 Browser walkthrough (this phase and phase 2's) still owed: no local sign-in path chosen
 
+#### Search pop-up ✅
+**Status:** ✅ Implemented. Unit-tested only; not yet seen in a browser (no local sign-in path chosen).
+- ✅ Pop-up (`SearchPalette`): opens with `/` outside text fields or `⌘K`/`Ctrl+K` anywhere (`useSearchShortcut`), or the 🔍 Search button, first in the header's right-hand group (before New and the account menu); full-screen on phones with the dialog's ✕ Close button
+- ✅ `useTodoSearch`: all areas, open and done, relevance order, 30 results, 200ms debounce
+- ✅ Matched text highlighted in titles (`highlightMatches`); rows show area, topic and people
+- ✅ Keyboard: ↑↓ select, Enter edits, ⌘/Ctrl+Enter toggles done, Esc closes (only the edit dialog if it is on top); the keys footer and the `⌘↵ Done` hint show on desktop only
+- ✅ Search results are never served from cache (no stale rows on reopen, no focus/reconnect refetch); the editor opens with the row's shown done state
+- ✅ Marking done keeps the pop-up open; the row flips in place
+- ⚠️ After marking done from the pop-up, the toast's Undo (or a failed save) is not reflected in the pop-up row until the edit dialog closes or the pop-up reopens (accepted)
+- 🔄 Browser walkthrough owed
+- ❌ Search history, suggestions, search combined with filters
+
 ---
 
 ### Routing
