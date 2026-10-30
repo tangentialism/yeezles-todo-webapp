@@ -12,7 +12,9 @@ merged as `a9c7d63`.
 
 ## Next action
 
-Task 4 of the plan (see the plan for its scope). Failing test first.
+David reviews. On approval: push `feature/people-tags-p3` and open the PR
+against `master`. After merge: bump the workspace pin, then open the workspace
+PR for `spec/people-tags-p3` (merge `origin/main` into it first).
 
 ## Verified
 
@@ -55,10 +57,55 @@ Task 4 of the plan (see the plan for its scope). Failing test first.
   `baseline` to rewrite. Baseline files `people-tags-p3-baseline-lint.txt` and
   `people-tags-p3-baseline-tests.txt` sit beside it.
 
+- Task 4 (2026-10-29): docs only. `docs/FEATURES.md` gains "People on
+  proposals (phase 3)" under People; `docs/STATUS.md` gains a "People on
+  proposals (phase 3b)" entry and the P3 line comes off the phase 2 "later"
+  list. Final check script: TSC_OK, lint 5 (baseline 5), 779 tests total, 779
+  passed, 0 new failing names. `npm run build`: `tsc -b` + vite ok, "built in
+  863ms", `dist/assets/index-NjQ_UTMX.js` 501.00 kB (150.57 kB gzip); only
+  the existing >500 kB chunk-size warning.
+
+## Deviations and rulings
+
+Controller rulings, as built:
+
+- P1: a pick from a `PersonCandidateDetail` becomes `TodoPerson { id, display_name, peopler_id, peopler_url: null }`.
+- P2: a people row whose change is `missing` inits unaccepted; `togglePeopleRow` is a no-op on it.
+- P3: `remove[].kept: true` means the removal stays in the proposal (default true); the UI "keep the person" toggle sets it false; serialize sends only `kept === true` removals.
+- P4: serialize leaves an accepted new todo's `people` key out unless the draft has refs or the stored todo had the key; `people_changes` is omitted when empty. Existing `proposalDraft.*` tests unchanged.
+- P5: `people_changes[i].remove[j]` / `.todo_id` errors set the row's error; `.add[j]` sets that ref's error; `refPaths` covers `new_todos[i].people[j]` and `people_changes[i].add[j]`.
+- P6: Create/New picks carry the original ref's `peopler_id`; New linked person always does.
+- P7: `addPerson` keys are `p:<owner>:a<nextSeq>`, bumping `draft.nextSeq`.
+- P8: `hasErrors` counts ref errors and people-row errors; `choosePerson` clears that ref's error.
+- P9: a removal whose person is null does not count toward the blocker; renders struck through as `person <id>`; still sent if kept.
+- P10: not separately recorded in the brief or context; no deviation noted.
+- P11: `PeopleField` `compact` is match-only; no Create, no POST /people from the review screen. New people are made at apply.
+- P12: Escape anywhere while the chooser is open closes only the chooser (capture-phase listener; defers to an open combobox list first).
+- P13: keep-removal is a separate toggle per removal chip; un-kept removals render unstruck; one leading "+" per additions group; no "+ person" on people rows.
+
+Other deviations:
+
+- Task 1: `PathIndex.people_changes` and `PathIndex.refPaths` are optional and omitted when empty (an existing serialize test `toEqual`s the whole pathIndex); read with `?.`.
+- Task 3: `refPerson` lives in `proposalDraft.ts`, not a component file, to satisfy react-refresh lint.
+
+## Walkthrough (Task 4 step 3): NOT RUN
+
+Reason for all four: David has not chosen a local sign-in path, and creating a
+session directly in the DB was refused earlier and must not be tried.
+
+1. NOT RUN: matched, by-name, confirmed-new and ambiguous person; chips render, chooser opens on the row.
+2. NOT RUN: choose a candidate; Apply enables; the applied todo carries the right people.
+3. NOT RUN: people-only proposal; People section, keep-removal toggle, apply.
+4. NOT RUN: chooser fits on screen at 390px (only unit-tested with a stubbed viewport).
+
+P2's owed walkthrough (`docs/state/feature/people-tags.md`) is still owed too.
+
 ## Assumed / not run
 
-- The plan's file and line references are as of plan time; `master` is the
-  same commit, so they should hold, but no task has checked them yet.
+- Walkthrough items 1-4 above: not run. The look of the chips, the chooser
+  placement and the 390px fit are unseen in a real browser.
+- Docs describe the built behaviour from the code and the task reports, not from
+  watching the app run.
 - Backend CI for #84 failed on both the PR and the `main` push run, on one
   test, `BackupManager.test.ts:385` (next scheduled backup 24.53 h, expected
   <= 24; both runs near 01:25 UTC, so it looks time-of-day dependent). Not
