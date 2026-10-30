@@ -10,15 +10,16 @@ Backend half: yeezles-todo #88, merged as `2af55ea`.
 
 ## Next action
 
-Task 3: connection store hook with the `PEOPLER_CONNECTION_CHANGED`
-broadcast. Then Tasks 4–8. Failing test first.
+Task 4: `PeoplerConnectionModal` and the `Peopler` account menu item, using
+`usePeoplerConnection` / `usePeoplerConnectionActions` and `peoplerErrorMessage`.
+Then Tasks 5–8. Failing test first.
 
 ## Sequence
 
 0. Worktree, baseline, check script, state file (this commit).
 1. [x] `peopler_link` on person shapes, `PeoplerConnection`/`PeoplerSearchResult`, `peoplerLinkOf`/`isFilledLink`, chip and list badge look. (`peoplerErrorMessage` is not in this task's brief; assumed to land with the task that first needs it.)
 2. [x] API client methods for the four `/peopler/*` routes, `peopler-check` and `peopler_id` on `PUT /people/:id`; the logging interceptor must not log a request body.
-3. Connection store hook with the `PEOPLER_CONNECTION_CHANGED` broadcast.
+3. [x] Connection store hook with the `PEOPLER_CONNECTION_CHANGED` broadcast (`usePeoplerStore`, `peoplerInvalidation`, `usePeopleStore` link-change invalidation, cross-tab case).
 4. `PeoplerConnectionModal` and the `Peopler` account menu item.
 5. Link check once per person page open; stale and dormant lines.
 6. Link and relink dialog (search, already-linked result, merge button), Unlink.
@@ -54,6 +55,7 @@ broadcast. Then Tasks 4–8. Failing test first.
 - `makeCandidate` has no `peopler_link` default (optional on candidates; a default of `'none'` would break P3's "in Peopler" tests). `PersonPane` untouched (Task 5).
 
 - Task 2 (2026-10-30): RED: `api.peopler.test.ts` 7 failed, 1 passed (`updatePerson` null already worked); `peoplerErrors.test.ts` unresolved (module missing). After the methods landed, the token-log test alone failed (old interceptor logged the whole error). GREEN: check script `TSC_OK`, lint 5 (baseline 5, new files clean), vitest 914 total, 914 passed, 0 failing names (+19). Request interceptor and other `logger.*` calls in `api.ts` log no body (login logs status only).
+- Task 3 (2026-10-30): RED: `usePeoplerStore.test.tsx` unresolved (module missing), `useCrossTabSync.peopler.test.tsx` 1 failed of 2 (the ignore-own-tab test passed), `usePeopleStore.test.tsx` 1 failed of 11. GREEN: check script `TSC_OK`, lint 5 (baseline 5, new files clean), vitest 933 total, 933 passed, 0 failing names (+19). `connect`/`disconnect` call the api directly with `useState` flags, so no mutation cache entry exists and the token appears in no cache or broadcast (asserted).
 
 ## Deviations
 
@@ -68,6 +70,7 @@ Contract differences found in Task 0 (merged API.md vs the plan's wire contract)
 - Also noted: the check skips Peopler for an `ok` link checked under 24 hours ago (without `force`), so a fresh page open often changes nothing; a `stale` link is always rechecked. An unstamped link reads `ok` until its first check.
 - `PEOPLER_UNAVAILABLE` 503 is documented for the `/peopler/*` routes; `PEOPLER_NOT_CONNECTED` 400 can also come from a `{ peopler_id }` ref without a name.
 - Task 2: the response interceptor now logs one line, `API Error:` METHOD url status message, and nothing else (no error object, config or response data), for every request. The old extra lines `Response status:` and `Request configuration error:` are gone. No existing test asserted the old log shape, so none changed.
+- Task 3: `usePeoplerCheckOnOpen` takes the person's `peopler_link` from the argument, skips `none`, and treats an absent cached person as a changed link (invalidates and broadcasts). `PEOPLER_CONNECTION_CHANGED` also invalidates `['peoplerConnection']` with `refetchType: 'active'`.
 - Plan copy deviates from the spec's "connect in Settings": the webapp has no Settings (Global Constraints).
 
 ## Assumed

@@ -118,6 +118,20 @@ describe('usePeopleMutations', () => {
     expect(aliasKeys).not.toContain('["topicTodos"]');
   });
 
+  it('a link or unlink (peopler_id key, even null) also refreshes todo and topic views; a plain alias edit does not', async () => {
+    api.updatePerson.mockResolvedValue(makePerson({ id: 3 }));
+    for (const updates of [{ peopler_id: 7 }, { peopler_id: null }]) {
+      const { spy, result } = setup();
+      await mutate(() => result.current.updatePerson(3, updates));
+      const keys = keysOf(spy);
+      for (const k of ['["people"]', '["todos"]', '["todayView"]', '["topicTodos"]', '["topics"]']) expect(keys).toContain(k);
+    }
+    const { spy, result } = setup();
+    await mutate(() => result.current.updatePerson(3, { aliases: ['P'] }));
+    expect(keysOf(spy)).not.toContain('["todos"]');
+    expect(keysOf(spy)).not.toContain('["topicTodos"]');
+  });
+
   it('deletePerson invalidates people, todo and topic views and broadcasts the deleted id', async () => {
     api.deletePerson.mockResolvedValue(undefined);
     const { spy, result } = setup();

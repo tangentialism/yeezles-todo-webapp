@@ -24,6 +24,7 @@ export type SyncMessageType =
   | 'PERSON_UPDATED'
   | 'PERSON_DELETED'
   | 'PERSON_MERGED'
+  | 'PEOPLER_CONNECTION_CHANGED'
   | 'PROPOSAL_RESOLVED';
 
 /**

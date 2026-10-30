@@ -83,7 +83,8 @@ export const usePeopleMutations = () => {
     mutationFn: ({ id, updates }: { id: number; updates: UpdatePersonRequest }) => api.updatePerson(id, updates),
     retry: false,
     onSuccess: (person: Person, { updates }) => {
-      if (updates.display_name !== undefined) {
+      // A rename moves names on every row; a link change moves the chips' link state
+      if (updates.display_name !== undefined || 'peopler_id' in updates) {
         invalidateEverywhere();
       } else {
         invalidatePeopleViews(queryClient);
