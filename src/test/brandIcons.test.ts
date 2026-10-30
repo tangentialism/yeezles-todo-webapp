@@ -21,17 +21,19 @@ const ihdr = (p: string) => {
 };
 
 /**
- * Alpha of pixel (0,0) of an 8-bit RGBA PNG. Every PNG row filter predicts the
- * first pixel of the first row from zeros, so its bytes are stored raw.
+ * Channels of pixel (0,0) of an 8-bit PNG (RGB or RGBA). Every PNG row filter
+ * predicts the first pixel of the first row from zeros, so its bytes are stored raw.
  */
-const cornerAlpha = (p: string) => {
+const cornerPixel = (p: string) => {
   const buf = readFileSync(pub(p));
   const idat: Buffer[] = [];
   for (let off = 8; off < buf.length; off += 12 + buf.readUInt32BE(off)) {
     if (buf.toString('ascii', off + 4, off + 8) === 'IDAT') idat.push(buf.subarray(off + 8, off + 8 + buf.readUInt32BE(off)));
   }
-  return inflateSync(Buffer.concat(idat))[4]; // [0] is the row's filter byte, then R G B A
+  const channels = ihdr(p).colorType === 6 ? 4 : 3;
+  return [...inflateSync(Buffer.concat(idat)).subarray(1, 1 + channels)]; // [0] is the row's filter byte
 };
+const cornerAlpha = (p: string) => cornerPixel(p)[3];
 
 const APPLE_TOUCH = '/icons/apple-touch-icon-180x180.png';
 
@@ -44,6 +46,8 @@ describe('brand icons', () => {
     expect(maskable.map(({ src, sizes }) => ({ src, sizes }))).toEqual([
       { src: '/icons/maskable-192x192.png', sizes: '192x192' },
       { src: '/icons/maskable-512x512.png', sizes: '512x512' },
+      // WebKit recommends a 1024px full-bleed icon for Safari's Add to Dock
+      { src: '/icons/maskable-1024x1024.png', sizes: '1024x1024' },
     ]);
     expect(manifest.background_color).toBe('#F6F8FA');
     expect(manifest.theme_color).toBe('#F6F8FA');
@@ -74,6 +78,12 @@ describe('brand icons', () => {
   it('apple-touch and maskable icons have no alpha', () => {
     const flat = [APPLE_TOUCH, ...manifest.icons.filter((i) => i.purpose === 'maskable').map((i) => i.src)];
     for (const src of flat) expect({ src, colorType: ihdr(src).colorType }).toEqual({ src, colorType: 2 });
+  });
+
+  // The app icon is the mark on white (David, 2026-10-30): the dark tile muddied at dock sizes
+  it('apple-touch and maskable icons are white tiles', () => {
+    const flat = [APPLE_TOUCH, ...manifest.icons.filter((i) => i.purpose === 'maskable').map((i) => i.src)];
+    for (const src of flat) expect({ src, corner: cornerPixel(src) }).toEqual({ src, corner: [255, 255, 255] });
   });
 
   it('rounded icons keep alpha', () => {
