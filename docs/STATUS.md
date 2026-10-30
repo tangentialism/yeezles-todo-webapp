@@ -373,8 +373,18 @@ The Yeezles Todo Web Application is fully functional and deployed in production 
 - ✅ Person chips on todo rows (filled when linked to Peopler, outlined when bare); a click opens the person
 - ✅ People field with typeahead and Create in the add and edit forms; full-screen sheet on phones
 - ✅ Rename and aliases, merge, delete; chips and lists refresh in this tab and other tabs
-- ❌ MCP and proposals (P3), Peopler linking (P4), suggestions (P5): later phases
+- ❌ Peopler linking (P4), suggestions (P5): later phases
 - ❌ People field in the external-create page (browser plugins, share)
+
+#### People on proposals (phase 3b) ✅
+**Status:** ✅ Webapp built (branch `feature/people-tags-p3`, against backend yeezles-todo #84, merged `a9c7d63`). Unit-tested with mocks only; the browser walkthrough has not been run and no real backend has been called (see `docs/state/feature/people-tags-p3.md`).
+- ✅ People chips per state on proposed todos, with the chooser (create, pick, candidates, link, drop)
+- ✅ "+ person" on a proposed todo (existing people only; new people are made at apply)
+- ✅ People section for `people_changes`: additions, per-removal keep toggle, missing todos
+- ✅ Apply blocker "N people need you."
+- ✅ Exact-ref serialize and 422 errors landing on the chip or row
+- ⚠️ A proposal can review clean and 422 at apply (yeezles-todo #77); not pre-detected
+- 🔄 Browser walkthrough (this phase and phase 2's) still owed: no local sign-in path chosen
 
 ---
 

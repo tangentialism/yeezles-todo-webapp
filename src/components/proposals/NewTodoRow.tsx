@@ -1,9 +1,13 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Checkbox from '../ui/Checkbox';
 import { fieldError } from '../ui/styles';
 import type { Draft, DraftAction, DraftNewTodo } from '../../utils/proposalDraft';
 import { formatShortDate } from '../../utils/date';
+import PeopleField from '../people/PeopleField';
+import PersonRefChips from './PersonRefChips';
+import { refPerson } from '../../utils/proposalDraft';
 import TopicTargetSelect from './TopicTargetSelect';
+import type { TodoPerson } from '../../types/person';
 
 /** Props for {@link NewTodoRow}. */
 interface NewTodoRowProps {
@@ -22,10 +26,27 @@ const dueLabel = (due: string): string => formatShortDate(due.length === 10 ? `$
  */
 const NewTodoRow: React.FC<NewTodoRowProps> = ({ row, draft, dispatch }) => {
   const { todo } = row;
+  const [adding, setAdding] = useState(false);
+  const addButtonRef = useRef<HTMLButtonElement>(null);
+  const fieldRef = useRef<HTMLDivElement>(null);
+  const focusAdd = () => addButtonRef.current?.focus();
+
+  // The compact field closes on an outside click (Escape is handled on the field itself).
+  useEffect(() => {
+    if (!adding) return;
+    const onDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (fieldRef.current?.contains(target) || addButtonRef.current?.contains(target)) return;
+      setAdding(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [adding]);
+  const tagged = row.people.map(refPerson).filter((p): p is TodoPerson => p !== null);
   return (
     <div
       role="listitem"
-      data-draft-error={row.error ? 'true' : undefined}
+      data-draft-error={row.error || row.people.some((p) => p.error) ? 'true' : undefined}
       className={`flex flex-wrap items-start gap-x-3 gap-y-2 py-3 border-b border-line ${row.accepted ? '' : 'opacity-70'}`}
     >
       <span className="pt-0.5">
@@ -44,6 +65,43 @@ const NewTodoRow: React.FC<NewTodoRowProps> = ({ row, draft, dispatch }) => {
           <div className="flex gap-3 font-mono text-[12.5px] text-ink-muted">
             {todo.due_date && <span>{`due ${dueLabel(todo.due_date)}`}</span>}
             {todo.is_today && <span>Today</span>}
+          </div>
+        )}
+        <div className="mt-1.5 flex flex-wrap items-start gap-1.5">
+          <PersonRefChips owner={row.key} refs={row.people} dispatch={dispatch} fallbackFocus={focusAdd} />
+          <button
+            ref={addButtonRef}
+            type="button"
+            aria-expanded={adding}
+            onClick={() => setAdding((open) => !open)}
+            className="inline-flex items-center h-7 px-2.5 rounded-full border border-dashed border-line-strong text-[13px] leading-none text-ink-muted hover:text-ink"
+          >
+            + person
+          </button>
+        </div>
+        {adding && (
+          <div
+            ref={fieldRef}
+            className="mt-1.5 max-w-xs"
+            onKeyDown={(event) => {
+              // The combobox keeps its own Escape while its list is open; otherwise close the field, not the review dialog.
+              if (event.key !== 'Escape') return;
+              event.preventDefault();
+              event.stopPropagation();
+              setAdding(false);
+              focusAdd();
+            }}
+          >
+            <PeopleField
+              id={`add-person-${row.key}`}
+              compact
+              value={tagged}
+              onChange={(next) => {
+                dispatch({ type: 'addPerson', owner: row.key, person: next[next.length - 1] });
+                setAdding(false);
+                focusAdd();
+              }}
+            />
           </div>
         )}
         {row.missingTopic && (

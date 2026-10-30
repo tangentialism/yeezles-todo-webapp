@@ -235,3 +235,37 @@ describe('PeopleField on phones', () => {
     expect(screen.getByRole('dialog', { name: 'New todo' })).toBeInTheDocument();
   });
 });
+
+describe('PeopleField compact', () => {
+  it('renders only the combobox and appends the one picked person', async () => {
+    const onChange = vi.fn();
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <PeopleField id="compact" compact value={[chosen]} onChange={onChange} />
+      </QueryClientProvider>
+    );
+    expect(screen.queryByText('Pri Chosen')).not.toBeInTheDocument();
+    expect(screen.queryByText('optional')).not.toBeInTheDocument();
+    await userEvent.type(screen.getByRole('combobox'), 'pri');
+    expect(await screen.findByRole('option', { name: 'Priya Raman' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: /Create/ })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('option', { name: 'Priya Raman' }));
+    expect(onChange).toHaveBeenCalledWith([
+      chosen,
+      { id: 1, display_name: 'Priya Raman', peopler_id: 42, peopler_url: 'https://peopler.example/p/42' },
+    ]);
+  });
+
+  it('compact never offers Create, even with no match', async () => {
+    api.getPeople.mockResolvedValue([]);
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <PeopleField id="compact" compact value={[]} onChange={vi.fn()} />
+      </QueryClientProvider>
+    );
+    await userEvent.type(screen.getByRole('combobox'), 'nobody');
+    await waitFor(() => expect(api.getPeople).toHaveBeenCalled());
+    expect(screen.queryByRole('option')).not.toBeInTheDocument();
+    expect(api.createPerson).not.toHaveBeenCalled();
+  });
+});

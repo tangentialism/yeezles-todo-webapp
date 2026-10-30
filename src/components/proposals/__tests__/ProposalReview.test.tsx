@@ -7,11 +7,15 @@ import * as AreaContextModule from '../../../contexts/AreaContext';
 import * as ProposalStore from '../../../hooks/useProposalStore';
 import { ApiError } from '../../../services/apiError';
 import { areaContextValue, makeArea } from '../../../test/topicFactories';
-import { makeProposedTodo, makeResolved } from '../../../test/proposalFactories';
+import { makeCandidate, makeCandidateRef, makeProposedTodo, makeResolved, makeResolvedWithPeople } from '../../../test/proposalFactories';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ResolvedProposal } from '../../../types/proposal';
 
 vi.mock('../../../contexts/AreaContext');
 vi.mock('../../../hooks/useProposalStore');
+vi.mock('../../../hooks/useApi', () => ({ useApi: () => ({ getPeople: vi.fn().mockResolvedValue([]), createPerson: vi.fn() }) }));
+vi.mock('../../../hooks/useCrossTabSync', () => ({ useCrossTabSync: () => ({ broadcast: vi.fn() }) }));
+vi.mock('../../../hooks/useIsPhone', () => ({ useIsPhone: () => false }));
 const showToast = vi.fn();
 vi.mock('../../../contexts/ToastContext', () => ({ useToast: () => ({ showToast, hideToast: vi.fn() }) }));
 
@@ -54,12 +58,14 @@ const Home = () => {
 
 const renderAt = (path = '/topics/proposals/7') =>
   render(
-    <MemoryRouter initialEntries={[path]}>
-      <Routes>
-        <Route path="/topics/proposals/:id" element={<ProposalReview />} />
-        <Route path="/" element={<Home />} />
-      </Routes>
-    </MemoryRouter>
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route path="/topics/proposals/:id" element={<ProposalReview />} />
+          <Route path="/" element={<Home />} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>
   );
 
 const applyButton = () => screen.getByRole('button', { name: /^Apply/ });
@@ -363,5 +369,58 @@ describe('ProposalReview', () => {
     mockProposal(resolved);
     renderAt();
     expect(within(screen.getByRole('region', { name: 'Garden' })).getByText('Buy grout')).toBeInTheDocument();
+  });
+
+  describe('people', () => {
+    const withAmbiguous = (): ResolvedProposal => {
+      const base = enabledAtLoad();
+      const people = makeResolvedWithPeople({ new_todos: [[{ ...makeCandidateRef('ambiguous', 'Sam'), candidates: [makeCandidate({ id: 5, display_name: 'Sam Lee' }), makeCandidate({ id: 6, display_name: 'Sam Ortiz' })] }]] });
+      return { ...base, new_todos: people.new_todos, people: people.people };
+    };
+
+    it('an ambiguous ref blocks Apply; choosing a candidate sends it', async () => {
+      applyProposal.mockResolvedValue({ proposal: { id: 7, status: 'applied' }, created_topics: [] });
+      mockProposal(withAmbiguous());
+      renderAt();
+      expect(applyButton()).toBeDisabled();
+      expect(screen.getByText('1 person needs you.')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: '? Sam' }));
+      await userEvent.click(screen.getByRole('button', { name: /Sam Lee/ }));
+      expect(applyButton()).toBeEnabled();
+      await userEvent.click(applyButton());
+      expect(applyProposal.mock.calls[0][1].new_todos[0].people).toEqual([{ person_id: 5 }]);
+    });
+
+    it('a 422 at new_todos[0].people[0] shows an inline alert on the chip and reopens it', async () => {
+      applyProposal.mockResolvedValue({ proposal: { id: 7, status: 'applied' }, created_topics: [] });
+      applyProposal.mockRejectedValueOnce(new ApiError(422, 'PROPOSAL_INVALID', 'x', [{ path: 'new_todos[0].people[0]', reason: 'person is gone' }]));
+      const resolved = enabledAtLoad();
+      const people = makeResolvedWithPeople({ new_todos: [[{ ...makeCandidateRef('new_confirmed', 'Dana') }]] });
+      mockProposal({ ...resolved, new_todos: people.new_todos, people: people.people });
+      renderAt();
+      await userEvent.click(applyButton());
+      const row = screen.getByText('New todo 0').closest('[role="listitem"]') as HTMLElement;
+      expect(within(row).getByText('person is gone').closest('[role="alert"]')).toBeInTheDocument();
+      expect(within(row).getByRole('button', { name: '? Dana' })).toBeInTheDocument();
+      expect(applyButton()).toBeDisabled();
+      // Final review I1: the chip error marks its row, so the page scrolls to it.
+      expect(row).toHaveAttribute('data-draft-error', 'true');
+    });
+
+    it('a pre-P3 proposal shows no chips and no People section, and applies with the same payload (final review M5)', async () => {
+      applyProposal.mockResolvedValue({ proposal: { id: 7, status: 'applied' }, created_topics: [] });
+      const resolved = enabledAtLoad();
+      resolved.new_todos = [makeProposedTodo({ title: 'Buy grout', topic: 'Garden' })];
+      expect(resolved.people).toBeUndefined();
+      mockProposal(resolved);
+      renderAt();
+      expect(screen.queryByRole('region', { name: 'People' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^\? / })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^Remove / })).not.toBeInTheDocument();
+      await userEvent.click(applyButton());
+      const body = applyProposal.mock.calls[0][1];
+      expect(body).not.toHaveProperty('people_changes');
+      expect(body.new_todos[0]).not.toHaveProperty('people');
+    });
   });
 });

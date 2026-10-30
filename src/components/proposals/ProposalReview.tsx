@@ -18,6 +18,7 @@ import { dangerTextButton, ghostButton, primaryButton } from '../ui/styles';
 import { ViewError, ViewLoading } from '../ViewChrome';
 import ProposalTopicSection from './ProposalTopicSection';
 import NoTopicSection from './NoTopicSection';
+import PeopleChangesSection from './PeopleChangesSection';
 import UnassignedTab from './UnassignedTab';
 import ReadOnlyProposal from './ReadOnlyProposal';
 
@@ -255,6 +256,7 @@ const ProposalReview: React.FC = () => {
           <>
             {sections(draft).map((topic) => <ProposalTopicSection key={topic.key} topic={topic} draft={draft} dispatch={dispatch} />)}
             {noTopicTodos(draft).length > 0 && <NoTopicSection draft={draft} dispatch={dispatch} />}
+            {draft.peopleRows.length > 0 && <PeopleChangesSection draft={draft} dispatch={dispatch} />}
           </>
         ) : (
           <UnassignedTab draft={draft} dispatch={dispatch} />

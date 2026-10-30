@@ -15,6 +15,12 @@ interface PeopleFieldProps {
   value: TodoPerson[];
   onChange: (next: TodoPerson[]) => void;
   disabled?: boolean;
+  /**
+   * Only the combobox: no chips and no visible label row (it keeps a screen-reader
+   * label). For "+ person" affordances that take one pick at a time. Match-only:
+   * it never offers Create, because it must not create a person as a side effect.
+   */
+  compact?: boolean;
 }
 
 /** How many matches the typeahead asks for. */
@@ -74,7 +80,9 @@ const PeopleCombobox: React.FC<{
   onChange: (next: TodoPerson[]) => void;
   disabled: boolean;
   autoFocus?: boolean;
-}> = ({ inputId, value, onChange, disabled, autoFocus = false }) => {
+  /** Offer matches only: no `Create "‹text›"` option, so nothing is created as a side effect. */
+  matchOnly?: boolean;
+}> = ({ inputId, value, onChange, disabled, autoFocus = false, matchOnly = false }) => {
   const listboxId = useId();
   const errorId = useId();
   const [text, setText] = useState('');
@@ -110,7 +118,7 @@ const PeopleCombobox: React.FC<{
   const options: Option[] = trimmed
     ? [
         ...matches.filter((p) => !chosenIds.has(p.id)).map((p) => ({ kind: 'match' as const, person: toTodoPerson(p) })),
-        { kind: 'create' },
+        ...(matchOnly ? [] : [{ kind: 'create' as const }]),
       ]
     : [];
   const expanded = open && options.length > 0 && !atLimit && !disabled;
@@ -243,9 +251,20 @@ const PeopleCombobox: React.FC<{
  * chips and a typeahead that picks or creates a person. On phones the
  * typeahead opens in a full-screen "People" sheet that edits `value` live.
  */
-const PeopleField: React.FC<PeopleFieldProps> = ({ id, value, onChange, disabled = false }) => {
+const PeopleField: React.FC<PeopleFieldProps> = ({ id, value, onChange, disabled = false, compact = false }) => {
   const isPhone = useIsPhone();
   const [sheetOpen, setSheetOpen] = useState(false);
+
+  if (compact) {
+    return (
+      <div>
+        <label htmlFor={id} className="sr-only">
+          People
+        </label>
+        <PeopleCombobox inputId={id} value={value} onChange={onChange} disabled={disabled} autoFocus matchOnly />
+      </div>
+    );
+  }
 
   if (!isPhone) {
     return (

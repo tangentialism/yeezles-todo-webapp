@@ -1,6 +1,6 @@
 import React from 'react';
 import type { ResolvedProposal, TopicChangesPayload } from '../../types/proposal';
-import { normName } from '../../utils/proposalDraft';
+import { normName, summarizeAccepted } from '../../utils/proposalDraft';
 
 /** React key of the synthetic No topic group, so it can't collide with a real topic named "No topic". */
 const NO_TOPIC_KEY = '__none__';
@@ -50,6 +50,9 @@ const ReadOnlyProposal: React.FC<ReadOnlyProposalProps> = ({ resolved, payload, 
 
   return (
     <div className={muted ? 'opacity-60' : ''}>
+      {(payload.people_changes?.length ?? 0) > 0 && (
+        <p className="pt-4 text-[13px] text-ink-muted">{summarizeAccepted(payload)}</p>
+      )}
       {shown.map((g) => (
         <section key={g === noTopic ? NO_TOPIC_KEY : normName(g.name)} aria-label={g.name} className="pt-6">
           <h2 className="flex items-center gap-3 pb-2 border-b border-line text-[17px] font-medium text-ink">

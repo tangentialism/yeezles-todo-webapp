@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React, { useReducer } from 'react';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -7,8 +8,17 @@ import UnassignedTab from '../UnassignedTab';
 import ReadOnlyProposal from '../ReadOnlyProposal';
 import NoTopicSection from '../NoTopicSection';
 import { draftReducer, initDraft, noTopicTodos, sections } from '../../../utils/proposalDraft';
-import { makeProposedTodo, makeResolved } from '../../../test/proposalFactories';
+import PeopleChangesSection from '../PeopleChangesSection';
+import {
+  makeCandidate, makeCandidateRef, makeMatchedRef, makeProposedTodo, makeResolved, makeResolvedPeopleChange, makeResolvedWithPeople,
+} from '../../../test/proposalFactories';
+import { makePerson, makeTodoPerson } from '../../../test/personFactories';
 import type { ResolvedProposal } from '../../../types/proposal';
+
+const peopleApi = vi.hoisted(() => ({ getPeople: vi.fn(), createPerson: vi.fn() }));
+vi.mock('../../../hooks/useApi', () => ({ useApi: () => peopleApi }));
+vi.mock('../../../hooks/useCrossTabSync', () => ({ useCrossTabSync: () => ({ broadcast: vi.fn() }) }));
+vi.mock('../../../hooks/useIsPhone', () => ({ useIsPhone: () => false }));
 
 /** Renders every section and the Unassigned tab over a live reducer. */
 const Harness: React.FC<{ resolved?: ResolvedProposal }> = ({ resolved }) => {
@@ -17,6 +27,7 @@ const Harness: React.FC<{ resolved?: ResolvedProposal }> = ({ resolved }) => {
     <>
       {sections(draft).map((topic) => <ProposalTopicSection key={topic.key} topic={topic} draft={draft} dispatch={dispatch} />)}
       {noTopicTodos(draft).length > 0 && <NoTopicSection draft={draft} dispatch={dispatch} />}
+      {draft.peopleRows.length > 0 && <PeopleChangesSection draft={draft} dispatch={dispatch} />}
       <UnassignedTab draft={draft} dispatch={dispatch} />
     </>
   );
@@ -213,5 +224,171 @@ describe('ReadOnlyProposal created todos', () => {
     expect(screen.getAllByRole('region', { name: 'No topic' })).toHaveLength(2);
     expect(spy.mock.calls.filter((c) => String(c[0]).includes('same key'))).toEqual([]);
     spy.mockRestore();
+  });
+});
+
+
+const renderPeople = (resolved: ResolvedProposal) =>
+  render(
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <Harness resolved={resolved} />
+    </QueryClientProvider>
+  );
+
+describe('people on review rows', () => {
+  it('a new todo shows one chip per ref and a + person button that opens the compact field', async () => {
+    peopleApi.getPeople.mockResolvedValue([makePerson({ id: 9, display_name: 'Nina Nine' })]);
+    renderPeople(makeResolvedWithPeople({ new_todos: [[makeMatchedRef(1, 'Priya Raman'), makeCandidateRef('ambiguous', 'Sam')]] }));
+    const row = screen.getByText('New todo 0').closest('[role="listitem"]') as HTMLElement;
+    expect(within(row).getByText('Priya Raman')).toBeInTheDocument();
+    expect(within(row).getByRole('button', { name: '? Sam' })).toBeInTheDocument();
+    await userEvent.click(within(row).getByRole('button', { name: '+ person' }));
+    await userEvent.type(within(row).getByRole('combobox', { name: 'People' }), 'Nin');
+    await userEvent.click(await within(row).findByRole('option', { name: /Nina Nine/ }));
+    expect(within(row).getByText('Nina Nine')).toBeInTheDocument();
+  });
+});
+
+describe('keyboard focus after a chip action (final review I3)', () => {
+  it('after a pick, focus lands on the settled chip remove button', async () => {
+    const sam = { ...makeCandidateRef('ambiguous', 'Sam'), candidates: [makeCandidate({ id: 5, display_name: 'Sam Lee' })] };
+    renderPeople(makeResolvedWithPeople({ new_todos: [[sam]] }));
+    await userEvent.click(screen.getByRole('button', { name: '? Sam' }));
+    await userEvent.click(screen.getByRole('button', { name: /Sam Lee/ }));
+    expect(screen.getByRole('button', { name: 'Remove Sam Lee' })).toHaveFocus();
+  });
+
+  it('after a Drop, focus lands on the next chip in the row', async () => {
+    renderPeople(makeResolvedWithPeople({ new_todos: [[makeCandidateRef('new', 'Dana'), makeMatchedRef(1, 'Priya Raman')]] }));
+    await userEvent.click(screen.getByRole('button', { name: '? Dana' }));
+    await userEvent.click(screen.getByRole('button', { name: /Drop/ }));
+    expect(screen.getByRole('button', { name: 'Remove Priya Raman' })).toHaveFocus();
+  });
+
+  it('after a Drop on the last chip, focus lands on + person', async () => {
+    renderPeople(makeResolvedWithPeople({ new_todos: [[makeCandidateRef('new', 'Dana')]] }));
+    await userEvent.click(screen.getByRole('button', { name: '? Dana' }));
+    await userEvent.click(screen.getByRole('button', { name: /Drop/ }));
+    expect(screen.getByRole('button', { name: '+ person' })).toHaveFocus();
+  });
+
+  it('after the x on a settled chip, focus moves on rather than falling to the page', async () => {
+    renderPeople(makeResolvedWithPeople({ new_todos: [[makeMatchedRef(1, 'Priya Raman')]] }));
+    await userEvent.click(screen.getByRole('button', { name: 'Remove Priya Raman' }));
+    expect(screen.getByRole('button', { name: '+ person' })).toHaveFocus();
+  });
+
+  it('after a Drop on a people row, focus lands on the row checkbox', async () => {
+    renderPeople(makeResolvedWithPeople({ people_changes: [makeResolvedPeopleChange({ title: 'Mulch beds', add: [makeCandidateRef('new', 'Dana')] })] }));
+    await userEvent.click(screen.getByRole('button', { name: '? Dana' }));
+    await userEvent.click(screen.getByRole('button', { name: /Drop/ }));
+    expect(screen.getByRole('checkbox', { name: 'Change people on "Mulch beds"' })).toHaveFocus();
+  });
+
+  it('after adding a person, focus returns to + person', async () => {
+    peopleApi.getPeople.mockResolvedValue([makePerson({ id: 9, display_name: 'Nina Nine' })]);
+    renderPeople(makeResolvedWithPeople({ new_todos: [[]] }));
+    await userEvent.click(screen.getByRole('button', { name: '+ person' }));
+    await userEvent.type(screen.getByRole('combobox', { name: 'People' }), 'Nin');
+    await userEvent.click(await screen.findByRole('option', { name: /Nina Nine/ }));
+    expect(screen.getByRole('button', { name: '+ person' })).toHaveFocus();
+  });
+});
+
+describe('the + person field closes (final review M4)', () => {
+  it('Escape closes it, returns focus to + person, and does not reach the dialog', async () => {
+    const onKey = vi.fn();
+    renderPeople(makeResolvedWithPeople({ new_todos: [[]] }));
+    document.addEventListener('keydown', onKey);
+    await userEvent.click(screen.getByRole('button', { name: '+ person' }));
+    expect(screen.getByRole('combobox', { name: 'People' })).toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
+    document.removeEventListener('keydown', onKey);
+    expect(screen.queryByRole('combobox', { name: 'People' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '+ person' })).toHaveFocus();
+    expect(onKey).not.toHaveBeenCalled();
+  });
+
+  it('an outside click closes it', async () => {
+    renderPeople(makeResolvedWithPeople({ new_todos: [[]] }));
+    await userEvent.click(screen.getByRole('button', { name: '+ person' }));
+    await userEvent.click(document.body);
+    expect(screen.queryByRole('combobox', { name: 'People' })).not.toBeInTheDocument();
+  });
+});
+
+describe('PeopleChangesSection', () => {
+  const change = makeResolvedPeopleChange({
+    title: 'Mulch beds',
+    current_topic: { id: 5, name: 'Garden' },
+    add: [makeMatchedRef(1, 'Priya Raman')],
+    remove: [
+      { person_id: 2, person: makeTodoPerson({ id: 2, display_name: 'Old Pal' }) },
+      { person_id: 8, person: null },
+    ],
+  });
+
+  it('shows the checkbox, title, topic subtitle, additions and struck-through removals', () => {
+    renderPeople(makeResolvedWithPeople({ people_changes: [change, makeResolvedPeopleChange({ todo_id: 4, title: 'Loose', current_topic: null })] }));
+    const section = screen.getByRole('region', { name: 'People' });
+    expect(within(section).getByRole('heading', { level: 2, name: 'People' })).toBeInTheDocument();
+    expect(within(section).getByRole('checkbox', { name: 'Change people on "Mulch beds"' })).toBeChecked();
+    expect(within(section).getByText('Garden')).toBeInTheDocument();
+    expect(within(section).getByText('No topic')).toBeInTheDocument();
+    expect(within(section).getByText('Priya Raman')).toBeInTheDocument();
+    expect(within(section).getByRole('group', { name: 'Remove Old Pal' })).toBeInTheDocument();
+    expect(within(section).getByText('Old Pal').className).toContain('line-through');
+    expect(within(section).getByText('person 8').className).toContain('line-through');
+  });
+
+  it('the keep toggle un-strikes the removal and back, with a stable name and a pressed state (final review I2)', async () => {
+    renderPeople(makeResolvedWithPeople({ people_changes: [change] }));
+    const section = screen.getByRole('region', { name: 'People' });
+    const toggle = () => within(section).getByRole('button', { name: 'Keep Old Pal' });
+    expect(toggle()).toHaveAttribute('aria-pressed', 'false');
+    expect(toggle()).toHaveTextContent('keep');
+    expect(within(section).getByRole('group', { name: 'Remove Old Pal' })).toBeInTheDocument();
+    await userEvent.click(toggle());
+    expect(within(section).getByText('Old Pal').className).not.toContain('line-through');
+    expect(toggle()).toHaveAttribute('aria-pressed', 'true');
+    expect(toggle()).toHaveTextContent('keep');
+    expect(within(section).getByRole('group', { name: 'Keeping Old Pal' })).toBeInTheDocument();
+    await userEvent.click(toggle());
+    expect(within(section).getByText('Old Pal').className).toContain('line-through');
+    expect(toggle()).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('a chip error on a people row marks the row for the 422 scroll (final review I1)', () => {
+    const marked = makeResolvedWithPeople({ people_changes: [change] });
+    const d = initDraft(marked);
+    const withError = { ...d, peopleRows: d.peopleRows.map((r) => ({ ...r, add: r.add.map((p) => ({ ...p, error: 'person is gone' })) })) };
+    const Fixed: React.FC = () => <PeopleChangesSection draft={withError} dispatch={() => {}} />;
+    render(<QueryClientProvider client={new QueryClient()}><Fixed /></QueryClientProvider>);
+    expect(screen.getByText('Mulch beds').closest('[role="listitem"]')).toHaveAttribute('data-draft-error', 'true');
+  });
+
+  it('unchecking the row toggles it', async () => {
+    renderPeople(makeResolvedWithPeople({ people_changes: [change] }));
+    const box = screen.getByRole('checkbox', { name: 'Change people on "Mulch beds"' });
+    await userEvent.click(box);
+    expect(box).not.toBeChecked();
+  });
+
+  it('a missing todo says so and its checkbox is disabled and unchecked', () => {
+    renderPeople(makeResolvedWithPeople({ people_changes: [makeResolvedPeopleChange({ missing: true, title: null })] }));
+    const section = screen.getByRole('region', { name: 'People' });
+    expect(within(section).getByText('This todo no longer exists')).toBeInTheDocument();
+    const box = within(section).getByRole('checkbox');
+    expect(box).toBeDisabled();
+    expect(box).not.toBeChecked();
+  });
+});
+
+describe('ReadOnlyProposal people summary', () => {
+  it('shows the people-change count from the applied payload', () => {
+    const resolved = makeResolved();
+    const payload = { ...resolved.proposal.payload, people_changes: [{ todo_id: 3, add: [{ person_id: 1 }], remove: [] }] };
+    render(<ReadOnlyProposal resolved={resolved} payload={payload} />);
+    expect(screen.getByText(/1 people change/)).toBeInTheDocument();
   });
 });

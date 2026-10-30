@@ -1,4 +1,6 @@
-import type { ProposedTodo, ResolvedProposal } from '../types/proposal';
+import type { PersonCandidateDetail } from '../types/person';
+import type { ProposedTodo, RefState, ResolvedPeopleChange, ResolvedProposal, ResolvedRef } from '../types/proposal';
+import { makeTodoPerson } from './personFactories';
 import { makeTopic } from './topicFactories';
 
 export const makeProposedTodo = (overrides: Partial<ProposedTodo> = {}): ProposedTodo => ({
@@ -82,3 +84,64 @@ export const makeResolved = (overrides: Partial<ResolvedProposal> = {}): Resolve
   unassigned: [{ id: 20, title: 'Paint fence' }],
   ...overrides,
 });
+
+/** A candidate person offered by the chooser. */
+export const makeCandidate = (overrides: Partial<PersonCandidateDetail> = {}): PersonCandidateDetail => ({
+  id: 1,
+  display_name: 'Priya Raman',
+  aliases: [],
+  peopler_id: null,
+  open_count: 0,
+  done_count: 0,
+  latest_open_title: null,
+  ...overrides,
+});
+
+/** A resolved ref: a matched person by default. Pass `state` and `person: null` for a candidate state. */
+export const makeResolvedRef = (overrides: Partial<ResolvedRef> = {}): ResolvedRef => ({
+  ref: { person_id: 1 },
+  state: 'matched',
+  name: 'Priya Raman',
+  person: makeTodoPerson(),
+  candidates: [],
+  ...overrides,
+});
+
+/** A matched ref to person `id`. */
+export const makeMatchedRef = (id: number, name = `Person ${id}`): ResolvedRef =>
+  makeResolvedRef({ ref: { person_id: id }, name, person: makeTodoPerson({ id, display_name: name }) });
+
+/** A ref in a state that needs the user (no person), or new_confirmed. */
+export const makeCandidateRef = (state: Exclude<RefState, 'matched' | 'matched_by_name'>, name = 'Sam'): ResolvedRef =>
+  makeResolvedRef({
+    ref: state === 'new_confirmed' ? { create: { name } } : { name },
+    state,
+    name,
+    person: null,
+    candidates: state === 'ambiguous' || state === 'possible_match' ? [makeCandidate({ id: 5, display_name: `${name} Lee` })] : [],
+  });
+
+/** A people_changes row on todo 3, "Mulch beds". */
+export const makeResolvedPeopleChange = (overrides: Partial<ResolvedPeopleChange> = {}): ResolvedPeopleChange => ({
+  todo_id: 3,
+  missing: false,
+  title: 'Mulch beds',
+  area_id: 2,
+  current_topic: null,
+  add: [],
+  remove: [],
+  ...overrides,
+});
+
+/** `makeResolved` with the `people` block filled in; `new_todos` get one ref list each. */
+export const makeResolvedWithPeople = (
+  people: { new_todos?: ResolvedRef[][]; people_changes?: ResolvedPeopleChange[] },
+  overrides: Partial<ResolvedProposal> = {}
+): ResolvedProposal => {
+  const refLists = people.new_todos ?? [];
+  return makeResolved({
+    new_todos: refLists.map((_, i) => makeProposedTodo({ title: `New todo ${i}` })),
+    people: { new_todos: refLists, people_changes: people.people_changes ?? [] },
+    ...overrides,
+  });
+};

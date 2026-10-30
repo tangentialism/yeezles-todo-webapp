@@ -52,3 +52,9 @@ export const pageCard = 'bg-surface rounded-[18px] shadow-[0_1px_2px_rgb(20_26_3
 export const chipLinked = 'bg-accent-soft text-accent-ink border-transparent';
 
 export const chipBare = 'border-line-strong text-ink-2';
+
+/** A proposed person the user confirmed (a new person, or created in chat): solid success border. */
+export const chipConfirmed = 'border-ok text-ok';
+
+/** A proposed person that needs the user's decision: dashed accent border, heavier weight. */
+export const chipNeedsYou = 'border-dashed border-accent text-accent-ink font-medium';
