@@ -12,9 +12,9 @@ merged as `a9c7d63`.
 
 ## Next action
 
-David reviews. On approval: push `feature/people-tags-p3` and open the PR
-against `master`. After merge: bump the workspace pin, then open the workspace
-PR for `spec/people-tags-p3` (merge `origin/main` into it first).
+PR open against `master` (David approved: fix the blocker message, then PR).
+David merges. After merge: bump the workspace pin, then open the workspace PR
+for `spec/people-tags-p3` (merge `origin/main` into it first).
 
 ## Verified
 
@@ -70,6 +70,15 @@ PR for `spec/people-tags-p3` (merge `origin/main` into it first).
   The final review found Review Focus 2's premise out of date: unchecking a
   new topic moves its todos to No topic and keeps them accepted (existing
   Decision 6), so their people still count, which is correct.
+- Blocker-message fix (2026-10-30, David's call after the final re-review
+  found it): a lone accepted people row whose only add still needs a pick now
+  counts as accepted, so Apply says "1 person needs you." instead of "Nothing
+  accepted. Reject instead." (`peopleRowCounts` in `src/utils/proposalDraft.ts`).
+  RED: the new `proposalDraft.people` test failed (1 failed, 33 skipped);
+  GREEN: `src/utils/__tests__` 139 passed. Check script: TSC_OK, lint 5
+  (baseline 5), 795 tests total, 795 passed, 0 new failing names.
+  `npm run build` ok, "built in 917ms", `index-BR8CKS9d.js` 502.18 kB (150.94 kB
+  gzip), only the existing >500 kB chunk-size warning.
 - Pre-P3 payloads: against the real backend, whose stored payload gives every
   new todo `people: []` (yeezles-todo `src/models/Proposal.ts:142`), a pre-P3
   proposal sends `people: []` per todo (same meaning, harmless). The identical
@@ -123,6 +132,12 @@ P2's owed walkthrough (`docs/state/feature/people-tags.md`) is still owed too.
   "Just tag Sam Lee" repeat identically; adding candidate detail would change
   fixed plan copy, so it is David's call.
 
+- Parked minors from the final re-review, not fixed: (a) picking a person
+  already on that todo (dedupe) drops focus to the page body; (b) Escape in
+  the "+ person" compact field may close the whole field while its combobox
+  list is open, when it should close only the list (not verified); (c) the
+  `drop` branch in the settled-chip render is dead code, since a drop removes
+  the ref.
 - Walkthrough items 1-4 above: not run. The look of the chips, the chooser
   placement and the 390px fit are unseen in a real browser.
 - Docs describe the built behaviour from the code and the task reports, not from

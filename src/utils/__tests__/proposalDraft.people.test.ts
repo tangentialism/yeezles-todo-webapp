@@ -355,6 +355,15 @@ describe('counts and summary with people', () => {
     expect(applyBlocker(lone)).toBe('Nothing accepted. Reject instead.');
   });
 
+  it('a lone people row whose only add needs a pick counts, so Apply says 1 person needs you', () => {
+    const base = initDraft(makeResolved());
+    const only = { ...base, rows: [], notes: [], newTodos: [], topics: [] };
+    const d = draftOf(makeResolvedWithPeople({ people_changes: [makeResolvedPeopleChange({ add: [makeCandidateRef('ambiguous', 'Alex')] })] }));
+    const lone = { ...only, peopleRows: d.peopleRows };
+    expect(counts(lone).accepted).toBe(1);
+    expect(applyBlocker(lone)).toBe('1 person needs you.');
+  });
+
   it('counts people rows in total and accepted', () => {
     const d = initDraft(makeResolvedWithPeople({ people_changes: [makeResolvedPeopleChange({ add: [makeMatchedRef(2, 'Lee')] }), makeResolvedPeopleChange({ todo_id: 6, missing: true })] }));
     const base = initDraft(makeResolved());
