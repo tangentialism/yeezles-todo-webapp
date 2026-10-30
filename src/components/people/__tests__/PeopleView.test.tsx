@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import PeopleView from '../PeopleView';
 import * as AreaContextModule from '../../../contexts/AreaContext';
 import * as PeopleStore from '../../../hooks/usePeopleStore';
+import * as PeoplerStore from '../../../hooks/usePeoplerStore';
 import * as TodoStore from '../../../hooks/useTodoStore';
 import { areaContextValue, makeArea } from '../../../test/topicFactories';
 import { makePerson } from '../../../test/personFactories';
@@ -12,6 +13,7 @@ import type { Todo } from '../../../types/todo';
 
 vi.mock('../../../contexts/AreaContext');
 vi.mock('../../../hooks/usePeopleStore');
+vi.mock('../../../hooks/usePeoplerStore');
 vi.mock('../../../hooks/useTodoStore');
 vi.mock('../../TodoActions', () => ({ default: () => null }));
 vi.mock('../../TodayToggle', () => ({ default: () => null }));
@@ -19,7 +21,7 @@ vi.mock('../../EditTodoModal', () => ({ default: () => null }));
 
 const home = makeArea({ id: 1, name: 'Home' });
 const work = makeArea({ id: 2, name: 'Work', color: '#1E88E5' });
-const priya = makePerson({ id: 1, display_name: 'Priya Raman', open_count: 3, done_count: 1, peopler_id: 1 });
+const priya = makePerson({ id: 1, display_name: 'Priya Raman', open_count: 3, done_count: 1, peopler_id: 1, peopler_link: 'ok' });
 const sam = makePerson({ id: 2, display_name: 'Sam Lee', open_count: 0, done_count: 2 });
 
 const query = <T,>(data: T) => ({ data, isLoading: false, error: null, refetch: vi.fn() });
@@ -28,8 +30,8 @@ const asReturn = <T,>(value: unknown) => value as T;
 const mockPeople = (people = [priya, sam]) =>
   vi.mocked(PeopleStore.usePeople).mockReturnValue(asReturn<ReturnType<typeof PeopleStore.usePeople>>(query(people)));
 
-const renderView = (openPersonId: number | null = null, handlers = { onOpenPerson: vi.fn(), onClosePerson: vi.fn() }) =>
-  render(<PeopleView openPersonId={openPersonId} {...handlers} />);
+const renderView = (openPersonId: number | null = null, handlers = { onOpenPerson: vi.fn(), onClosePerson: vi.fn() }, openPersonSeq = 0) =>
+  render(<PeopleView openPersonId={openPersonId} openPersonSeq={openPersonSeq} {...handlers} />);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -39,6 +41,12 @@ beforeEach(() => {
     asReturn<ReturnType<typeof PeopleStore.usePerson>>(query(id === 2 ? sam : priya))
   );
   vi.mocked(PeopleStore.usePersonTodos).mockReturnValue(asReturn<ReturnType<typeof PeopleStore.usePersonTodos>>(query([])));
+  vi.mocked(PeopleStore.usePeopleMutations).mockReturnValue(
+    asReturn<ReturnType<typeof PeopleStore.usePeopleMutations>>({ updatePerson: vi.fn() })
+  );
+  vi.mocked(PeoplerStore.usePeoplerConnection).mockReturnValue(
+    asReturn<ReturnType<typeof PeoplerStore.usePeoplerConnection>>({ data: { connected: false } })
+  );
   vi.mocked(TodoStore.useTodoStore).mockReturnValue(
     asReturn<ReturnType<typeof TodoStore.useTodoStore>>({
       toggleTodoCompletion: vi.fn(),
@@ -48,6 +56,19 @@ beforeEach(() => {
 });
 
 describe('PeopleView list', () => {
+  it.each([
+    ['ok', 'Linked to Peopler', 'Peopler link out of date'],
+    ['stale', 'Peopler link out of date', 'Linked to Peopler'],
+    ['dormant', null, 'Linked to Peopler'],
+    ['none', null, 'Linked to Peopler'],
+  ] as const)('badge for %s', (link, shown, absent) => {
+    mockPeople([makePerson({ id: 3, display_name: 'Avery Quill', peopler_id: link === 'none' ? null : 9, peopler_link: link })]);
+    renderView();
+    if (shown) expect(screen.getByRole('img', { name: shown })).toBeInTheDocument();
+    else expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: absent })).not.toBeInTheDocument();
+  });
+
   it('bounds the sticky list so its lower rows scroll inside it (classes only; jsdom has no layout)', () => {
     renderView();
     const pane = screen.getByTestId('people-list-pane');
@@ -174,5 +195,21 @@ describe('PeopleView layout', () => {
     expect(await screen.findByText('Pick a person to see their todos.')).toBeInTheDocument();
     expect(screen.getByTestId('people-list-pane')).not.toHaveClass('hidden');
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+});
+
+describe('PeopleView: every open rechecks the Peopler link', () => {
+  it('remounts the pane when the open counter changes for the same person, and not otherwise', () => {
+    const mounted = vi.fn();
+    vi.mocked(PeoplerStore.usePeoplerCheckOnOpen).mockImplementation(() => {
+      React.useEffect(() => { mounted(); }, []);
+    });
+    const handlers = { onOpenPerson: vi.fn(), onClosePerson: vi.fn() };
+    const { rerender } = render(<PeopleView openPersonId={1} openPersonSeq={1} {...handlers} />);
+    expect(mounted).toHaveBeenCalledTimes(1);
+    rerender(<PeopleView openPersonId={1} openPersonSeq={1} {...handlers} />);
+    expect(mounted).toHaveBeenCalledTimes(1);
+    rerender(<PeopleView openPersonId={1} openPersonSeq={2} {...handlers} />);
+    expect(mounted).toHaveBeenCalledTimes(2);
   });
 });

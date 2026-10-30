@@ -3,6 +3,7 @@ import type { PersonCandidateDetail, PersonRef, TodoPerson } from '../../types/p
 import type { ChooserPick, DraftPersonRef } from '../../utils/proposalDraft';
 import PeopleField from '../people/PeopleField';
 import { shouldOpenUpward } from '../../utils/popoverPlacement';
+import { isFilledLink, peoplerLinkOf } from '../../utils/peoplerLink';
 
 /** Props for {@link PersonChooser}. */
 interface PersonChooserProps {
@@ -41,6 +42,7 @@ const asTodoPerson = (c: PersonCandidateDetail): TodoPerson => ({
   display_name: c.display_name,
   peopler_id: c.peopler_id,
   peopler_url: null,
+  peopler_link: peoplerLinkOf(c),
 });
 
 /** `Sam Lee (Sammy) · in Peopler · 2 open · latest "Book venue"`. */
@@ -48,7 +50,7 @@ const candidateLine = (c: PersonCandidateDetail): string =>
   [
     c.display_name,
     c.aliases.length > 0 ? ` (${c.aliases.join(', ')})` : '',
-    c.peopler_id !== null ? ' · in Peopler' : '',
+    isFilledLink(c) ? ' · in Peopler' : '',
     ` · ${c.open_count} open`,
     c.latest_open_title ? ` · latest "${c.latest_open_title}"` : '',
   ].join('');

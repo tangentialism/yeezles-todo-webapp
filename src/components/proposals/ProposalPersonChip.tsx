@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { ChooserPick, DraftPersonRef } from '../../utils/proposalDraft';
 import { needsYou } from '../../utils/proposalDraft';
+import { isFilledLink } from '../../utils/peoplerLink';
 import { CloseIcon } from '../ui/Icons';
 import { chipBare, chipConfirmed, chipLinked, chipNeedsYou, fieldError } from '../ui/styles';
 import PersonChooser from './PersonChooser';
@@ -22,12 +23,12 @@ const settledChip = (item: DraftPersonRef): { label: string; look: string } => {
   if (chosen?.kind === 'create') return { label: `+ ${chosen.name} · new`, look: chipConfirmed };
   if (chosen?.kind === 'link') return { label: chosen.person.display_name, look: chipLinked };
   if (chosen?.kind === 'person') {
-    return { label: chosen.person.display_name, look: chosen.person.peopler_id !== null ? chipLinked : chipBare };
+    return { label: chosen.person.display_name, look: isFilledLink(chosen.person) ? chipLinked : chipBare };
   }
   if (chosen?.kind === 'drop') return { label: resolved.name, look: `${chipBare} line-through` };
   const { name, person, state } = resolved;
   if (state === 'new_confirmed') return { label: `+ ${name} · new, you confirmed in chat`, look: chipConfirmed };
-  const look = person && person.peopler_id !== null ? chipLinked : chipBare;
+  const look = person && isFilledLink(person) ? chipLinked : chipBare;
   return { label: state === 'matched_by_name' ? `${name} · by name` : name, look };
 };
 

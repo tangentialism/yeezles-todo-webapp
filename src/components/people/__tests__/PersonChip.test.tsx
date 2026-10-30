@@ -30,7 +30,7 @@ describe('PersonChip', () => {
   it('differs in class when linked to Peopler, and says so to screen readers', () => {
     const { container } = render(
       <>
-        <PersonChip person={makeTodoPerson({ id: 1, display_name: 'Linked Lee', peopler_id: 9 })} />
+        <PersonChip person={makeTodoPerson({ id: 1, display_name: 'Linked Lee', peopler_id: 9, peopler_link: 'ok' })} />
         <PersonChip person={makeTodoPerson({ id: 2, display_name: 'Bare Bo' })} />
       </>
     );
@@ -45,11 +45,52 @@ describe('PersonChip', () => {
   it('announces the Peopler link in the button accessible name', () => {
     render(
       <PersonNavigationContext.Provider value={vi.fn()}>
-        <PersonChip person={makeTodoPerson({ id: 1, display_name: 'Linked Lee', peopler_id: 9 })} />
+        <PersonChip person={makeTodoPerson({ id: 1, display_name: 'Linked Lee', peopler_id: 9, peopler_link: 'ok' })} />
         <PersonChip person={makeTodoPerson({ id: 2, display_name: 'Bare Bo' })} />
       </PersonNavigationContext.Provider>
     );
     expect(screen.getByRole('button', { name: 'Open person Linked Lee (in Peopler)' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Open person Bare Bo' })).toBeInTheDocument();
+  });
+
+  it('ok: filled, named "(in Peopler)"', () => {
+    render(
+      <PersonNavigationContext.Provider value={vi.fn()}>
+        <PersonChip person={makeTodoPerson({ display_name: 'Avery Quill', peopler_id: 9, peopler_link: 'ok' })} />
+      </PersonNavigationContext.Provider>
+    );
+    const chip = screen.getByRole('button', { name: 'Open person Avery Quill (in Peopler)' });
+    expect(chip).toHaveClass('bg-accent-soft');
+  });
+
+  it('dormant with a peopler_id: bare, no suffix', () => {
+    render(
+      <PersonNavigationContext.Provider value={vi.fn()}>
+        <PersonChip person={makeTodoPerson({ display_name: 'Avery Quill', peopler_id: 9, peopler_link: 'dormant' })} />
+      </PersonNavigationContext.Provider>
+    );
+    const chip = screen.getByRole('button', { name: 'Open person Avery Quill' });
+    expect(chip).toHaveClass('border-line-strong');
+    expect(chip).not.toHaveClass('bg-accent-soft');
+  });
+
+  it('stale: bare, warning icon, named "(Peopler link out of date)"', () => {
+    render(
+      <PersonNavigationContext.Provider value={vi.fn()}>
+        <PersonChip person={makeTodoPerson({ display_name: 'Avery Quill', peopler_id: 9, peopler_link: 'stale' })} />
+      </PersonNavigationContext.Provider>
+    );
+    const chip = screen.getByRole('button', { name: 'Open person Avery Quill (Peopler link out of date)' });
+    expect(chip).toHaveClass('border-line-strong');
+    expect(chip).not.toHaveClass('bg-accent-soft');
+    expect(chip.querySelector('svg')).not.toBeNull();
+  });
+
+  it('stale outside navigation: plain span with sr-only text', () => {
+    const { container } = render(
+      <PersonChip person={makeTodoPerson({ display_name: 'Avery Quill', peopler_id: 9, peopler_link: 'stale' })} />
+    );
+    expect(container.firstElementChild?.tagName).toBe('SPAN');
+    expect(container.querySelector('.sr-only')?.textContent).toBe(' (Peopler link out of date)');
   });
 });

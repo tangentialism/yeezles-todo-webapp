@@ -41,6 +41,7 @@ import type {
   ResolvedProposal,
   TopicChangesPayload
 } from '../types/proposal';
+import type { PeoplerConnection, PeoplerSearchResult } from '../types/peopler';
 import { toApiError } from './apiError';
 import { logger } from '../utils/logger';
 
@@ -170,10 +171,17 @@ class TokenAwareApiClient {
     this.api.interceptors.response.use(
       (response) => response,
       (error) => {
-        logger.error('API Error:', error);
+        // Log only method, url, status and message. Never the error object,
+        // `config`, `config.data` or `response.data`: a request body can hold
+        // a secret (the Peopler token on PUT /peopler/connection).
+        logger.error(
+          'API Error:',
+          String(error.config?.method ?? '').toUpperCase(),
+          error.config?.url,
+          error.response?.status,
+          error.message
+        );
         if (error.response) {
-          logger.error('Response status:', error.response.status);
-
           // Handle authentication errors
           if (error.response.status === 401) {
             logger.error('Authentication failed - triggering auth error handler');
@@ -181,8 +189,6 @@ class TokenAwareApiClient {
           }
         } else if (error.request) {
           logger.error('Network error - no response received');
-        } else {
-          logger.error('Request configuration error:', error.message);
         }
         throw error;
       }
@@ -622,6 +628,41 @@ class TokenAwareApiClient {
   /** `POST /people/:id/merge` -- `id` is merged away and the survivor (`intoId`) is returned. */
   async mergePerson(id: number, intoId: number): Promise<Person> {
     return this.unwrap<Person>(this.api.post(`/people/${id}/merge`, { into_id: intoId }));
+  }
+
+  // ── Peopler Methods ─────────────────────────────────────────────────
+  // Link and unlink go through updatePerson(id, { peopler_id }); there is no method of their own.
+
+  /** `GET /peopler/connection` -- whether this user's Peopler account is connected, and its health. */
+  async getPeoplerConnection(): Promise<PeoplerConnection> {
+    return this.unwrap<PeoplerConnection>(this.api.get('/peopler/connection'));
+  }
+
+  /**
+   * `PUT /peopler/connection` -- connect with an API token. The token travels
+   * in this one request body and is never logged (see the response interceptor).
+   * 422 `PEOPLER_TOKEN_REJECTED`; 502/503 `PEOPLER_UNAVAILABLE`.
+   */
+  async connectPeopler(token: string): Promise<PeoplerConnection> {
+    return this.unwrap<PeoplerConnection>(this.api.put('/peopler/connection', { token }));
+  }
+
+  /** `DELETE /peopler/connection` -- idempotent. The backend answers `{ success: true }`; it is ignored. */
+  async disconnectPeopler(): Promise<void> {
+    await this.unwrap<unknown>(this.api.delete('/peopler/connection'));
+  }
+
+  /** `GET /peopler/search?q=` -- people in the user's Peopler matching `q`. */
+  async searchPeopler(q: string): Promise<PeoplerSearchResult[]> {
+    const data = await this.unwrap<{ account_id: number; results: PeoplerSearchResult[] }>(
+      this.api.get(`/peopler/search?q=${encodeURIComponent(q)}`)
+    );
+    return data.results;
+  }
+
+  /** `POST /people/:id/peopler-check` -- session only. `force` rechecks a link verified within 24 hours. */
+  async checkPeoplerLink(id: number, force?: boolean): Promise<PersonWithCounts> {
+    return this.unwrap<PersonWithCounts>(this.api.post(`/people/${id}/peopler-check`, force ? { force: true } : {}));
   }
 
   // ── Proposal Methods (session only) ─────────────────────────────────

@@ -21,6 +21,7 @@ interface ViewContainerProps {
   highlightTopicIds: number[];
   /** The person open in the People view, or null for none. */
   openPersonId: number | null;
+  openPersonSeq: number;
   onOpenPerson: (id: number) => void;
   onClosePerson: () => void;
 }
@@ -45,6 +46,7 @@ const ViewContainer: React.FC<ViewContainerProps> = ({
   onCloseTopic,
   highlightTopicIds,
   openPersonId,
+  openPersonSeq,
   onOpenPerson,
   onClosePerson
 }) => {
@@ -186,6 +188,7 @@ const ViewContainer: React.FC<ViewContainerProps> = ({
       >
         <PeopleView
           openPersonId={openPersonId}
+          openPersonSeq={openPersonSeq}
           onOpenPerson={onOpenPerson}
           onClosePerson={onClosePerson}
         />

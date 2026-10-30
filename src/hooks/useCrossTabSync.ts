@@ -5,6 +5,7 @@ import { SYNC_CHANNEL_NAME, generateTabId } from '../types/sync';
 import { logger } from '../utils/logger';
 import { invalidateTodoViews, invalidateTopicViews } from './topicInvalidation';
 import { invalidatePeopleViews } from './peopleInvalidation';
+import { clearPeoplerSearches, invalidateAfterLinkChange, peoplerKeys } from './peoplerInvalidation';
 
 /**
  * One id for the whole tab. Every store hook calls useCrossTabSync, and a
@@ -110,6 +111,13 @@ export const useCrossTabSync = () => {
           invalidatePeopleViews(queryClient, { refetchType: 'active' });
           invalidateTodoViews(queryClient, { refetchType: 'active' });
           invalidateTopicViews(queryClient, { refetchType: 'active' });
+          break;
+
+        case 'PEOPLER_CONNECTION_CHANGED':
+          // Another tab connected or disconnected Peopler: chips and person pages change state
+          queryClient.invalidateQueries({ queryKey: peoplerKeys.connection, refetchType: 'active' });
+          clearPeoplerSearches(queryClient);
+          invalidateAfterLinkChange(queryClient, { refetchType: 'active' });
           break;
 
         case 'PROPOSAL_RESOLVED':

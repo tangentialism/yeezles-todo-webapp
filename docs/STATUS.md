@@ -373,8 +373,18 @@ The Yeezles Todo Web Application is fully functional and deployed in production 
 - ✅ Person chips on todo rows (filled when linked to Peopler, outlined when bare); a click opens the person
 - ✅ People field with typeahead and Create in the add and edit forms; full-screen sheet on phones
 - ✅ Rename and aliases, merge, delete; chips and lists refresh in this tab and other tabs
-- ❌ Peopler linking (P4), suggestions (P5): later phases
+- ❌ Suggestions (P5): later phase (Peopler linking landed in P4, below)
 - ❌ People field in the external-create page (browser plugins, share)
+
+#### Peopler connection (phase 4) ✅
+**Status:** ✅ Webapp built (branch `feature/people-tags-p4`, against backend yeezles-todo #88, merged `2af55ea`). Unit-tested with mocks only; the browser walkthrough has not been run and no real backend has been called (see `docs/state/feature/people-tags-p4.md`).
+- ✅ Account menu `Peopler` modal: connect with a token, connected view, disconnect, broken-token state
+- ✅ Token held in component state only; never stored, cached, broadcast or logged
+- ✅ Four link states (`none`, `ok`, `stale`, `dormant`) on chips, the People list and the person page
+- ✅ Link check once per person page open; stale and dormant lines on the page
+- ✅ Link, relink and unlink from the person page; search dialog with the merge offer for an already-linked result
+- ⚠️ A holder outside the first 100 people reads "Already linked to another person" and the merge dialog cannot preselect them
+- ⚠️ A failed `/peopler/search` logs its URL (with the `q` name) to the dev console; the logger is a no-op in production
 
 #### People on proposals (phase 3b) ✅
 **Status:** ✅ Webapp built (branch `feature/people-tags-p3`, against backend yeezles-todo #84, merged `a9c7d63`). Unit-tested with mocks only; the browser walkthrough has not been run and no real backend has been called (see `docs/state/feature/people-tags-p3.md`).

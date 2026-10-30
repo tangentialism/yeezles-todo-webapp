@@ -2,20 +2,21 @@ import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useDismiss } from '../hooks/useDismiss';
 import ApiStatus from './ApiStatus';
-import { KeyIcon, ShieldIcon, SignOutIcon } from './ui/Icons';
+import { KeyIcon, LinkIcon, ShieldIcon, SignOutIcon } from './ui/Icons';
 import { menuItem, menuPanel, menuSeparator } from './ui/styles';
 
 /** Props for {@link AccountMenu}. */
 interface AccountMenuProps {
   onManagePasskeys: () => void;
   onManageTokens: () => void;
+  onManagePeopler: () => void;
 }
 
 /**
  * Avatar button with the account dropdown: who is signed in, passkeys,
- * access tokens and connected apps, API status, and sign out.
+ * access tokens and connected apps, Peopler, API status, and sign out.
  */
-const AccountMenu: React.FC<AccountMenuProps> = ({ onManagePasskeys, onManageTokens }) => {
+const AccountMenu: React.FC<AccountMenuProps> = ({ onManagePasskeys, onManageTokens, onManagePeopler }) => {
   const { user, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -76,6 +77,10 @@ const AccountMenu: React.FC<AccountMenuProps> = ({ onManagePasskeys, onManageTok
           <button type="button" role="menuitem" onClick={choose(onManageTokens)} className={menuItem}>
             <ShieldIcon className="w-4 h-4" />
             Access tokens &amp; apps
+          </button>
+          <button type="button" role="menuitem" onClick={choose(onManagePeopler)} className={menuItem}>
+            <LinkIcon className="w-4 h-4" />
+            Peopler
           </button>
           <div className={menuSeparator} />
           <ApiStatus />

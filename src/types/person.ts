@@ -3,12 +3,16 @@
  * Peopler person (people spec §4). Shapes mirror the backend's `docs/api/API.md` § People.
  */
 
-/** The `{ id, display_name, peopler_id, peopler_url }` the backend attaches to every todo as `people[]`. */
+import type { PeoplerLink } from './peopler';
+
+/** The `{ id, display_name, peopler_id, peopler_url, peopler_link }` the backend attaches to every todo as `people[]`. */
 export interface TodoPerson {
   id: number;
   display_name: string;
   peopler_id: number | null;
+  /** `peopler_url` is null unless this is `ok`. */
   peopler_url: string | null;
+  peopler_link: PeoplerLink;
 }
 
 /** A person row as returned by create, update and merge. */
@@ -35,6 +39,8 @@ export interface CreatePersonRequest {
 export interface UpdatePersonRequest {
   display_name?: string;
   aliases?: string[];
+  /** Link to a Peopler person, or `null` to unlink. */
+  peopler_id?: number | null;
 }
 
 /** A person ref that names an existing person by id: what the webapp sends most. */
@@ -60,6 +66,8 @@ export interface PersonCandidateDetail {
   display_name: string;
   aliases: string[];
   peopler_id: number | null;
+  /** Absent on REST 409 candidates; use `peoplerLinkOf`. */
+  peopler_link?: PeoplerLink;
   open_count: number;
   done_count: number;
   latest_open_title: string | null;

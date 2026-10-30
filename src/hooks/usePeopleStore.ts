@@ -3,6 +3,7 @@ import { useApi } from './useApi';
 import { useCrossTabSync } from './useCrossTabSync';
 import { invalidatePeopleViews, personKeys } from './peopleInvalidation';
 import { invalidateTodoViews, invalidateTopicViews } from './topicInvalidation';
+import { clearPeoplerSearches } from './peoplerInvalidation';
 import { retryUnlessClientError } from '../services/apiError';
 import type { Todo } from '../types/todo';
 import type { CreatePersonRequest, Person, UpdatePersonRequest } from '../types/person';
@@ -83,8 +84,11 @@ export const usePeopleMutations = () => {
     mutationFn: ({ id, updates }: { id: number; updates: UpdatePersonRequest }) => api.updatePerson(id, updates),
     retry: false,
     onSuccess: (person: Person, { updates }) => {
-      if (updates.display_name !== undefined) {
+      // A rename moves names on every row; a link change moves the chips' link state
+      if (updates.display_name !== undefined || 'peopler_id' in updates) {
         invalidateEverywhere();
+        // A link change moves "already linked" on every cached Peopler search
+        if ('peopler_id' in updates) clearPeoplerSearches(queryClient);
       } else {
         invalidatePeopleViews(queryClient);
       }

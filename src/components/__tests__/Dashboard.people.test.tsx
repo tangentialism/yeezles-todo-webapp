@@ -22,9 +22,10 @@ const ChipProbe: React.FC<{ id: number }> = ({ id }) => {
   return <button type="button" onClick={() => openPerson?.(id)}>{`chip ${id}`}</button>;
 };
 vi.mock('../ViewContainer', () => ({
-  default: ({ openPersonId }: { openPersonId: number | null }) => (
+  default: ({ openPersonId, openPersonSeq }: { openPersonId: number | null; openPersonSeq: number }) => (
     <div>
       <span data-testid="open-person">{openPersonId ?? 'none'}</span>
+      <span data-testid="open-seq">{openPersonSeq}</span>
       <ChipProbe id={7} />
       <ChipProbe id={9} />
     </div>
@@ -47,5 +48,14 @@ describe('Dashboard: opening a person', () => {
     await userEvent.click(screen.getByRole('button', { name: 'chip 9' }));
     expect(screen.getByTestId('view')).toHaveTextContent('people');
     expect(screen.getByTestId('open-person')).toHaveTextContent('9');
+  });
+
+  it('opening the same person again bumps the open counter', async () => {
+    render(<Dashboard />);
+    await userEvent.click(screen.getByRole('button', { name: 'chip 7' }));
+    const first = Number(screen.getByTestId('open-seq').textContent);
+    await userEvent.click(screen.getByRole('button', { name: 'chip 7' }));
+    expect(screen.getByTestId('open-person')).toHaveTextContent('7');
+    expect(Number(screen.getByTestId('open-seq').textContent)).toBe(first + 1);
   });
 });

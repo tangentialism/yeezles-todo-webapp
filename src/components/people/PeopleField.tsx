@@ -5,6 +5,7 @@ import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { useIsPhone } from '../../hooks/useIsPhone';
 import { PEOPLE_PER_TODO_MAX } from '../../constants';
 import { shouldOpenUpward } from '../../utils/popoverPlacement';
+import { isFilledLink } from '../../utils/peoplerLink';
 import Dialog from '../ui/Dialog';
 import { CloseIcon, PlusIcon } from '../ui/Icons';
 import { chipBare, chipLinked, fieldError, fieldHint, fieldInput, fieldLabel, fieldOptional, outlineButton, primaryButton } from '../ui/styles';
@@ -37,11 +38,12 @@ const LIMIT_COPY = `Up to ${PEOPLE_PER_TODO_MAX} people per todo.`;
 
 const CHIP = 'inline-flex items-center gap-0.5 h-7 pl-2.5 pr-1 rounded-full border text-[13px] leading-none';
 
-const toTodoPerson = ({ id, display_name, peopler_id, peopler_url }: TodoPerson): TodoPerson => ({
+const toTodoPerson = ({ id, display_name, peopler_id, peopler_url, peopler_link }: TodoPerson): TodoPerson => ({
   id,
   display_name,
   peopler_id,
   peopler_url,
+  peopler_link,
 });
 
 /** The chosen people as removable chips. Not navigation: the × only removes. */
@@ -54,7 +56,7 @@ const RemovableChips: React.FC<{ value: TodoPerson[]; onChange: (next: TodoPerso
   return (
     <ul className="flex flex-wrap gap-1.5 mb-2">
       {value.map((person) => (
-        <li key={person.id} className={`${CHIP} ${person.peopler_id !== null ? chipLinked : chipBare}`}>
+        <li key={person.id} className={`${CHIP} ${isFilledLink(person) ? chipLinked : chipBare}`}>
           {person.display_name}
           <button
             type="button"

@@ -56,8 +56,15 @@ describe('ProposalPersonChip labels', () => {
   });
 
   it('matched linked uses the filled look', () => {
-    renderChip(draftRef(makeResolvedRef({ person: makeTodoPerson({ peopler_id: 4 }) })));
+    renderChip(draftRef(makeResolvedRef({ person: makeTodoPerson({ peopler_id: 4, peopler_link: 'ok' }) })));
     expect(screen.getByText('Priya Raman').className).toContain('bg-accent-soft');
+  });
+
+  it('matched dormant uses the bare look', () => {
+    renderChip(draftRef(makeResolvedRef({ person: makeTodoPerson({ peopler_id: 4, peopler_link: 'dormant' }) })));
+    const chip = screen.getByText('Priya Raman');
+    expect(chip.className).toContain('border-line-strong');
+    expect(chip.className).not.toContain('bg-accent-soft');
   });
 
   it('matched_by_name', () => {
@@ -125,6 +132,15 @@ describe('PersonChooser options', () => {
     expect(optionLabels(dialog)).toEqual(['Create "Dana"', 'Pick someone…', 'Drop']);
   });
 
+  it('a candidate with a peopler_id and no peopler_link still reads "in Peopler"; a dormant one does not', async () => {
+    const withId = makeCandidate({ id: 7, display_name: 'Tomas Brandt', peopler_id: 3 });
+    const dormant = makeCandidate({ id: 8, display_name: 'Tomas Berg', peopler_id: 4, peopler_link: 'dormant' });
+    renderChip(draftRef(makeResolvedRef({ ref: { name: 'Tomas' }, state: 'ambiguous', name: 'Tomas', person: null, candidates: [withId, dormant] })));
+    const dialog = await openChooser('? Tomas');
+    expect(optionLabels(dialog)[0]).toContain('Tomas Brandt · in Peopler');
+    expect(optionLabels(dialog)[1]).not.toContain('in Peopler');
+  });
+
   it('ambiguous', async () => {
     renderChip(draftRef(makeResolvedRef({ ref: { name: 'Sam' }, state: 'ambiguous', name: 'Sam', person: null, candidates: [sam, sam2] })));
     const dialog = await openChooser('? Sam');
@@ -162,7 +178,7 @@ describe('PersonChooser options', () => {
 });
 
 describe('PersonChooser picks', () => {
-  const asPerson = { id: 5, display_name: 'Sam Lee', peopler_id: 77, peopler_url: null };
+  const asPerson = { id: 5, display_name: 'Sam Lee', peopler_id: 77, peopler_url: null, peopler_link: 'ok' };
 
   it('Create carries no peopler_id for a plain name', async () => {
     const { onPick } = renderChip(draftRef(makeCandidateRef('new', 'Dana')));
@@ -190,7 +206,7 @@ describe('PersonChooser picks', () => {
     const { onPick } = renderChip(draftRef(makeCandidateRef('ambiguous', 'Sam')));
     await openChooser('? Sam');
     await userEvent.click(screen.getByRole('button', { name: /^Sam Lee/ }));
-    expect(onPick).toHaveBeenCalledWith({ kind: 'person', person: { id: 5, display_name: 'Sam Lee', peopler_id: null, peopler_url: null } });
+    expect(onPick).toHaveBeenCalledWith({ kind: 'person', person: { id: 5, display_name: 'Sam Lee', peopler_id: null, peopler_url: null, peopler_link: 'none' } });
   });
 
   it('New "<name>" carries the ref peopler_id', async () => {
@@ -233,7 +249,7 @@ describe('PersonChooser picks', () => {
     expect(within(dialog).queryByText('optional')).not.toBeInTheDocument();
     await userEvent.type(within(dialog).getByRole('combobox'), 'sam');
     await userEvent.click(await screen.findByRole('option', { name: 'Sam Nine' }));
-    expect(onPick).toHaveBeenCalledWith({ kind: 'person', person: { id: 9, display_name: 'Sam Nine', peopler_id: null, peopler_url: null } });
+    expect(onPick).toHaveBeenCalledWith({ kind: 'person', person: { id: 9, display_name: 'Sam Nine', peopler_id: null, peopler_url: null, peopler_link: 'none' } });
   });
 
   it('Pick someone… lists its matches inside the chooser, not floating over Drop', async () => {

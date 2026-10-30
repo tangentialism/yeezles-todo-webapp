@@ -9,6 +9,8 @@ import type { Person } from '../../types/person';
 /** Props for {@link MergePersonDialog}. */
 interface MergePersonDialogProps {
   person: Person;
+  /** Preselects this person as the survivor (e.g. the holder of a Peopler id). */
+  initialIntoId?: number;
   onClose: () => void;
   /** Called with the survivor's id once the merge succeeds. */
   onMerged: (intoId: number) => void;
@@ -18,10 +20,10 @@ interface MergePersonDialogProps {
  * Merges this person into another. The picker lists everyone else (so merging
  * a person into themselves is unreachable), sorted by name.
  */
-const MergePersonDialog: React.FC<MergePersonDialogProps> = ({ person, onClose, onMerged }) => {
+const MergePersonDialog: React.FC<MergePersonDialogProps> = ({ person, initialIntoId, onClose, onMerged }) => {
   const { mergePerson, isMerging } = usePeopleMutations();
   const { data: people = [], isLoading } = usePeople({ limit: 100 });
-  const [intoId, setIntoId] = useState('');
+  const [intoId, setIntoId] = useState(initialIntoId === undefined ? '' : String(initialIntoId));
   const [error, setError] = useState<string | null>(null);
 
   const others = useMemo(

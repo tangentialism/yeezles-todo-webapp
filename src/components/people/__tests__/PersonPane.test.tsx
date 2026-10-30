@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import PersonPane from '../PersonPane';
 import * as AreaContextModule from '../../../contexts/AreaContext';
 import * as PeopleStore from '../../../hooks/usePeopleStore';
+import * as PeoplerStore from '../../../hooks/usePeoplerStore';
 import * as TodoStore from '../../../hooks/useTodoStore';
 import { PersonNavigationContext } from '../../../hooks/useOpenPerson';
 import { ApiError } from '../../../services/apiError';
@@ -13,6 +14,7 @@ import type { Todo } from '../../../types/todo';
 
 vi.mock('../../../contexts/AreaContext');
 vi.mock('../../../hooks/usePeopleStore');
+vi.mock('../../../hooks/usePeoplerStore');
 vi.mock('../../../hooks/useTodoStore');
 vi.mock('../../TodoActions', () => ({ default: () => null }));
 vi.mock('../../TodayToggle', () => ({ default: () => null }));
@@ -45,6 +47,12 @@ beforeEach(() => {
   vi.spyOn(AreaContextModule, 'useArea').mockReturnValue(areaContextValue({ areas: [home, work], currentArea: null }));
   vi.mocked(PeopleStore.usePerson).mockReturnValue(asReturn<ReturnType<typeof PeopleStore.usePerson>>(query(priya)));
   mockTodos([], []);
+  vi.mocked(PeopleStore.usePeopleMutations).mockReturnValue(
+    asReturn<ReturnType<typeof PeopleStore.usePeopleMutations>>({ updatePerson: vi.fn() })
+  );
+  vi.mocked(PeoplerStore.usePeoplerConnection).mockReturnValue(
+    asReturn<ReturnType<typeof PeoplerStore.usePeoplerConnection>>({ data: { connected: false } })
+  );
   vi.mocked(TodoStore.useTodoStore).mockReturnValue(
     asReturn<ReturnType<typeof TodoStore.useTodoStore>>({
       toggleTodoCompletion,
@@ -162,7 +170,7 @@ describe('PersonPane', () => {
 
     it('offers Open in Peopler only for a linked person, as a new-tab link to the right url', async () => {
       vi.mocked(PeopleStore.usePerson).mockReturnValue(
-        asReturn<ReturnType<typeof PeopleStore.usePerson>>(query({ ...priya, peopler_id: 12, peopler_url: 'https://peopler.example/people/12' }))
+        asReturn<ReturnType<typeof PeopleStore.usePerson>>(query({ ...priya, peopler_id: 12, peopler_link: 'ok', peopler_url: 'https://peopler.example/people/12' }))
       );
       renderPane();
       await openMenu();
